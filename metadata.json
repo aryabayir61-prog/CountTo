@@ -1,0 +1,8 @@
+{
+  "name": "ContTo - Dinamik & Minimalist Geri Sayım",
+  "description": "Belirlediğiniz özel tarihler ve anlar için havalı, dinamik ve akıcı animasyonlarla çalışan modern geri sayım (countdown) uygulaması.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
