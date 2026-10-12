@@ -19,7 +19,6 @@ import { ThemesView } from './components/ThemesView';
 import { CountdownModal } from './components/CountdownModal';
 import { ShareModal } from './components/ShareModal';
 import { TheBestExperienceView } from './components/TheBestExperienceView';
-import { DesignedForEverywhereView } from './components/DesignedForEverywhereView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
@@ -40,30 +39,13 @@ const isBestExperiencePage = () => {
   );
 };
 
-const isDesignedForEverywherePage = () => {
-  if (typeof window === 'undefined') return false;
-  const path = window.location.pathname.toLowerCase();
-  const search = window.location.search.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
-  return (
-    path === '/designedforeverywhere' ||
-    path === '/designedforeverywhere/' ||
-    path.endsWith('/designedforeverywhere') ||
-    path.endsWith('/designedforeverywhere/') ||
-    search.includes('designedforeverywhere') ||
-    hash.includes('designedforeverywhere')
-  );
-};
-
 export default function App() {
-  // Check if user is navigating to special showcase routes
+  // Check if user is navigating to /thebestexperience
   const [isBestExperience, setIsBestExperience] = useState<boolean>(isBestExperiencePage);
-  const [isDesignedForEverywhere, setIsDesignedForEverywhere] = useState<boolean>(isDesignedForEverywherePage);
 
   useEffect(() => {
     const handlePopState = () => {
       setIsBestExperience(isBestExperiencePage());
-      setIsDesignedForEverywhere(isDesignedForEverywherePage());
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -71,10 +53,6 @@ export default function App() {
 
   if (isBestExperience) {
     return <TheBestExperienceView />;
-  }
-
-  if (isDesignedForEverywhere) {
-    return <DesignedForEverywhereView />;
   }
   // Load events from LocalStorage or URL parameters or default presets
   const [events, setEvents] = useState<CountdownEvent[]>(() => {
@@ -402,13 +380,6 @@ export default function App() {
         return;
       }
 
-      // 5b. Ambient acoustic guitar music toggle ('a')
-      if (key === 'a') {
-        e.preventDefault();
-        setAmbientEnabled((prev) => !prev);
-        return;
-      }
-
       // 6. Milliseconds toggle ('m')
       if (key === 'm') {
         e.preventDefault();
@@ -513,8 +484,6 @@ export default function App() {
                 onToggleMilliseconds={handleToggleMilliseconds}
                 onCelebrateAgain={handleCelebrateAgain}
                 onOpenShortcuts={() => setIsShortcutsOpen(true)}
-                ambientEnabled={ambientEnabled}
-                onToggleAmbient={() => setAmbientEnabled((prev) => !prev)}
               />
             </motion.div>
           )}

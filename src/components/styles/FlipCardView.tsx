@@ -5,6 +5,7 @@ interface FlipCardViewProps {
   time: TimeRemaining;
   theme: ThemeConfig;
   showMilliseconds?: boolean;
+  hideDays?: boolean;
 }
 
 interface SingleDigitCardProps {
@@ -125,17 +126,26 @@ const SingleDigitCard: React.FC<SingleDigitCardProps> = ({ value, label, theme }
   );
 };
 
-export const FlipCardView: React.FC<FlipCardViewProps> = ({ time, theme, showMilliseconds }) => {
+export const FlipCardView: React.FC<FlipCardViewProps> = ({ 
+  time, 
+  theme, 
+  showMilliseconds,
+  hideDays = false,
+}) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
   return (
     <div className="flex items-center justify-center gap-2.5 sm:gap-4 md:gap-6 flex-wrap">
-      <SingleDigitCard value={padDays(time.days)} label="GÜN" theme={theme} />
+      {!hideDays && (
+        <>
+          <SingleDigitCard value={padDays(time.days)} label="GÜN" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-        :
-      </div>
+          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
+            :
+          </div>
+        </>
+      )}
 
       <SingleDigitCard value={pad(time.hours)} label="SAAT" theme={theme} />
 

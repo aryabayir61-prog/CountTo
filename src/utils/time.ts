@@ -160,3 +160,82 @@ export function getDefaultPresets(): CountdownEvent[] {
     }
   ];
 }
+
+export interface TurkeyCurrentTime {
+  hours: number;
+  minutes: number;
+  seconds: number;
+  milliseconds: number;
+  dateFormatted: string;
+  timeString: string;
+  timeZoneLabel: string;
+}
+
+/**
+ * Returns exact local time in Turkey (Europe/Istanbul / UTC+3).
+ * Ignores user's device/local timezone to show Turkey's general standard time.
+ */
+export function getTurkeyTime(): TurkeyCurrentTime {
+  const now = new Date();
+
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Istanbul',
+      hour12: false,
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    });
+
+    const parts = dtf.formatToParts(now);
+    let hours = 0;
+    let minutes = 0;
+    let seconds = 0;
+    for (const part of parts) {
+      if (part.type === 'hour') hours = parseInt(part.value, 10);
+      if (part.type === 'minute') minutes = parseInt(part.value, 10);
+      if (part.type === 'second') seconds = parseInt(part.value, 10);
+    }
+    if (hours === 24) hours = 0;
+
+    const ms = Math.floor(now.getMilliseconds() / 10);
+
+    const trDateFormatter = new Intl.DateTimeFormat('tr-TR', {
+      timeZone: 'Europe/Istanbul',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long',
+    });
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    return {
+      hours,
+      minutes,
+      seconds,
+      milliseconds: ms,
+      dateFormatted: trDateFormatter.format(now),
+      timeString: `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
+      timeZoneLabel: 'Türkiye Saati (TRT · UTC+3)',
+    };
+  } catch {
+    const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+    const trDate = new Date(utcTime + 3 * 3600000);
+    const hours = trDate.getHours();
+    const minutes = trDate.getMinutes();
+    const seconds = trDate.getSeconds();
+    const ms = Math.floor(trDate.getMilliseconds() / 10);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return {
+      hours,
+      minutes,
+      seconds,
+      milliseconds: ms,
+      dateFormatted: trDate.toLocaleDateString('tr-TR', { dateStyle: 'full' }),
+      timeString: `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
+      timeZoneLabel: 'Türkiye Saati (TRT · UTC+3)',
+    };
+  }
+}
+

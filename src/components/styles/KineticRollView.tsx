@@ -6,6 +6,7 @@ interface KineticRollViewProps {
   time: TimeRemaining;
   theme: ThemeConfig;
   showMilliseconds?: boolean;
+  hideDays?: boolean;
 }
 
 interface KineticDigitBoxProps {
@@ -69,17 +70,22 @@ export const KineticRollView: React.FC<KineticRollViewProps> = ({
   time,
   theme,
   showMilliseconds,
+  hideDays = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
   return (
     <div className="flex items-center justify-center gap-2.5 sm:gap-4 md:gap-6 flex-wrap">
-      <KineticDigitBox value={padDays(time.days)} label="GÜN" theme={theme} />
+      {!hideDays && (
+        <>
+          <KineticDigitBox value={padDays(time.days)} label="GÜN" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
-        :
-      </div>
+          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
+            :
+          </div>
+        </>
+      )}
 
       <KineticDigitBox value={pad(time.hours)} label="SAAT" theme={theme} />
 

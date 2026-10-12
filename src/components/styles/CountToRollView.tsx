@@ -6,6 +6,7 @@ interface CountToRollViewProps {
   time: TimeRemaining;
   theme: ThemeConfig;
   showMilliseconds?: boolean;
+  hideDays?: boolean;
 }
 
 interface SingleDigitSlotProps {
@@ -88,6 +89,7 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
   time,
   theme,
   showMilliseconds,
+  hideDays = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
@@ -100,13 +102,15 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
         boxShadow: `0 20px 50px -15px ${theme.glow}`,
       }}
     >
-      {/* Gün (Days) */}
-      <UnifiedUnit value={padDays(time.days)} label="GÜN" theme={theme} />
-
-      {/* Subtle Colon */}
-      <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-        :
-      </span>
+      {/* Gün (Days) - Hidden when hideDays is true */}
+      {!hideDays && (
+        <>
+          <UnifiedUnit value={padDays(time.days)} label="GÜN" theme={theme} />
+          <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
+            :
+          </span>
+        </>
+      )}
 
       {/* Saat (Hours) */}
       <UnifiedUnit value={pad(time.hours)} label="SAAT" theme={theme} />

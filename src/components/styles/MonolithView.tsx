@@ -5,12 +5,14 @@ interface MonolithViewProps {
   time: TimeRemaining;
   theme: ThemeConfig;
   showMilliseconds?: boolean;
+  hideDays?: boolean;
 }
 
 export const MonolithView: React.FC<MonolithViewProps> = ({
   time,
   theme,
   showMilliseconds,
+  hideDays = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
@@ -31,19 +33,23 @@ export const MonolithView: React.FC<MonolithViewProps> = ({
 
         {/* Primary Monolith Numbers Display */}
         <div className="flex items-baseline justify-center gap-1.5 sm:gap-4 md:gap-6 flex-wrap select-none">
-          {/* Days */}
-          <div className="flex flex-col items-center">
-            <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
-              {padDays(time.days)}
-            </span>
-            <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-              GÜN
-            </span>
-          </div>
+          {/* Days - Hidden when hideDays is true */}
+          {!hideDays && (
+            <>
+              <div className="flex flex-col items-center">
+                <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
+                  {padDays(time.days)}
+                </span>
+                <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
+                  GÜN
+                </span>
+              </div>
 
-          <span className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4 animate-pulse">
-            :
-          </span>
+              <span className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4 animate-pulse">
+                :
+              </span>
+            </>
+          )}
 
           {/* Hours */}
           <div className="flex flex-col items-center">

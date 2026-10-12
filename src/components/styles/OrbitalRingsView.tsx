@@ -5,6 +5,7 @@ interface OrbitalRingsViewProps {
   time: TimeRemaining;
   theme: ThemeConfig;
   showMilliseconds?: boolean;
+  hideDays?: boolean;
 }
 
 interface CircularProgressProps {
@@ -95,6 +96,7 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
   time,
   theme,
   showMilliseconds,
+  hideDays = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
@@ -104,13 +106,15 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
 
   return (
     <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-8 flex-wrap">
-      <CircularProgress
-        value={time.days}
-        max={daysMax}
-        label="GÜN"
-        displayValue={padDays(time.days)}
-        theme={theme}
-      />
+      {!hideDays && (
+        <CircularProgress
+          value={time.days}
+          max={daysMax}
+          label="GÜN"
+          displayValue={padDays(time.days)}
+          theme={theme}
+        />
+      )}
 
       <CircularProgress
         value={time.hours}

@@ -10,11 +10,10 @@ import {
   Sparkles, 
   Calendar, 
   Clock, 
-  Zap,
+  Zap, 
   Activity,
   CheckCircle2,
-  Keyboard,
-  Music
+  Keyboard
 } from 'lucide-react';
 import { CountdownEvent, CountdownStyle, ThemeConfig, TimeRemaining } from '../types/countdown';
 import { FlipCardView } from './styles/FlipCardView';
@@ -22,7 +21,7 @@ import { OrbitalRingsView } from './styles/OrbitalRingsView';
 import { KineticRollView } from './styles/KineticRollView';
 import { MonolithView } from './styles/MonolithView';
 import { CountToRollView } from './styles/CountToRollView';
-import { formatLocaleDate } from '../utils/time';
+import { formatLocaleDate, getTurkeyTime, TurkeyCurrentTime } from '../utils/time';
 
 interface CountdownDisplayProps {
   event: CountdownEvent;
@@ -38,8 +37,6 @@ interface CountdownDisplayProps {
   onToggleMilliseconds: () => void;
   onCelebrateAgain?: () => void;
   onOpenShortcuts?: () => void;
-  ambientEnabled?: boolean;
-  onToggleAmbient?: () => void;
 }
 
 export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
@@ -56,8 +53,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   onToggleMilliseconds,
   onCelebrateAgain,
   onOpenShortcuts,
-  ambientEnabled = false,
-  onToggleAmbient,
 }) => {
   const styles: { id: CountdownStyle; name: string }[] = [
     { id: 'countTo', name: 'CountTo (Aşağı Kayma)' },
@@ -73,13 +68,39 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Real-time Turkey Time ticker for finished/no-countdown state
+  const isFinished = !event || time.isPast;
+  const [trTime, setTrTime] = useState<TurkeyCurrentTime>(getTurkeyTime());
+
+  useEffect(() => {
+    if (!isFinished) return;
+    const ticker = setInterval(() => {
+      setTrTime(getTurkeyTime());
+    }, event.showMilliseconds ? 50 : 250);
+    return () => clearInterval(ticker);
+  }, [isFinished, event.showMilliseconds]);
+
+  // Construct display time object: If event is finished, display Turkey Time without days
+  const effectiveDisplayTime: TimeRemaining = isFinished
+    ? {
+        days: 0,
+        hours: trTime.hours,
+        minutes: trTime.minutes,
+        seconds: trTime.seconds,
+        milliseconds: trTime.milliseconds,
+        totalMs: 0,
+        isPast: true,
+        progressPercent: 100,
+      }
+    : time;
+
   const triggerBriefHint = useCallback(() => {
     if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     setShowHint(true);
-    // İpucu kısa bir süre (4 saniye) zarifçe görünüp kendiliğinden pürüzsüzce kaybolur
+    // İpucu kısa bir süre (3.8 saniye) görünüp kendiliğinden pürüzsüzce kaybolur
     hintTimerRef.current = setTimeout(() => {
       setShowHint(false);
-    }, 4000);
+    }, 3800);
   }, []);
 
   const resetHideTimer = useCallback(() => {
@@ -104,174 +125,156 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
     } else {
       setControlsVisible(true);
       setShowHint(false);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+      if (hintTimerRef.current) {
+        clearTimeout(hintTimerRef.current);
+      }
     }
 
     return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+      if (hintTimerRef.current) {
+        clearTimeout(hintTimerRef.current);
+      }
     };
   }, [isFullscreen, resetHideTimer]);
 
-  // Click / tap anywhere on screen in fullscreen toggles or reveals controls
-  const handleContainerClick = () => {
-    if (isFullscreen) {
-      setControlsVisible((prev) => {
-        const next = !prev;
-        if (next) {
-          setShowHint(false);
-          resetHideTimer();
-        } else {
-          if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-          triggerBriefHint();
-        }
-        return next;
-      });
-    }
-  };
-
   return (
     <div 
-      onClick={handleContainerClick}
-      className={`w-full max-w-5xl mx-auto flex flex-col items-center justify-center px-4 py-6 md:py-10 z-10 select-none transition-all duration-500 ${
-        isFullscreen ? 'min-h-[88vh] justify-center cursor-pointer' : ''
+      className={`relative w-full max-w-5xl mx-auto flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isFullscreen ? 'py-4 min-h-screen justify-center' : 'py-8'
       }`}
+      onClick={resetHideTimer}
+      onMouseMove={resetHideTimer}
     >
-      {/* Central Hero Countdown Section - Smoothly glides down when controls hide */}
+      {/* Dynamic Animated Content Container */}
       <motion.div
         animate={{
-          y: isFullscreen && !controlsVisible ? 54 : 0,
+          // Akıcı hareket: Kontroller gizlendiğinde sayaç 42px aşağı kayarak ekranın merkezine oturur
+          y: isFullscreen && !controlsVisible ? 42 : 0,
         }}
         transition={{
-          duration: 0.75,
-          ease: [0.16, 1, 0.3, 1], // Signature CountTo organic deceleration
+          duration: 0.7,
+          ease: [0.22, 1, 0.36, 1],
         }}
         className="w-full flex flex-col items-center justify-center"
       >
         {/* Event Header Information */}
         <div className="text-center mb-8 sm:mb-12 max-w-2xl px-2 transition-all duration-300">
           {/* Category & Status Line */}
-          <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-neutral-400 mb-3 tracking-wide">
-            <span className="flex items-center gap-1.5 font-medium text-neutral-300">
-              <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-              {formatLocaleDate(event.targetDate)}
-            </span>
-            <span aria-hidden="true" className="text-neutral-600">·</span>
-            {time.isPast ? (
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Süre Doldu
+          <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-neutral-400 mb-3 tracking-wide flex-wrap">
+            {isFinished ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-semibold text-xs shadow-sm">
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Türkiye Yerel Saati (UTC+3)</span>
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-neutral-300">
-                <Clock className="w-3.5 h-3.5 text-neutral-400" />
-                Geri Sayım Aktif
-              </span>
+              <>
+                <span className="flex items-center gap-1.5 font-medium text-neutral-300">
+                  <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                  {formatLocaleDate(event.targetDate)}
+                </span>
+                <span aria-hidden="true" className="text-neutral-600">·</span>
+                <span className="flex items-center gap-1 text-neutral-300">
+                  <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                  Geri Sayım Aktif
+                </span>
+              </>
             )}
           </div>
 
           {/* Primary Event Title */}
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-3 text-balance leading-tight">
-            {event.title}
+            {isFinished ? 'Şu Anki Saat' : event?.title}
           </h1>
 
-          {/* Optional Notes / Description */}
-          {event.notes && (
-            <p className="text-sm sm:text-base text-neutral-300/80 leading-relaxed font-normal mt-2">
-              {event.notes}
+          {/* Subtitle / Notes or Date */}
+          {isFinished ? (
+            <p className="text-sm sm:text-base text-neutral-400 font-normal mt-2">
+              {trTime.dateFormatted}
             </p>
+          ) : (
+            event?.notes && (
+              <p className="text-sm sm:text-base text-neutral-300/80 leading-relaxed font-normal mt-2">
+                {event.notes}
+              </p>
+            )
           )}
         </div>
 
-        {/* Target Reached Banner (if completed) */}
-        {time.isPast && (
-          <div 
-            className="mb-8 px-6 py-3 rounded-2xl border flex items-center gap-3 backdrop-blur-md shadow-lg animate-bounce transition-all duration-300"
-            style={{
-              backgroundColor: `${theme.primary}18`,
-              borderColor: `${theme.primary}44`,
-            }}
-          >
-            <Sparkles className="w-5 h-5 text-amber-300 shrink-0" />
-            <span className="text-sm sm:text-base font-semibold text-white">
-              Beklenen an geldi! Geçen süre sayılıyor:
-            </span>
-            {onCelebrateAgain && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCelebrateAgain();
-                }}
-                className="ml-2 text-xs font-semibold px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors"
-              >
-                Kutla 🎉
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Main Interactive Animated Countdown Area */}
+        {/* Main Interactive Animated Countdown / Turkey Clock Area */}
+        {/* Exactly uses the selected countdown style, but hides 'GÜN' when finished! */}
         <div className="w-full flex items-center justify-center my-2 sm:my-6 transition-all duration-500">
           {event.style === 'countTo' && (
             <CountToRollView
-              time={time}
+              time={effectiveDisplayTime}
               theme={theme}
               showMilliseconds={event.showMilliseconds}
+              hideDays={isFinished}
             />
           )}
           {event.style === 'flip' && (
             <FlipCardView
-              time={time}
+              time={effectiveDisplayTime}
               theme={theme}
               showMilliseconds={event.showMilliseconds}
+              hideDays={isFinished}
             />
           )}
           {event.style === 'orbital' && (
             <OrbitalRingsView
-              time={time}
+              time={effectiveDisplayTime}
               theme={theme}
               showMilliseconds={event.showMilliseconds}
+              hideDays={isFinished}
             />
           )}
           {event.style === 'kinetic' && (
             <KineticRollView
-              time={time}
+              time={effectiveDisplayTime}
               theme={theme}
               showMilliseconds={event.showMilliseconds}
+              hideDays={isFinished}
             />
           )}
           {event.style === 'monolith' && (
             <MonolithView
-              time={time}
+              time={effectiveDisplayTime}
               theme={theme}
               showMilliseconds={event.showMilliseconds}
+              hideDays={isFinished}
             />
           )}
         </div>
 
         {/* Subtle Progress Bar (Elapsed journey) */}
-        <div className="w-full max-w-lg mt-8 sm:mt-10 px-4">
-          <div className="flex items-center justify-between text-xs text-neutral-400 mb-1.5 font-medium">
-            <span className="flex items-center gap-1">
-              <Activity className="w-3 h-3 text-neutral-500" />
-              İlerleme
-            </span>
-            <span className="font-mono-numbers">
-              {time.progressPercent.toFixed(1)}%
-            </span>
+        {!isFinished && (
+          <div className="w-full max-w-lg mt-8 sm:mt-10 px-4">
+            <div className="flex items-center justify-between text-xs text-neutral-400 mb-1.5 font-medium">
+              <span className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-neutral-500" />
+                İlerleme
+              </span>
+              <span className="font-mono-numbers">
+                {time.progressPercent.toFixed(1)}%
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden backdrop-blur-xs">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, Math.max(0, time.progressPercent))}%`,
+                  backgroundColor: theme.primary,
+                  boxShadow: `0 0 12px ${theme.primary}`,
+                }}
+              />
+            </div>
           </div>
-          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden backdrop-blur-xs">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.min(100, Math.max(0, time.progressPercent))}%`,
-                backgroundColor: theme.primary,
-                boxShadow: `0 0 12px ${theme.primary}`,
-              }}
-            />
-          </div>
-        </div>
+        )}
       </motion.div>
 
       {/* Dynamic Control Area - Modern Segmented Pill Design with Smooth Hide/Show Animation */}
@@ -301,19 +304,24 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                   >
                     {isActive && (
                       <motion.div
-                        layoutId="activeStylePill"
-                        transition={{ type: 'spring', stiffness: 450, damping: 32 }}
-                        className="absolute inset-0 rounded-full border shadow-sm"
+                        layoutId="activeCountdownStylePill"
+                        className="absolute inset-0 rounded-full shadow-md"
                         style={{
                           backgroundColor: theme.primary,
-                          borderColor: `${theme.primary}dd`,
-                          boxShadow: `0 4px 15px -3px ${theme.glow}`,
+                          boxShadow: `0 0 18px ${theme.primary}55`,
+                        }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 420,
+                          damping: 32,
                         }}
                       />
                     )}
                     <span
                       className={`relative z-10 transition-colors duration-200 ${
-                        isActive ? 'text-neutral-950 font-bold' : 'text-neutral-400 hover:text-white'
+                        isActive
+                          ? 'text-neutral-950 font-bold'
+                          : 'text-neutral-400 hover:text-white'
                       }`}
                     >
                       {s.name}
@@ -323,12 +331,12 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
               })}
             </div>
 
-            {/* 2. Action Controls Toolbar - Matching Pill Group */}
-            <div className="flex items-center gap-1 p-1 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-2xl shadow-xl flex-wrap justify-center">
+            {/* 2. Action Toolbar */}
+            <div className="p-1.5 px-3 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-2xl flex items-center gap-1.5 sm:gap-2 shadow-2xl">
               {/* Sound Toggle */}
               <button
                 onClick={onToggleSound}
-                title={soundEnabled ? 'Sesi Kapat' : 'Tik Tak Sesini Aç'}
+                title={soundEnabled ? 'Sesi Kapat (Kısayol: S)' : 'Tik Tak Sesini Aç (Kısayol: S)'}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 select-none ${
                   soundEnabled
                     ? 'text-neutral-950 shadow-sm border'
@@ -356,33 +364,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                   </>
                 )}
               </button>
-
-              {/* Ambient Acoustic Guitar Music Toggle */}
-              {onToggleAmbient && (
-                <button
-                  onClick={onToggleAmbient}
-                  title={ambientEnabled ? 'Ambiyans Gitar Müziğini Kapat (Kısayol: A)' : 'Ambiyans Gitar Müziğini Başlat (Kısayol: A)'}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 select-none ${
-                    ambientEnabled
-                      ? 'text-neutral-950 shadow-sm border'
-                      : 'text-neutral-400 hover:text-white border border-transparent hover:bg-white/5'
-                  }`}
-                  style={
-                    ambientEnabled
-                      ? {
-                          backgroundColor: theme.primary,
-                          borderColor: `${theme.primary}dd`,
-                          boxShadow: `0 4px 15px -3px ${theme.glow}`,
-                        }
-                      : undefined
-                  }
-                >
-                  <Music className={`w-3.5 h-3.5 ${ambientEnabled ? 'text-neutral-950 animate-pulse' : ''}`} />
-                  <span className={ambientEnabled ? 'font-bold' : ''}>
-                    {ambientEnabled ? 'Gitar Ambiyans Açık' : 'Gitar Ambiyans'}
-                  </span>
-                </button>
-              )}
 
               {/* Milliseconds Toggle */}
               <button
@@ -453,48 +434,32 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Floating Zen Hint in Fullscreen - Appears briefly (4s) when controls hide, then smoothly fades away */}
+      {/* Floating Zen Hint in Fullscreen - Appears briefly (3.8s) when controls hide, then smoothly fades away */}
       <AnimatePresence>
         {isFullscreen && !controlsVisible && showHint && (
           <motion.div
             key="fullscreen-hint"
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 18, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-8 z-30 pointer-events-none"
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-6 z-30 pointer-events-none"
           >
             <div 
-              className="px-5 py-2 rounded-full backdrop-blur-2xl border text-xs sm:text-sm font-medium shadow-2xl flex items-center gap-2.5 select-none"
+              className="px-4 py-1.5 rounded-full backdrop-blur-xl border text-xs font-medium shadow-2xl flex items-center gap-2 select-none"
               style={{
-                backgroundColor: 'rgba(12, 15, 25, 0.88)',
-                borderColor: `${theme.primary}45`,
-                boxShadow: `0 12px 32px -4px ${theme.glow}35`,
+                backgroundColor: 'rgba(23, 23, 23, 0.85)',
+                borderColor: 'rgba(255, 255, 255, 0.12)',
+                color: '#e5e5e5',
+                boxShadow: `0 8px 30px -5px ${theme.glow}`,
               }}
             >
-              <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: theme.primary }} />
-              <span className="text-neutral-200">Kontrolleri görmek için ekrana dokunun</span>
+              <Sparkles className="w-3.5 h-3.5" style={{ color: theme.primary }} />
+              <span>Odaklanma modu aktif · Çıkmak için fareyi hareket ettirin</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Floating Minimize Button when in Fullscreen */}
-      {isFullscreen && (
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFullscreen();
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: controlsVisible ? 0.7 : 0.35 }}
-          whileHover={{ opacity: 1, scale: 1.08 }}
-          className="fixed top-5 right-5 p-2.5 rounded-full bg-black/40 border border-white/10 text-white backdrop-blur-md z-40 transition-all shadow-lg"
-          title="Tam Ekrandan Çık"
-        >
-          <Minimize2 className="w-4 h-4" />
-        </motion.button>
-      )}
     </div>
   );
 };
