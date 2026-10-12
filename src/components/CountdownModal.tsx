@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CountdownEvent, CountdownStyle, ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
+import { playHoverClickSound } from '../utils/audio';
 
 interface CountdownModalProps {
   isOpen: boolean;
@@ -500,7 +501,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                     <Palette className="w-3.5 h-3.5 text-neutral-400" />
                     Görsel Tema
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                     {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
                       const t = THEMES[tid];
                       const isSelected = theme === tid;
@@ -509,6 +510,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                           type="button"
                           key={tid}
                           onClick={() => setTheme(tid)}
+                          onMouseEnter={() => playHoverClickSound()}
                           className={`p-2 rounded-xl border flex items-center gap-2 transition-all ${
                             isSelected
                               ? 'border-white/70 bg-white/15 text-white shadow-md'

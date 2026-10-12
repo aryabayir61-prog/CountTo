@@ -85,4 +85,88 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     labelColor: 'text-neutral-400',
     ringColor: '#e5e7eb',
   },
+  crimson: {
+    id: 'crimson',
+    name: 'Kızıl Tutulma (Crimson Eclipse)',
+    primary: '#f43f5e',      // rose-500
+    secondary: '#b91c1c',    // red-700
+    glow: 'rgba(244, 63, 94, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(244, 63, 94, 0.14) 0%, rgba(20, 8, 12, 0.98) 70%)',
+    cardBg: 'rgba(32, 14, 20, 0.65)',
+    cardBorder: 'rgba(244, 63, 94, 0.22)',
+    textAccent: 'text-rose-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-rose-200/70',
+    ringColor: '#f43f5e',
+  },
+  midnight: {
+    id: 'midnight',
+    name: 'Gece Yarısı (Midnight Abyss)',
+    primary: '#3b82f6',      // blue-500
+    secondary: '#1d4ed8',    // blue-700
+    glow: 'rgba(59, 130, 246, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(59, 130, 246, 0.14) 0%, rgba(6, 12, 28, 0.98) 70%)',
+    cardBg: 'rgba(12, 20, 42, 0.65)',
+    cardBorder: 'rgba(59, 130, 246, 0.22)',
+    textAccent: 'text-blue-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-blue-200/70',
+    ringColor: '#3b82f6',
+  },
+  sakura: {
+    id: 'sakura',
+    name: 'Sakura Çiçeği (Neon Sakura)',
+    primary: '#f472b6',      // pink-400
+    secondary: '#ec4899',    // pink-500
+    glow: 'rgba(244, 114, 182, 0.26)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(244, 114, 182, 0.13) 0%, rgba(22, 10, 20, 0.98) 70%)',
+    cardBg: 'rgba(30, 16, 28, 0.65)',
+    cardBorder: 'rgba(244, 114, 182, 0.2)',
+    textAccent: 'text-pink-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-pink-200/70',
+    ringColor: '#f472b6',
+  },
+  hyperlime: {
+    id: 'hyperlime',
+    name: 'Siber Misket (Hyper Lime)',
+    primary: '#a3e635',      // lime-400
+    secondary: '#4ade80',    // green-400
+    glow: 'rgba(163, 230, 53, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(163, 230, 53, 0.12) 0%, rgba(10, 18, 8, 0.98) 70%)',
+    cardBg: 'rgba(16, 26, 12, 0.65)',
+    cardBorder: 'rgba(163, 230, 53, 0.22)',
+    textAccent: 'text-lime-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-lime-200/70',
+    ringColor: '#a3e635',
+  },
+  sunset: {
+    id: 'sunset',
+    name: 'Alacakaranlık (Sunset Glow)',
+    primary: '#fb923c',      // orange-400
+    secondary: '#f43f5e',    // rose-500
+    glow: 'rgba(251, 146, 60, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(251, 146, 60, 0.13) 0%, rgba(24, 12, 14, 0.98) 70%)',
+    cardBg: 'rgba(32, 18, 18, 0.65)',
+    cardBorder: 'rgba(251, 146, 60, 0.22)',
+    textAccent: 'text-orange-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-orange-200/70',
+    ringColor: '#fb923c',
+  },
+  nordic: {
+    id: 'nordic',
+    name: 'Kutup Buzulu (Nordic Glacier)',
+    primary: '#7dd3fc',      // sky-300
+    secondary: '#e0f2fe',    // sky-100
+    glow: 'rgba(125, 211, 252, 0.26)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(125, 211, 252, 0.12) 0%, rgba(8, 16, 24, 0.98) 70%)',
+    cardBg: 'rgba(14, 24, 34, 0.65)',
+    cardBorder: 'rgba(125, 211, 252, 0.22)',
+    textAccent: 'text-sky-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-sky-200/70',
+    ringColor: '#7dd3fc',
+  },
 };

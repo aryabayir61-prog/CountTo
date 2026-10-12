@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
-import { playThemeSound } from '../utils/audio';
+import { playThemeSound, playHoverClickSound } from '../utils/audio';
 
 interface ThemesViewProps {
   currentTheme: ThemeId;
@@ -41,7 +41,7 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
       </div>
 
       {/* Grid of Themes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
         {themeIds.map((tid) => {
           const t = THEMES[tid];
           const isSelected = tid === currentTheme;
@@ -50,6 +50,7 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
             <div
               key={tid}
               onClick={() => handleCardClick(tid)}
+              onMouseEnter={() => playHoverClickSound()}
               className={`group cursor-pointer rounded-3xl border p-5 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
                 isSelected
                   ? 'border-white/50 bg-neutral-900/90 ring-2 ring-white/20 shadow-2xl scale-[1.01]'
@@ -145,7 +146,7 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
                 )}
               </div>
               <p className="text-[11px] text-neutral-400 leading-tight">
-                Özel akustik gitar melodisiyle kısık sesli, dinlendirici ve huzurlu döngü
+                Seçili temanın kısık sesli, uzun ve süzülen kozmik akor akışı
               </p>
             </div>
           </div>

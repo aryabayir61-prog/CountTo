@@ -1,6 +1,18 @@
 export type CountdownStyle = 'countTo' | 'flip' | 'orbital' | 'kinetic' | 'monolith';
 
-export type ThemeId = 'aurora' | 'cyber' | 'violet' | 'gold' | 'emerald' | 'monochrome';
+export type ThemeId = 
+  | 'aurora' 
+  | 'cyber' 
+  | 'violet' 
+  | 'gold' 
+  | 'emerald' 
+  | 'monochrome'
+  | 'crimson'
+  | 'midnight'
+  | 'sakura'
+  | 'hyperlime'
+  | 'sunset'
+  | 'nordic';
 
 export interface ThemeConfig {
   id: ThemeId;
