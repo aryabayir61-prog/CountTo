@@ -62,7 +62,7 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
     { id: 'monolith', name: 'Monolit' },
   ];
 
-  // Fullscreen dynamic auto-hide controls state (1 minute delay)
+  // Fullscreen dynamic auto-hide controls state
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const [showHint, setShowHint] = useState<boolean>(false);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -94,72 +94,98 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
       }
     : time;
 
+  // Trigger brief hint when entering focus mode
   const triggerBriefHint = useCallback(() => {
     if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     setShowHint(true);
-    // İpucu kısa bir süre (3.8 saniye) görünüp kendiliğinden pürüzsüzce kaybolur
+    // İpucu 3.2 saniye görünür ve ardından pürüzsüzce kaybolur
     hintTimerRef.current = setTimeout(() => {
       setShowHint(false);
-    }, 3800);
+    }, 3200);
   }, []);
 
-  const resetHideTimer = useCallback(() => {
+  // Wakes up controls immediately on any user activity and restarts auto-hide timer
+  const handleUserActivity = useCallback(() => {
+    // 1. Herhangi bir hareket veya dokunuşta kontroller ANINDA ve pürüzsüzce açılır
+    setControlsVisible(true);
+
+    // 2. Kontroller açıldığı an ipucu rozeti gizlenir
+    setShowHint(false);
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+    }
+
+    // 3. Önceki gizleme sayacını sıfırla
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
     }
+
+    // 4. Tam ekrandayken kullanıcı 6 saniye hiçbir şey yapmazsa odak moduna geçer
     if (isFullscreen) {
-      // 1 dakika (60.000 ms) sonra kontroller otomatik ve akıcı şekilde gizlenir
       hideTimerRef.current = setTimeout(() => {
         setControlsVisible(false);
         triggerBriefHint();
-      }, 60000);
+      }, 6000);
     }
   }, [isFullscreen, triggerBriefHint]);
 
-  // Handle fullscreen mode change
+  // Global window-level listener: works anywhere on the screen, across all pixels & devices
   useEffect(() => {
-    if (isFullscreen) {
+    if (!isFullscreen) {
       setControlsVisible(true);
       setShowHint(false);
-      resetHideTimer();
-    } else {
-      setControlsVisible(true);
-      setShowHint(false);
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-      }
-      if (hintTimerRef.current) {
-        clearTimeout(hintTimerRef.current);
-      }
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      return;
     }
 
-    return () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-      }
-      if (hintTimerRef.current) {
-        clearTimeout(hintTimerRef.current);
-      }
+    // Tam ekrana geçildiğinde sayacı başlat
+    handleUserActivity();
+
+    // Tüm ekran genelinde fare, dokunma, tıklama ve tuş hareketlerini dinle
+    const onActivity = () => {
+      handleUserActivity();
     };
-  }, [isFullscreen, resetHideTimer]);
+
+    window.addEventListener('mousemove', onActivity, { passive: true });
+    window.addEventListener('pointermove', onActivity, { passive: true });
+    window.addEventListener('touchstart', onActivity, { passive: true });
+    window.addEventListener('touchmove', onActivity, { passive: true });
+    window.addEventListener('mousedown', onActivity, { passive: true });
+    window.addEventListener('keydown', onActivity, { passive: true });
+
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      window.removeEventListener('mousemove', onActivity);
+      window.removeEventListener('pointermove', onActivity);
+      window.removeEventListener('touchstart', onActivity);
+      window.removeEventListener('touchmove', onActivity);
+      window.removeEventListener('mousedown', onActivity);
+      window.removeEventListener('keydown', onActivity);
+    };
+  }, [isFullscreen, handleUserActivity]);
 
   return (
     <div 
-      className={`relative w-full max-w-5xl mx-auto flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        isFullscreen ? 'py-4 min-h-screen justify-center' : 'py-8'
+      className={`relative w-full max-w-5xl mx-auto flex flex-col items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        isFullscreen 
+          ? controlsVisible 
+            ? 'py-4 min-h-screen justify-center cursor-default' 
+            : 'py-4 min-h-screen justify-center cursor-none' 
+          : 'py-8'
       }`}
-      onClick={resetHideTimer}
-      onMouseMove={resetHideTimer}
+      onClick={handleUserActivity}
     >
       {/* Dynamic Animated Content Container */}
       <motion.div
         animate={{
-          // Akıcı hareket: Kontroller gizlendiğinde sayaç 42px aşağı kayarak ekranın merkezine oturur
-          y: isFullscreen && !controlsVisible ? 42 : 0,
+          // Akıcı hareket: Kontroller gizlendiğinde sayaç pürüzsüzce ekranın merkezine oturur
+          y: isFullscreen && !controlsVisible ? 36 : 0,
         }}
         transition={{
-          duration: 0.7,
-          ease: [0.22, 1, 0.36, 1],
+          duration: 0.55,
+          ease: [0.16, 1, 0.3, 1], // Buttery smooth liquid deceleration
         }}
         className="w-full flex flex-col items-center justify-center"
       >
@@ -282,13 +308,17 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         {controlsVisible && (
           <motion.div
             key="countdown-controls"
-            initial={{ opacity: 0, y: 35, scale: 0.95, filter: 'blur(6px)' }}
+            initial={{ opacity: 0, y: 28, scale: 0.97, filter: 'blur(8px)' }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 40, scale: 0.95, filter: 'blur(6px)' }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, y: 24, scale: 0.97, filter: 'blur(8px)' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => {
               e.stopPropagation();
-              resetHideTimer();
+              handleUserActivity();
+            }}
+            onMouseMove={(e) => {
+              e.stopPropagation();
+              handleUserActivity();
             }}
             className="mt-8 sm:mt-10 flex flex-col items-center gap-3 w-full"
           >
@@ -434,28 +464,28 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Floating Zen Hint in Fullscreen - Appears briefly (3.8s) when controls hide, then smoothly fades away */}
+      {/* Floating Zen Hint in Fullscreen - Appears briefly (3.2s) when controls hide, then smoothly fades away */}
       <AnimatePresence>
         {isFullscreen && !controlsVisible && showHint && (
           <motion.div
             key="fullscreen-hint"
-            initial={{ opacity: 0, y: 18, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 15, scale: 0.95 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 22, scale: 0.94, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: 16, scale: 0.96, filter: 'blur(6px)' }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className="fixed bottom-6 z-30 pointer-events-none"
           >
             <div 
-              className="px-4 py-1.5 rounded-full backdrop-blur-xl border text-xs font-medium shadow-2xl flex items-center gap-2 select-none"
+              className="px-5 py-2 rounded-full backdrop-blur-2xl border text-xs font-medium shadow-2xl flex items-center gap-2.5 select-none"
               style={{
-                backgroundColor: 'rgba(23, 23, 23, 0.85)',
-                borderColor: 'rgba(255, 255, 255, 0.12)',
-                color: '#e5e5e5',
-                boxShadow: `0 8px 30px -5px ${theme.glow}`,
+                backgroundColor: 'rgba(18, 18, 22, 0.88)',
+                borderColor: 'rgba(255, 255, 255, 0.14)',
+                color: '#f3f4f6',
+                boxShadow: `0 10px 35px -5px ${theme.glow}`,
               }}
             >
-              <Sparkles className="w-3.5 h-3.5" style={{ color: theme.primary }} />
-              <span>Odaklanma modu aktif · Çıkmak için fareyi hareket ettirin</span>
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" style={{ color: theme.primary }} />
+              <span>Odak modu aktif · Kontroller için fareyi hareket ettirin veya dokunun</span>
             </div>
           </motion.div>
         )}

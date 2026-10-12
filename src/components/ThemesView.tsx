@@ -28,20 +28,20 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-8 z-10 select-none">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 z-10 select-none">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+      <div className="mb-8 sm:mb-10">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
           <Sparkles className="w-6 h-6 text-cyan-400" />
-          Görsel Renk Temaları
+          <span>Görsel Renk Temaları</span>
         </h2>
-        <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-          Geri sayım ekranınızın atmosferini tek bir dokunuşla kişiselleştirin.
+        <p className="text-xs sm:text-sm text-neutral-400 mt-1.5 max-w-xl">
+          Geri sayım ekranınızın atmosferini tek bir dokunuşla kişiselleştirin. Seçtiğiniz temanın aurası tüm ekrana yansır.
         </p>
       </div>
 
-      {/* Grid of Themes */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+      {/* Grid of Themes - Expansive 3 Columns with Generous Width */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
         {themeIds.map((tid) => {
           const t = THEMES[tid];
           const isSelected = tid === currentTheme;
@@ -51,7 +51,7 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
               key={tid}
               onClick={() => handleCardClick(tid)}
               onMouseEnter={() => playHoverClickSound()}
-              className={`group cursor-pointer rounded-3xl border p-5 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
+              className={`group cursor-pointer rounded-3xl border p-6 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
                 isSelected
                   ? 'border-white/50 bg-neutral-900/90 ring-2 ring-white/20 shadow-2xl scale-[1.01]'
                   : 'border-white/10 bg-neutral-900/40 hover:border-white/25 hover:bg-neutral-900/60'
@@ -60,37 +60,43 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
                 boxShadow: isSelected ? `0 15px 35px -10px ${t.glow}` : undefined,
               }}
             >
-              {/* Preview Gradient Sphere */}
-              <div className="relative h-28 w-full rounded-2xl overflow-hidden mb-4 border border-white/10 flex items-center justify-center">
+              {/* Preview Gradient Sphere - Wide & Spacious */}
+              <div className="relative h-32 sm:h-36 w-full rounded-2xl overflow-hidden mb-5 border border-white/10 flex items-center justify-center">
                 <div
                   className="absolute inset-0 opacity-80"
                   style={{ background: t.bgGradient }}
                 />
                 <div
-                  className="w-16 h-16 rounded-full blur-lg opacity-80 transition-transform duration-300 group-hover:scale-125"
+                  className="w-20 h-20 rounded-full blur-xl opacity-80 transition-transform duration-300 group-hover:scale-125"
                   style={{ backgroundColor: t.primary }}
                 />
                 <div
-                  className="w-10 h-10 rounded-full blur-md opacity-70 -ml-4"
+                  className="w-14 h-14 rounded-full blur-lg opacity-70 -ml-6"
                   style={{ backgroundColor: t.secondary }}
                 />
-                {/* Sample numbers preview */}
-                <div className="relative z-10 font-mono-numbers text-2xl font-black text-white drop-shadow-md">
-                  07 : 42 : 19
+                {/* Sample numbers preview - Guaranteed single line with whitespace-nowrap */}
+                <div className="relative z-10 font-mono-numbers text-2xl sm:text-3xl font-black text-white drop-shadow-md whitespace-nowrap tracking-wide flex items-center justify-center gap-2 select-none">
+                  <span>07</span>
+                  <span className="text-white/40 font-light text-xl sm:text-2xl pb-0.5">:</span>
+                  <span>42</span>
+                  <span className="text-white/40 font-light text-xl sm:text-2xl pb-0.5">:</span>
+                  <span>19</span>
                 </div>
               </div>
 
               {/* Title & Selection */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base text-white">{t.name}</h3>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg text-white truncate tracking-tight">
+                    {t.name}
+                  </h3>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span 
-                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/20"
+                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0"
                       style={{ backgroundColor: t.primary }}
                     />
                     <span 
-                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/20"
+                      className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0"
                       style={{ backgroundColor: t.secondary }}
                     />
                     <span className="text-xs text-neutral-400 capitalize">{tid}</span>
@@ -99,13 +105,13 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
 
                 {isSelected ? (
                   <div 
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-neutral-950 font-bold shadow-md"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-950 font-bold shadow-md shrink-0"
                     style={{ backgroundColor: t.primary }}
                   >
                     <Check className="w-4 h-4 stroke-[3]" />
                   </div>
                 ) : (
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/5 group-hover:bg-white/15 text-neutral-400 group-hover:text-white border border-white/5 transition-all">
+                  <span className="text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white/5 group-hover:bg-white/15 text-neutral-400 group-hover:text-white border border-white/5 transition-all shrink-0">
                     Seç
                   </span>
                 )}
