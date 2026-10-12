@@ -115,6 +115,17 @@ export function getDefaultPresets(): CountdownEvent[] {
 
   return [
     {
+      id: 'preset-current-time',
+      title: 'Şu Anki Saat',
+      targetDate: new Date(now.getTime() - 60000).toISOString(),
+      createdAt: now.toISOString(),
+      style: 'countTo',
+      theme: 'aurora',
+      notes: 'Canlı Türkiye Yerel Saati (Europe/Istanbul · UTC+3).',
+      category: 'genel',
+      showMilliseconds: false,
+    },
+    {
       id: 'preset-new-year',
       title: `Yeni Yıl ${currentYear + 1}`,
       targetDate: nextNewYear.toISOString(),

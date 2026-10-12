@@ -80,11 +80,18 @@ export default function App() {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored);
+          const parsed = JSON.parse(stored) as CountdownEvent[];
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.map((e: CountdownEvent) => 
-              e.id === 'preset-new-year' && e.style === 'flip' ? { ...e, style: 'countTo' } : e
+            let loaded: CountdownEvent[] = parsed.map((e) => 
+              e.id === 'preset-new-year' && e.style === 'flip' ? { ...e, style: 'countTo' as const } : e
             );
+            if (!loaded.some((e) => e.id === 'preset-current-time')) {
+              const currentTimePreset = getDefaultPresets().find((p) => p.id === 'preset-current-time');
+              if (currentTimePreset) {
+                loaded = [currentTimePreset, ...loaded];
+              }
+            }
+            return loaded;
           }
         }
       } catch {
@@ -97,7 +104,8 @@ export default function App() {
   });
 
   const [activeEventId, setActiveEventId] = useState<string>(() => {
-    return events[0]?.id || 'preset-new-year';
+    const newYear = events.find((e) => e.id === 'preset-new-year');
+    return newYear ? newYear.id : (events[0]?.id || 'preset-current-time');
   });
 
   const [activeView, setActiveView] = useState<'display' | 'list' | 'themes'>('display');

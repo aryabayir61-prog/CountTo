@@ -83,10 +83,11 @@ export const CountdownList: React.FC<CountdownListProps> = ({
           />
         </div>
 
-        {/* Filter Segmented Controls (Matching Screenshot Design with Smooth Slide) */}
+        {/* Filter Segmented Controls */}
         <div className="flex items-center p-1 bg-neutral-900/90 rounded-full border border-white/10 overflow-x-auto shadow-inner relative">
           {[
             { id: 'all', label: 'Tümü' },
+            { id: 'genel', label: 'Saat' },
             { id: 'kutlama', label: 'Kutlama' },
             { id: 'tatil', label: 'Tatil' },
             { id: 'is', label: 'İş / Hedef' },
@@ -140,7 +141,10 @@ export const CountdownList: React.FC<CountdownListProps> = ({
           {filteredEvents.map((ev) => {
             const evTheme = THEMES[ev.theme] || theme;
             const isActive = ev.id === activeEventId;
-            const relativeTimeStr = getTurkishRelativeTime(ev.targetDate);
+            const isClock = ev.id === 'preset-current-time';
+            const relativeTimeStr = isClock 
+              ? 'Canlı Türkiye Saati (UTC+3)' 
+              : getTurkishRelativeTime(ev.targetDate);
 
             return (
               <div
@@ -161,7 +165,7 @@ export const CountdownList: React.FC<CountdownListProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 font-medium text-neutral-300">
                         <Clock className="w-3.5 h-3.5 text-neutral-500" />
-                        {formatShortDate(ev.targetDate)}
+                        {isClock ? 'Canlı Saat' : formatShortDate(ev.targetDate)}
                       </span>
                       <span aria-hidden="true">·</span>
                       <span>
@@ -179,8 +183,9 @@ export const CountdownList: React.FC<CountdownListProps> = ({
                     )}
                   </div>
 
-                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
-                    {ev.title}
+                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug flex items-center gap-2">
+                    {isClock && <span>🇹🇷</span>}
+                    <span>{ev.title}</span>
                   </h3>
 
                   {ev.notes && (
@@ -192,8 +197,9 @@ export const CountdownList: React.FC<CountdownListProps> = ({
 
                 {/* Bottom Section */}
                 <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-neutral-300">
-                    {relativeTimeStr}
+                  <div className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
+                    {isClock && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse inline-block" />}
+                    <span>{relativeTimeStr}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -204,20 +210,24 @@ export const CountdownList: React.FC<CountdownListProps> = ({
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onEditEvent(ev)}
-                      title="Düzenle"
-                      className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteEvent(ev.id)}
-                      title="Sil"
-                      className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!isClock && (
+                      <button
+                        onClick={() => onEditEvent(ev)}
+                        title="Düzenle"
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {!isClock && (
+                      <button
+                        onClick={() => onDeleteEvent(ev.id)}
+                        title="Sil"
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                     {!isActive && (
                       <button
                         onClick={() => onSelectEvent(ev.id)}
