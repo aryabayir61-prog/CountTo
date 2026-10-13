@@ -7,6 +7,7 @@ interface KineticRollViewProps {
   theme: ThemeConfig;
   showMilliseconds?: boolean;
   hideDays?: boolean;
+  isVertical?: boolean;
 }
 
 interface KineticDigitBoxProps {
@@ -17,7 +18,7 @@ interface KineticDigitBoxProps {
 
 const KineticDigitBox: React.FC<KineticDigitBoxProps> = ({ value, label, theme }) => {
   return (
-    <div className="flex flex-col items-center">
+    <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
       {/* Sleek Frosted Glass Container */}
       <div 
         className="relative w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-40 rounded-2xl overflow-hidden flex items-center justify-center backdrop-blur-xl border border-white/10 shadow-xl"
@@ -62,7 +63,7 @@ const KineticDigitBox: React.FC<KineticDigitBoxProps> = ({ value, label, theme }
           {label}
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -71,44 +72,59 @@ export const KineticRollView: React.FC<KineticRollViewProps> = ({
   theme,
   showMilliseconds,
   hideDays = false,
+  isVertical = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
   return (
-    <div className="flex items-center justify-center gap-2.5 sm:gap-4 md:gap-6 flex-wrap">
+    <motion.div 
+      layout
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className={`flex items-center justify-center transition-all duration-500 ${
+        isVertical ? 'flex-col gap-3.5 sm:gap-5' : 'flex-row gap-2.5 sm:gap-4 md:gap-6 flex-wrap'
+      }`}
+    >
       {!hideDays && (
         <>
           <KineticDigitBox value={padDays(time.days)} label="GÜN" theme={theme} />
 
-          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
-            :
-          </div>
+          {!isVertical && (
+            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
+              :
+            </div>
+          )}
         </>
       )}
 
       <KineticDigitBox value={pad(time.hours)} label="SAAT" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
-        :
-      </div>
+      {!isVertical && (
+        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
+          :
+        </div>
+      )}
 
       <KineticDigitBox value={pad(time.minutes)} label="DAKİKA" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
-        :
-      </div>
+      {!isVertical && (
+        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
+          :
+        </div>
+      )}
 
       <KineticDigitBox value={pad(time.seconds)} label="SANİYE" theme={theme} />
 
       {showMilliseconds && (
         <>
-          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
-            .
-          </div>
+          {!isVertical && (
+            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-7 sm:pb-9">
+              .
+            </div>
+          )}
           <KineticDigitBox value={pad(time.milliseconds)} label="SALİSE" theme={theme} />
         </>
       )}
-    </div>
+    </motion.div>
   );
 };

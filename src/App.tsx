@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CountdownEvent, CountdownStyle, ThemeId, TimeRemaining } from './types/countdown';
 import { THEMES } from './utils/themes';
@@ -7,8 +7,10 @@ import {
   playTickSound, 
   playCelebrationChime, 
   playThemeSound,
+  playHoverClickSound,
   startAmbientMusic,
-  stopAmbientMusic 
+  stopAmbientMusic,
+  playWeatherNotificationSound 
 } from './utils/audio';
 import { fireCelebrationConfetti } from './utils/confetti';
 import { AmbientBackground } from './components/AmbientBackground';
@@ -20,6 +22,8 @@ import { CountdownModal } from './components/CountdownModal';
 import { ShareModal } from './components/ShareModal';
 import { TheBestExperienceView } from './components/TheBestExperienceView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
+import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
 const SOUND_KEY = 'contto_sound_enabled';
@@ -121,6 +125,30 @@ export default function App() {
   const [editingEvent, setEditingEvent] = useState<CountdownEvent | null>(null);
   const [sharingEvent, setSharingEvent] = useState<CountdownEvent | null>(null);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState<boolean>(false);
+  const [weatherNotification, setWeatherNotification] = useState<RealWeatherNotification | null>(null);
+  const lastWeatherShowRef = useRef<number>(0);
+  const [isVertical, setIsVertical] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('countto_orientation_vertical') === 'true';
+    }
+    return false;
+  });
+
+  // Request real location permission on application startup
+  useEffect(() => {
+    getRealUserCoordinates();
+  }, []);
+
+  const handleToggleVertical = useCallback(() => {
+    setIsVertical((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('countto_orientation_vertical', String(next));
+      }
+      return next;
+    });
+    playHoverClickSound(0.09);
+  }, []);
 
   // Active event object
   const activeEvent = useMemo(() => {
@@ -185,6 +213,47 @@ export default function App() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Trigger smooth, real weather notification in fullscreen (with cooldown to prevent spam)
+  useEffect(() => {
+    if (!isFullscreen) {
+      setWeatherNotification(null);
+      return;
+    }
+
+    const now = Date.now();
+    // 15-minute cooldown between weather notifications
+    if (now - lastWeatherShowRef.current < 15 * 60 * 1000) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    // Smooth delay after entering fullscreen so the transition is graceful
+    const timer = setTimeout(async () => {
+      if (isCancelled) return;
+      const weather = await fetchRealWeather();
+      if (weather && !isCancelled) {
+        lastWeatherShowRef.current = Date.now();
+        setWeatherNotification(weather);
+        if (soundEnabled) {
+          playWeatherNotificationSound(activeEvent.theme);
+        }
+
+        // Auto-dismiss after 7.5 seconds
+        setTimeout(() => {
+          if (!isCancelled) {
+            setWeatherNotification(null);
+          }
+        }, 7500);
+      }
+    }, 1800);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [isFullscreen, activeEvent.theme, soundEnabled]);
 
   // Real-time ticker effect
   useEffect(() => {
@@ -395,7 +464,14 @@ export default function App() {
         return;
       }
 
-      // 7. Edit active countdown ('e')
+      // 7. Orientation toggle ('v' for vertical/horizontal)
+      if (key === 'v') {
+        e.preventDefault();
+        handleToggleVertical();
+        return;
+      }
+
+      // 8. Edit active countdown ('e')
       if (key === 'e') {
         e.preventDefault();
         setEditingEvent(activeEvent);
@@ -443,6 +519,7 @@ export default function App() {
     sharingEvent,
     activeView,
     activeEvent,
+    handleToggleVertical,
   ]);
 
   return (
@@ -464,7 +541,13 @@ export default function App() {
       )}
 
       {/* Main Content Area with Smooth Horizontal Slide Transition */}
-      <main className={`flex-1 flex flex-col justify-center items-center relative z-10 w-full mx-auto ${isFullscreen ? 'h-full max-w-none px-4 py-0' : 'max-w-7xl px-4 overflow-hidden'}`}>
+      <main className={`flex-1 flex flex-col justify-center relative z-10 w-full ${
+        isFullscreen 
+          ? 'h-full max-w-none px-2 sm:px-4 py-0' 
+          : isVertical 
+            ? 'max-w-none px-2 sm:px-6 overflow-hidden' 
+            : 'max-w-7xl px-4 mx-auto items-center overflow-hidden'
+      }`}>
         <AnimatePresence mode="wait">
           {activeView === 'display' && (
             <motion.div
@@ -473,7 +556,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
               exit={{ opacity: 0, x: 32, filter: 'blur(3px)' }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full flex justify-center"
+              className={`w-full flex ${isVertical ? 'justify-start items-start' : 'justify-center items-center'}`}
             >
               <CountdownDisplay
                 event={activeEvent}
@@ -492,6 +575,8 @@ export default function App() {
                 onToggleMilliseconds={handleToggleMilliseconds}
                 onCelebrateAgain={handleCelebrateAgain}
                 onOpenShortcuts={() => setIsShortcutsOpen(true)}
+                isVertical={isVertical}
+                onToggleVertical={handleToggleVertical}
               />
             </motion.div>
           )}
@@ -590,6 +675,14 @@ export default function App() {
         onClose={() => setIsShortcutsOpen(false)}
         theme={currentTheme}
       />
+
+      {/* Real Weather Fullscreen Notification Toast */}
+      {isFullscreen && (
+        <FullscreenWeatherToast
+          notification={weatherNotification}
+          onDismiss={() => setWeatherNotification(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { ThemeConfig, TimeRemaining } from '../../types/countdown';
 
 interface OrbitalRingsViewProps {
@@ -6,6 +7,7 @@ interface OrbitalRingsViewProps {
   theme: ThemeConfig;
   showMilliseconds?: boolean;
   hideDays?: boolean;
+  isVertical?: boolean;
 }
 
 interface CircularProgressProps {
@@ -97,6 +99,7 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
   theme,
   showMilliseconds,
   hideDays = false,
+  isVertical = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
@@ -105,7 +108,13 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
   const daysMax = time.days > 30 ? 365 : 30;
 
   return (
-    <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-8 flex-wrap">
+    <motion.div 
+      layout
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className={`flex items-center justify-center transition-all duration-500 ${
+        isVertical ? 'flex-col gap-4 sm:gap-6' : 'flex-row gap-3 sm:gap-6 md:gap-8 flex-wrap'
+      }`}
+    >
       {!hideDays && (
         <CircularProgress
           value={time.days}
@@ -149,6 +158,6 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
           theme={theme}
         />
       )}
-    </div>
+    </motion.div>
   );
 };

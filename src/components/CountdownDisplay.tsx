@@ -13,7 +13,8 @@ import {
   Zap, 
   Activity,
   CheckCircle2,
-  Keyboard
+  Keyboard,
+  CloudRain
 } from 'lucide-react';
 import { CountdownEvent, CountdownStyle, ThemeConfig, TimeRemaining } from '../types/countdown';
 import { FlipCardView } from './styles/FlipCardView';
@@ -37,6 +38,7 @@ interface CountdownDisplayProps {
   onToggleMilliseconds: () => void;
   onCelebrateAgain?: () => void;
   onOpenShortcuts?: () => void;
+  onTriggerWeatherAlert?: () => void;
 }
 
 export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
@@ -53,6 +55,7 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   onToggleMilliseconds,
   onCelebrateAgain,
   onOpenShortcuts,
+  onTriggerWeatherAlert,
 }) => {
   const styles: { id: CountdownStyle; name: string }[] = [
     { id: 'countTo', name: 'CountTo (Aşağı Kayma)' },
@@ -439,6 +442,17 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Düzenle</span>
               </button>
+
+              {/* Weather Alert Trigger Button */}
+              {onTriggerWeatherAlert && (
+                <button
+                  onClick={onTriggerWeatherAlert}
+                  title="Hava Durumu Bildirimi Gönder (Kısayol: W)"
+                  className="p-1.5 px-2.5 rounded-full text-neutral-400 hover:text-white border border-transparent hover:bg-white/5 transition-all text-xs font-medium flex items-center select-none"
+                >
+                  <CloudRain className="w-3.5 h-3.5 text-cyan-400" />
+                </button>
+              )}
 
               {/* Fullscreen Button */}
               <button

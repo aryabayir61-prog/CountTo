@@ -169,4 +169,88 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     labelColor: 'text-sky-200/70',
     ringColor: '#7dd3fc',
   },
+  synthwave: {
+    id: 'synthwave',
+    name: "80'ler Retrodalga (Synthwave)",
+    primary: '#d946ef',      // fuchsia-500
+    secondary: '#06b6d4',    // cyan-500
+    glow: 'rgba(217, 70, 239, 0.32)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(217, 70, 239, 0.15) 0%, rgba(18, 8, 30, 0.98) 70%)',
+    cardBg: 'rgba(30, 14, 40, 0.65)',
+    cardBorder: 'rgba(217, 70, 239, 0.25)',
+    textAccent: 'text-fuchsia-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-fuchsia-200/70',
+    ringColor: '#d946ef',
+  },
+  nebula: {
+    id: 'nebula',
+    name: 'Derin Nebula (Cosmic Plasma)',
+    primary: '#818cf8',      // indigo-400
+    secondary: '#c084fc',    // purple-400
+    glow: 'rgba(129, 140, 248, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(129, 140, 248, 0.14) 0%, rgba(10, 10, 28, 0.98) 70%)',
+    cardBg: 'rgba(20, 18, 42, 0.65)',
+    cardBorder: 'rgba(129, 140, 248, 0.22)',
+    textAccent: 'text-indigo-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-indigo-200/70',
+    ringColor: '#818cf8',
+  },
+  solarpunk: {
+    id: 'solarpunk',
+    name: 'Güneş Işıltısı (Solarpunk Amber)',
+    primary: '#f59e0b',      // amber-500
+    secondary: '#fbbf24',    // amber-400
+    glow: 'rgba(245, 158, 11, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(245, 158, 11, 0.14) 0%, rgba(25, 18, 6, 0.98) 70%)',
+    cardBg: 'rgba(32, 24, 10, 0.65)',
+    cardBorder: 'rgba(245, 158, 11, 0.24)',
+    textAccent: 'text-amber-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-amber-200/70',
+    ringColor: '#f59e0b',
+  },
+  aquamarine: {
+    id: 'aquamarine',
+    name: 'Maldiv Turkuazı (Lagoon Coral)',
+    primary: '#2dd4bf',      // teal-400
+    secondary: '#0ea5e9',    // sky-500
+    glow: 'rgba(45, 212, 191, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(45, 212, 191, 0.13) 0%, rgba(6, 22, 26, 0.98) 70%)',
+    cardBg: 'rgba(10, 28, 32, 0.65)',
+    cardBorder: 'rgba(45, 212, 191, 0.22)',
+    textAccent: 'text-teal-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-teal-200/70',
+    ringColor: '#2dd4bf',
+  },
+  volcano: {
+    id: 'volcano',
+    name: 'Ateş Lavı (Volcanic Magma)',
+    primary: '#ea580c',      // orange-600
+    secondary: '#ef4444',    // red-500
+    glow: 'rgba(234, 88, 12, 0.32)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(234, 88, 12, 0.15) 0%, rgba(24, 8, 6, 0.98) 70%)',
+    cardBg: 'rgba(32, 12, 10, 0.65)',
+    cardBorder: 'rgba(234, 88, 12, 0.24)',
+    textAccent: 'text-orange-500',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-orange-300/70',
+    ringColor: '#ea580c',
+  },
+  matrix: {
+    id: 'matrix',
+    name: 'Siber Terminal (Matrix Code)',
+    primary: '#22c55e',      // green-500
+    secondary: '#16a34a',    // green-600
+    glow: 'rgba(34, 197, 94, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(34, 197, 94, 0.12) 0%, rgba(4, 14, 8, 0.98) 70%)',
+    cardBg: 'rgba(8, 22, 12, 0.65)',
+    cardBorder: 'rgba(34, 197, 94, 0.22)',
+    textAccent: 'text-green-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-green-200/70',
+    ringColor: '#22c55e',
+  },
 };

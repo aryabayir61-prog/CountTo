@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { motion } from 'motion/react';
 import { ThemeConfig, TimeRemaining } from '../../types/countdown';
 
 interface FlipCardViewProps {
@@ -6,6 +7,7 @@ interface FlipCardViewProps {
   theme: ThemeConfig;
   showMilliseconds?: boolean;
   hideDays?: boolean;
+  isVertical?: boolean;
 }
 
 interface SingleDigitCardProps {
@@ -131,44 +133,59 @@ export const FlipCardView: React.FC<FlipCardViewProps> = ({
   theme, 
   showMilliseconds,
   hideDays = false,
+  isVertical = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
   return (
-    <div className="flex items-center justify-center gap-2.5 sm:gap-4 md:gap-6 flex-wrap">
+    <motion.div 
+      layout
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className={`flex items-center justify-center transition-all duration-500 ${
+        isVertical ? 'flex-col gap-3.5 sm:gap-5' : 'flex-row gap-2.5 sm:gap-4 md:gap-6 flex-wrap'
+      }`}
+    >
       {!hideDays && (
         <>
           <SingleDigitCard value={padDays(time.days)} label="GÜN" theme={theme} />
 
-          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-            :
-          </div>
+          {!isVertical && (
+            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
+              :
+            </div>
+          )}
         </>
       )}
 
       <SingleDigitCard value={pad(time.hours)} label="SAAT" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-        :
-      </div>
+      {!isVertical && (
+        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
+          :
+        </div>
+      )}
 
       <SingleDigitCard value={pad(time.minutes)} label="DAKİKA" theme={theme} />
 
-      <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-        :
-      </div>
+      {!isVertical && (
+        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
+          :
+        </div>
+      )}
 
       <SingleDigitCard value={pad(time.seconds)} label="SANİYE" theme={theme} />
 
       {showMilliseconds && (
         <>
-          <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-            .
-          </div>
+          {!isVertical && (
+            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
+              .
+            </div>
+          )}
           <SingleDigitCard value={pad(time.milliseconds)} label="SALİSE" theme={theme} />
         </>
       )}
-    </div>
+    </motion.div>
   );
 };

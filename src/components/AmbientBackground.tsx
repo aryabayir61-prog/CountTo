@@ -3,10 +3,19 @@ import { ThemeConfig } from '../types/countdown';
 
 interface AmbientBackgroundProps {
   theme: ThemeConfig;
+  lightTarget?: 'center' | 'notification';
 }
 
-export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) => {
+export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ 
+  theme,
+  lightTarget = 'center',
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lightTargetRef = useRef<'center' | 'notification'>(lightTarget);
+
+  useEffect(() => {
+    lightTargetRef.current = lightTarget;
+  }, [lightTarget]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,8 +65,20 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
       time += 0.015;
       ctx.clearRect(0, 0, width, height);
 
-      // Render floating subtle light orbs
+      const isNotification = lightTargetRef.current === 'notification';
+      const targetX = isNotification ? width * 0.82 : width * 0.5;
+      const targetY = isNotification ? height * 0.78 : height * 0.35;
+
+      // Render floating subtle light orbs with gentle gravity drift towards active light source
       particles.forEach((p) => {
+        // Soft gravitational drift towards current light position
+        const dx = targetX - p.x;
+        const dy = targetY - p.y;
+        p.vx += dx * 0.00012;
+        p.vy += dy * 0.00012;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+
         p.x += p.vx;
         p.y += p.vy;
         p.phase += p.speed;
@@ -88,6 +109,8 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
     };
   }, [theme.primary]);
 
+  const isNotification = lightTarget === 'notification';
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 transition-colors duration-1000">
       {/* Background Radial Tint */}
@@ -98,14 +121,26 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
         }}
       />
 
-      {/* Ambient Large Glow Spots */}
+      {/* Dynamic CountTo Main Light Orb: Glides to notification on alert, and back to center when done */}
       <div
-        className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] rounded-full blur-[140px] opacity-20 pointer-events-none transition-all duration-1000"
-        style={{ backgroundColor: theme.primary }}
+        className="absolute w-[60vw] h-[60vw] sm:w-[50vw] sm:h-[50vw] rounded-full blur-[140px] opacity-25 pointer-events-none transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{
+          backgroundColor: theme.primary,
+          left: isNotification ? '78%' : '50%',
+          top: isNotification ? '75%' : '20%',
+          transform: 'translate(-50%, -50%)',
+        }}
       />
+
+      {/* Secondary Supportive Glow: Accentuation light */}
       <div
-        className="absolute -bottom-[20vw] right-[10vw] w-[50vw] h-[50vw] rounded-full blur-[120px] opacity-15 pointer-events-none transition-all duration-1000"
-        style={{ backgroundColor: theme.secondary }}
+        className="absolute w-[45vw] h-[45vw] rounded-full blur-[120px] opacity-20 pointer-events-none transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{
+          backgroundColor: theme.secondary,
+          left: isNotification ? '82%' : '65%',
+          top: isNotification ? '80%' : '75%',
+          transform: 'translate(-50%, -50%)',
+        }}
       />
 
       {/* Micro-mesh Grid Pattern for subtle depth */}

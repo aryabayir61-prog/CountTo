@@ -12,7 +12,13 @@ export type ThemeId =
   | 'sakura'
   | 'hyperlime'
   | 'sunset'
-  | 'nordic';
+  | 'nordic'
+  | 'synthwave'
+  | 'nebula'
+  | 'solarpunk'
+  | 'aquamarine'
+  | 'volcano'
+  | 'matrix';
 
 export interface ThemeConfig {
   id: ThemeId;

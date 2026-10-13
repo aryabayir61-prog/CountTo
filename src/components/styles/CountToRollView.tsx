@@ -7,6 +7,7 @@ interface CountToRollViewProps {
   theme: ThemeConfig;
   showMilliseconds?: boolean;
   hideDays?: boolean;
+  isVertical?: boolean;
 }
 
 interface SingleDigitSlotProps {
@@ -90,13 +91,20 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
   theme,
   showMilliseconds,
   hideDays = false,
+  isVertical = false,
 }) => {
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
   return (
-    <div 
-      className="p-3 sm:p-5 md:p-6 rounded-3xl border border-white/5 backdrop-blur-2xl flex items-center justify-center gap-1.5 sm:gap-3 md:gap-4 flex-wrap select-none shadow-2xl transition-all duration-500"
+    <motion.div 
+      layout
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className={`p-3 sm:p-5 md:p-6 rounded-3xl border border-white/5 backdrop-blur-2xl flex select-none shadow-2xl transition-all duration-500 ${
+        isVertical
+          ? 'flex-col items-center gap-3 sm:gap-4.5'
+          : 'flex-row items-center justify-center gap-1.5 sm:gap-3 md:gap-4 flex-wrap'
+      }`}
       style={{
         backgroundColor: 'rgba(10, 12, 18, 0.45)',
         boxShadow: `0 20px 50px -15px ${theme.glow}`,
@@ -106,27 +114,33 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
       {!hideDays && (
         <>
           <UnifiedUnit value={padDays(time.days)} label="GÜN" theme={theme} />
-          <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-            :
-          </span>
+          {!isVertical && (
+            <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
+              :
+            </span>
+          )}
         </>
       )}
 
       {/* Saat (Hours) */}
       <UnifiedUnit value={pad(time.hours)} label="SAAT" theme={theme} />
 
-      {/* Subtle Colon */}
-      <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-        :
-      </span>
+      {/* Subtle Colon in horizontal mode */}
+      {!isVertical && (
+        <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
+          :
+        </span>
+      )}
 
       {/* Dakika (Minutes) */}
       <UnifiedUnit value={pad(time.minutes)} label="DAKİKA" theme={theme} />
 
-      {/* Subtle Colon */}
-      <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-        :
-      </span>
+      {/* Subtle Colon in horizontal mode */}
+      {!isVertical && (
+        <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
+          :
+        </span>
+      )}
 
       {/* Saniye (Seconds) */}
       <UnifiedUnit value={pad(time.seconds)} label="SANİYE" theme={theme} />
@@ -134,12 +148,14 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
       {/* Salise (Milliseconds) */}
       {showMilliseconds && (
         <>
-          <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-            .
-          </span>
+          {!isVertical && (
+            <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
+              .
+            </span>
+          )}
           <UnifiedUnit value={pad(time.milliseconds)} label="SALİSE" theme={theme} />
         </>
       )}
-    </div>
+    </motion.div>
   );
 };

@@ -501,7 +501,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                     <Palette className="w-3.5 h-3.5 text-neutral-400" />
                     Görsel Tema
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
                     {(Object.keys(THEMES) as ThemeId[]).map((tid) => {
                       const t = THEMES[tid];
                       const isSelected = theme === tid;

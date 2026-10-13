@@ -3,6 +3,8 @@ import { Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
 import { playThemeSound, playHoverClickSound } from '../utils/audio';
+import { recordThemeSelection } from '../utils/themeRecommendations';
+import { RecommendedThemesSlider } from './RecommendedThemesSlider';
 
 interface ThemesViewProps {
   currentTheme: ThemeId;
@@ -23,21 +25,33 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
   const activeThemeConfig = THEMES[currentTheme];
 
   const handleCardClick = (tid: ThemeId) => {
+    recordThemeSelection(tid);
     onSelectTheme(tid);
     playThemeSound(tid);
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 z-10 select-none">
-      {/* Header */}
-      <div className="mb-8 sm:mb-10">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-          <Sparkles className="w-6 h-6 text-cyan-400" />
-          <span>Görsel Renk Temaları</span>
-        </h2>
-        <p className="text-xs sm:text-sm text-neutral-400 mt-1.5 max-w-xl">
-          Geri sayım ekranınızın atmosferini tek bir dokunuşla kişiselleştirin. Seçtiğiniz temanın aurası tüm ekrana yansır.
-        </p>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 z-10 select-none">
+      {/* Sizin İçin Önerdiğimiz CountTo Temaları 3D Carousel Slider */}
+      <RecommendedThemesSlider
+        currentTheme={currentTheme}
+        onSelectTheme={onSelectTheme}
+      />
+
+      {/* Clean Divider & Section Header */}
+      <div className="mb-6 sm:mb-8 pt-3 sm:pt-4 border-t border-white/10 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <span>Tüm Görsel Renk Temaları</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+            Geri sayım ekranınız için tasarlanmış 18 farklı sinematik palet
+          </p>
+        </div>
+        <span className="text-xs font-semibold text-neutral-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+          18 Tema
+        </span>
       </div>
 
       {/* Grid of Themes - Expansive 3 Columns with Generous Width */}
