@@ -18,7 +18,14 @@ export type ThemeId =
   | 'solarpunk'
   | 'aquamarine'
   | 'volcano'
-  | 'matrix';
+  | 'matrix'
+  | 'dustypink'
+  | 'lavender'
+  | 'deepocean'
+  | 'caramel'
+  | 'sage'
+  | 'cobalt'
+  | 'copper';
 
 export interface ThemeConfig {
   id: ThemeId;

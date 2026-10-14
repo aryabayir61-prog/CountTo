@@ -84,10 +84,10 @@ export async function getRealUserCoordinates(): Promise<Coords | null> {
 /**
  * Fetches 100% genuine real-time weather and precipitation forecast from Open-Meteo
  */
-export async function fetchRealWeather(): Promise<RealWeatherNotification | null> {
+export async function fetchRealWeather(forceRefresh = false): Promise<RealWeatherNotification | null> {
   const now = Date.now();
-  // Return cached result if fetched within the last 5 minutes
-  if (lastWeatherNotification && now - lastFetchedTime < 5 * 60 * 1000) {
+  // Return cached result if fetched within the last 2.5 minutes (unless forceRefresh)
+  if (!forceRefresh && lastWeatherNotification && now - lastFetchedTime < 2.5 * 60 * 1000) {
     return lastWeatherNotification;
   }
 
@@ -111,55 +111,78 @@ export async function fetchRealWeather(): Promise<RealWeatherNotification | null
     const precipitation = current.precipitation ?? 0;
     const currentHourIndex = new Date().getHours();
 
-    // Check next 2 hours precipitation probability and precipitation
+    // Check next 3 hours forecast for proactive real-time warnings
     const nextHourProb = hourly?.precipitation_probability?.[currentHourIndex + 1] ?? 0;
     const nextHourPrecip = hourly?.precipitation?.[currentHourIndex + 1] ?? 0;
+    const nextHourCode = hourly?.weather_code?.[currentHourIndex + 1] ?? code;
+
     const secondHourProb = hourly?.precipitation_probability?.[currentHourIndex + 2] ?? 0;
+    const secondHourPrecip = hourly?.precipitation?.[currentHourIndex + 2] ?? 0;
+    const secondHourCode = hourly?.weather_code?.[currentHourIndex + 2] ?? code;
 
     let message = 'Hava Açık ve Berrak';
     let iconType: RealWeatherNotification['iconType'] = 'sun';
 
-    // 1. Imminent Rain Detection (Rain starting shortly)
-    if (precipitation === 0 && (nextHourProb >= 40 || nextHourPrecip >= 0.2 || secondHourProb >= 50)) {
-      message = 'Yağmur Birazdan Başlayacak';
-      iconType = 'rain';
-    }
-    // 2. Heavy Rain or Severe Showers
-    else if (code === 65 || code === 82 || precipitation >= 3.0 || nextHourPrecip >= 4.0) {
-      message = 'Yoğun Yağmur Bekleniyor';
-      iconType = 'heavyRain';
-    }
-    // 3. Thunderstorm
-    else if (code === 95 || code === 96 || code === 99) {
-      message = 'Gök Gürültülü Fırtına';
+    const isCurrentlyRaining = precipitation > 0 || (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
+
+    // 1. Thunderstorm incoming or active
+    if (
+      code === 95 || code === 96 || code === 99 ||
+      nextHourCode === 95 || nextHourCode === 96 || nextHourCode === 99
+    ) {
+      message = 'Gök Gürültülü Fırtına Bekleniyor';
       iconType = 'thunder';
     }
-    // 4. Snow
-    else if (code >= 71 && code <= 77 || code === 85 || code === 86 || (current.snowfall ?? 0) > 0) {
+    // 2. Snow incoming or active
+    else if (
+      (code >= 71 && code <= 77) || code === 85 || code === 86 ||
+      (nextHourCode >= 71 && nextHourCode <= 77) ||
+      (current.snowfall ?? 0) > 0
+    ) {
       message = 'Kar Yağışı Bekleniyor';
       iconType = 'snow';
     }
-    // 5. Active Rain or Showers
-    else if (precipitation > 0 || (code >= 61 && code <= 63) || code === 80 || code === 81) {
-      message = precipitation >= 1.5 ? 'Yağmur Yağışı Etkili' : 'Hafif Yağmur Çiseliyor';
+    // 3. Active Rain Intelligence (Detecting if rain is speeding up or clearing)
+    else if (isCurrentlyRaining) {
+      if (nextHourPrecip > precipitation * 1.25 || nextHourPrecip >= 2.0 || nextHourCode === 65 || nextHourCode === 82) {
+        message = 'Yağan Yağmur, Daha da Hızlanacak';
+        iconType = 'heavyRain';
+      } else if (precipitation >= 2.5) {
+        message = 'Şiddetli Yağmur Etkili';
+        iconType = 'heavyRain';
+      } else if (nextHourPrecip < precipitation * 0.45 && nextHourProb < 40) {
+        message = 'Yağan Yağmur, Yakında Diniyor';
+        iconType = 'rain';
+      } else {
+        message = precipitation >= 1.0 ? 'Yağmur Yağışı Etkili' : 'Hafif Yağmur Çiseliyor';
+        iconType = 'rain';
+      }
+    }
+    // 4. Imminent Severe / Heavy Rain Forecast (Dry right now, but heavy rain arriving)
+    else if (
+      nextHourCode === 65 || nextHourCode === 82 ||
+      secondHourCode === 65 || secondHourCode === 82 ||
+      nextHourPrecip >= 2.2 || secondHourPrecip >= 2.8
+    ) {
+      message = 'Şiddetli Yağmur Bekleniyor';
+      iconType = 'heavyRain';
+    }
+    // 5. Imminent Rain Starting Shortly (Dry right now, rain arriving in 1-2 hours)
+    else if (nextHourProb >= 35 || nextHourPrecip >= 0.2 || secondHourProb >= 50) {
+      message = 'Yağmur Birazdan Başlayacak';
       iconType = 'rain';
     }
-    // 6. Drizzle
-    else if (code >= 51 && code <= 57) {
-      message = 'Çiseleyen Yağmur';
-      iconType = 'rain';
-    }
-    // 7. Fog
+    // 6. Fog / Mist
     else if (code === 45 || code === 48) {
       message = 'Puslu ve Sisli Hava';
       iconType = 'fog';
     }
-    // 8. Overcast / Cloudy
+    // 7. Overcast / Cloudy
     else if (code === 2 || code === 3 || (current.cloud_cover ?? 0) >= 70) {
       message = 'Bulutlu Bir Gökyüzü';
       iconType = 'cloud';
     }
-    // 9. Clear / Sunny
+    // 8. Clear / Sunny
     else {
       const hour = new Date().getHours();
       const isNight = hour >= 21 || hour < 6;

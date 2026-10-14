@@ -138,54 +138,77 @@ export const FlipCardView: React.FC<FlipCardViewProps> = ({
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
+  const units = [
+    ...(!hideDays ? [{ key: 'days', value: padDays(time.days), label: 'GÜN' }] : []),
+    { key: 'hours', value: pad(time.hours), label: 'SAAT' },
+    { key: 'minutes', value: pad(time.minutes), label: 'DAKİKA' },
+    { key: 'seconds', value: pad(time.seconds), label: 'SANİYE' },
+    ...(showMilliseconds ? [{ key: 'ms', value: pad(time.milliseconds), label: 'SALİSE' }] : []),
+  ];
+
   return (
     <motion.div 
       layout
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`flex items-center justify-center transition-all duration-500 ${
         isVertical ? 'flex-col gap-3.5 sm:gap-5' : 'flex-row gap-2.5 sm:gap-4 md:gap-6 flex-wrap'
       }`}
     >
-      {!hideDays && (
-        <>
-          <SingleDigitCard value={padDays(time.days)} label="GÜN" theme={theme} />
+      {units.map((unit, idx) => (
+        <React.Fragment key={unit.key}>
+          <motion.div
+            layout="position"
+            custom={idx}
+            variants={{
+              center: {
+                x: 0,
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  duration: 0.45,
+                  delay: idx * 0.04,
+                  ease: [0.16, 1, 0.3, 1],
+                },
+              },
+              side: (i: number) => ({
+                x: 0,
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                transition: {
+                  duration: 0.62,
+                  delay: i * 0.11, // Sequential stagger: Saat -> Dakika -> Saniye
+                  ease: [0.16, 1, 0.3, 1],
+                },
+              }),
+            }}
+            animate={isVertical ? 'side' : 'center'}
+            transition={{
+              layout: {
+                duration: 0.62,
+                delay: isVertical ? idx * 0.11 : idx * 0.04,
+                ease: [0.16, 1, 0.3, 1],
+              },
+            }}
+          >
+            <SingleDigitCard value={unit.value} label={unit.label} theme={theme} />
+          </motion.div>
 
-          {!isVertical && (
-            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-              :
-            </div>
+          {!isVertical && idx < units.length - 1 && (
+            <motion.div
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.8 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10"
+            >
+              {unit.key === 'seconds' && showMilliseconds ? '.' : ':'}
+            </motion.div>
           )}
-        </>
-      )}
-
-      <SingleDigitCard value={pad(time.hours)} label="SAAT" theme={theme} />
-
-      {!isVertical && (
-        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-          :
-        </div>
-      )}
-
-      <SingleDigitCard value={pad(time.minutes)} label="DAKİKA" theme={theme} />
-
-      {!isVertical && (
-        <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-          :
-        </div>
-      )}
-
-      <SingleDigitCard value={pad(time.seconds)} label="SANİYE" theme={theme} />
-
-      {showMilliseconds && (
-        <>
-          {!isVertical && (
-            <div className="text-2xl sm:text-4xl text-neutral-500 font-light select-none pb-8 sm:pb-10">
-              .
-            </div>
-          )}
-          <SingleDigitCard value={pad(time.milliseconds)} label="SALİSE" theme={theme} />
-        </>
-      )}
+        </React.Fragment>
+      ))}
     </motion.div>
   );
 };

@@ -96,13 +96,19 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
   const pad = (n: number) => String(n).padStart(2, '0');
   const padDays = (n: number) => (n > 99 ? String(n) : String(n).padStart(2, '0'));
 
+  const units = [
+    ...(!hideDays ? [{ key: 'days', value: padDays(time.days), label: 'GÜN' }] : []),
+    { key: 'hours', value: pad(time.hours), label: 'SAAT' },
+    { key: 'minutes', value: pad(time.minutes), label: 'DAKİKA' },
+    { key: 'seconds', value: pad(time.seconds), label: 'SANİYE' },
+    ...(showMilliseconds ? [{ key: 'ms', value: pad(time.milliseconds), label: 'SALİSE' }] : []),
+  ];
+
   return (
-    <motion.div 
-      layout
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className={`p-3 sm:p-5 md:p-6 rounded-3xl border border-white/5 backdrop-blur-2xl flex select-none shadow-2xl transition-all duration-500 ${
+    <div 
+      className={`p-2.5 sm:p-4 rounded-3xl border border-white/5 backdrop-blur-2xl flex select-none shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isVertical
-          ? 'flex-col items-center gap-3 sm:gap-4.5'
+          ? 'flex-col items-center gap-2.5 sm:gap-3.5'
           : 'flex-row items-center justify-center gap-1.5 sm:gap-3 md:gap-4 flex-wrap'
       }`}
       style={{
@@ -110,52 +116,22 @@ export const CountToRollView: React.FC<CountToRollViewProps> = ({
         boxShadow: `0 20px 50px -15px ${theme.glow}`,
       }}
     >
-      {/* Gün (Days) - Hidden when hideDays is true */}
-      {!hideDays && (
-        <>
-          <UnifiedUnit value={padDays(time.days)} label="GÜN" theme={theme} />
-          {!isVertical && (
-            <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-              :
+      {units.map((unit, idx) => (
+        <React.Fragment key={unit.key}>
+          <div className="transition-all duration-500 ease-out">
+            <UnifiedUnit value={unit.value} label={unit.label} theme={theme} />
+          </div>
+
+          {/* Subtle colon separator in horizontal layout */}
+          {!isVertical && idx < units.length - 1 && (
+            <span
+              className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80 transition-opacity duration-300"
+            >
+              {unit.key === 'seconds' && showMilliseconds ? '.' : ':'}
             </span>
           )}
-        </>
-      )}
-
-      {/* Saat (Hours) */}
-      <UnifiedUnit value={pad(time.hours)} label="SAAT" theme={theme} />
-
-      {/* Subtle Colon in horizontal mode */}
-      {!isVertical && (
-        <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-          :
-        </span>
-      )}
-
-      {/* Dakika (Minutes) */}
-      <UnifiedUnit value={pad(time.minutes)} label="DAKİKA" theme={theme} />
-
-      {/* Subtle Colon in horizontal mode */}
-      {!isVertical && (
-        <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-          :
-        </span>
-      )}
-
-      {/* Saniye (Seconds) */}
-      <UnifiedUnit value={pad(time.seconds)} label="SANİYE" theme={theme} />
-
-      {/* Salise (Milliseconds) */}
-      {showMilliseconds && (
-        <>
-          {!isVertical && (
-            <span className="text-xl sm:text-3xl md:text-4xl text-neutral-500 font-light pb-6 select-none opacity-80">
-              .
-            </span>
-          )}
-          <UnifiedUnit value={pad(time.milliseconds)} label="SALİSE" theme={theme} />
-        </>
-      )}
-    </motion.div>
+        </React.Fragment>
+      ))}
+    </div>
   );
 };

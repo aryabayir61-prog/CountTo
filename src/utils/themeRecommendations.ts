@@ -8,23 +8,30 @@ export const THEME_CLUSTERS: Record<ThemeId, ThemeCluster> = {
   cyber: 'neon',
   matrix: 'neon',
   hyperlime: 'neon',
+  cobalt: 'neon',
 
   violet: 'cosmic',
   nebula: 'cosmic',
   aurora: 'cosmic',
   midnight: 'cosmic',
+  lavender: 'cosmic',
+  deepocean: 'cosmic',
 
   sunset: 'warm',
   solarpunk: 'warm',
   volcano: 'warm',
   crimson: 'warm',
   gold: 'warm',
+  caramel: 'warm',
+  copper: 'warm',
 
   aquamarine: 'zen',
   emerald: 'zen',
   nordic: 'zen',
   sakura: 'zen',
   monochrome: 'zen',
+  dustypink: 'zen',
+  sage: 'zen',
 };
 
 // Natural circadian baseline affinities across 4 diurnal phases
@@ -212,9 +219,14 @@ export function getRecommendedThemes(currentTheme: ThemeId): ThemeId[] {
     // Cap hourly bonus to keep balance with discovery
     score += Math.min(learnedHourlyScore, 50);
 
-    // D. General Historical Affinity
+    // D. General Historical Affinity & Fresh Discovery
     const totalPicksForThisTheme = profile.counts[tid] || 0;
-    score += Math.min(totalPicksForThisTheme * 6, 25);
+    if (totalPicksForThisTheme === 0) {
+      // Fresh discovery boost so unselected/new themes are actively suggested
+      score += 15;
+    } else {
+      score += Math.min(totalPicksForThisTheme * 6, 25);
+    }
 
     // E. Recency Momentum from last 14 days
     const recentWindow = 14 * 24 * 60 * 60 * 1000;

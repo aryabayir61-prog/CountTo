@@ -46,11 +46,11 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
             <span>Tüm Görsel Renk Temaları</span>
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Geri sayım ekranınız için tasarlanmış 18 farklı sinematik palet
+            Geri sayım ekranınız için tasarlanmış {themeIds.length} farklı sinematik palet
           </p>
         </div>
         <span className="text-xs font-semibold text-neutral-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-          18 Tema
+          {themeIds.length} Tema
         </span>
       </div>
 

@@ -45,92 +45,84 @@ export const MonolithView: React.FC<MonolithViewProps> = ({
         {/* Primary Monolith Numbers Display */}
         <motion.div 
           layout
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className={`flex justify-center select-none ${
             isVertical 
               ? 'flex-col items-center gap-4 sm:gap-6' 
               : 'items-baseline gap-1.5 sm:gap-4 md:gap-6 flex-wrap'
           }`}
         >
-          {/* Days - Hidden when hideDays is true */}
-          {!hideDays && (
-            <>
-              <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
-                <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
-                  {padDays(time.days)}
-                </span>
-                <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-                  GÜN
-                </span>
-              </motion.div>
+          {(() => {
+            const units = [
+              ...(!hideDays ? [{ key: 'days', value: padDays(time.days), label: 'GÜN', accent: false }] : []),
+              { key: 'hours', value: pad(time.hours), label: 'SAAT', accent: false },
+              { key: 'minutes', value: pad(time.minutes), label: 'DAKİKA', accent: false },
+              { key: 'seconds', value: pad(time.seconds), label: 'SANİYE', accent: false },
+              ...(showMilliseconds ? [{ key: 'ms', value: pad(time.milliseconds), label: 'SALİSE', accent: true }] : []),
+            ];
 
-              {!isVertical && (
-                <span className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4 animate-pulse">
-                  :
-                </span>
-              )}
-            </>
-          )}
+            return units.map((unit, idx) => (
+              <React.Fragment key={unit.key}>
+                <motion.div
+                  layout="position"
+                  custom={idx}
+                  variants={{
+                    center: {
+                      x: 0,
+                      y: 0,
+                      opacity: 1,
+                      scale: 1,
+                      transition: {
+                        duration: 0.45,
+                        delay: idx * 0.04,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    },
+                    side: (i: number) => ({
+                      x: 0,
+                      y: 0,
+                      opacity: 1,
+                      scale: 1,
+                      transition: {
+                        duration: 0.62,
+                        delay: i * 0.11, // Sequential stagger: Saat -> Dakika -> Saniye
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    }),
+                  }}
+                  animate={isVertical ? 'side' : 'center'}
+                  transition={{
+                    layout: {
+                      duration: 0.62,
+                      delay: isVertical ? idx * 0.11 : idx * 0.04,
+                      ease: [0.16, 1, 0.3, 1],
+                    },
+                  }}
+                  className="flex flex-col items-center"
+                >
+                  <span className={`font-mono-numbers ${unit.accent ? 'text-3xl sm:text-5xl md:text-7xl font-bold' : 'text-5xl sm:text-7xl md:text-9xl font-black'} tracking-tighter leading-none ${unit.accent ? theme.textAccent : theme.numberColor}`}>
+                    {unit.value}
+                  </span>
+                  <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
+                    {unit.label}
+                  </span>
+                </motion.div>
 
-          {/* Hours */}
-          <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
-            <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
-              {pad(time.hours)}
-            </span>
-            <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-              SAAT
-            </span>
-          </motion.div>
-
-          {!isVertical && (
-            <span className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4 animate-pulse">
-              :
-            </span>
-          )}
-
-          {/* Minutes */}
-          <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
-            <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
-              {pad(time.minutes)}
-            </span>
-            <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-              DAKİKA
-            </span>
-          </motion.div>
-
-          {!isVertical && (
-            <span className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4 animate-pulse">
-              :
-            </span>
-          )}
-
-          {/* Seconds */}
-          <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
-            <span className={`font-mono-numbers text-5xl sm:text-7xl md:text-9xl font-black tracking-tighter leading-none ${theme.numberColor}`}>
-              {pad(time.seconds)}
-            </span>
-            <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-              SANİYE
-            </span>
-          </motion.div>
-
-          {showMilliseconds && (
-            <>
-              {!isVertical && (
-                <span className="text-2xl sm:text-4xl text-neutral-600 font-light self-start pt-3">
-                  .
-                </span>
-              )}
-              <motion.div layout transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="flex flex-col items-center">
-                <span className={`font-mono-numbers text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-none ${theme.textAccent}`}>
-                  {pad(time.milliseconds)}
-                </span>
-                <span className="text-[10px] sm:text-xs tracking-widest uppercase font-semibold text-neutral-400 mt-2">
-                  SALİSE
-                </span>
-              </motion.div>
-            </>
-          )}
+                {!isVertical && idx < units.length - 1 && (
+                  <motion.span
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.8 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="text-3xl sm:text-5xl md:text-7xl text-neutral-600 font-extralight self-start pt-2 sm:pt-4"
+                  >
+                    {unit.key === 'seconds' && showMilliseconds ? '.' : ':'}
+                  </motion.span>
+                )}
+              </React.Fragment>
+            ));
+          })()}
         </motion.div>
       </div>
     </motion.div>

@@ -107,57 +107,69 @@ export const OrbitalRingsView: React.FC<OrbitalRingsViewProps> = ({
   // Day ring uses 30 or 365 as scale
   const daysMax = time.days > 30 ? 365 : 30;
 
+  const rings = [
+    ...(!hideDays ? [{ key: 'days', value: time.days, max: daysMax, label: 'GÜN', displayValue: padDays(time.days) }] : []),
+    { key: 'hours', value: time.hours, max: 24, label: 'SAAT', displayValue: pad(time.hours) },
+    { key: 'minutes', value: time.minutes, max: 60, label: 'DAKİKA', displayValue: pad(time.minutes) },
+    { key: 'seconds', value: time.seconds, max: 60, label: 'SANİYE', displayValue: pad(time.seconds) },
+    ...(showMilliseconds ? [{ key: 'ms', value: time.milliseconds, max: 100, label: 'SALİSE', displayValue: pad(time.milliseconds) }] : []),
+  ];
+
   return (
     <motion.div 
       layout
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`flex items-center justify-center transition-all duration-500 ${
         isVertical ? 'flex-col gap-4 sm:gap-6' : 'flex-row gap-3 sm:gap-6 md:gap-8 flex-wrap'
       }`}
     >
-      {!hideDays && (
-        <CircularProgress
-          value={time.days}
-          max={daysMax}
-          label="GÜN"
-          displayValue={padDays(time.days)}
-          theme={theme}
-        />
-      )}
-
-      <CircularProgress
-        value={time.hours}
-        max={24}
-        label="SAAT"
-        displayValue={pad(time.hours)}
-        theme={theme}
-      />
-
-      <CircularProgress
-        value={time.minutes}
-        max={60}
-        label="DAKİKA"
-        displayValue={pad(time.minutes)}
-        theme={theme}
-      />
-
-      <CircularProgress
-        value={time.seconds}
-        max={60}
-        label="SANİYE"
-        displayValue={pad(time.seconds)}
-        theme={theme}
-      />
-
-      {showMilliseconds && (
-        <CircularProgress
-          value={time.milliseconds}
-          max={100}
-          label="SALİSE"
-          displayValue={pad(time.milliseconds)}
-          theme={theme}
-        />
-      )}
+      {rings.map((ring, idx) => (
+        <motion.div
+          key={ring.key}
+          layout="position"
+          custom={idx}
+          variants={{
+            center: {
+              x: 0,
+              y: 0,
+              opacity: 1,
+              scale: 1,
+              transition: {
+                duration: 0.45,
+                delay: idx * 0.04,
+                ease: [0.16, 1, 0.3, 1],
+              },
+            },
+            side: (i: number) => ({
+              x: 0,
+              y: 0,
+              opacity: 1,
+              scale: 1,
+              transition: {
+                duration: 0.62,
+                delay: i * 0.11, // Sequential stagger: Saat -> Dakika -> Saniye
+                ease: [0.16, 1, 0.3, 1],
+              },
+            }),
+          }}
+          animate={isVertical ? 'side' : 'center'}
+          transition={{
+            layout: {
+              duration: 0.62,
+              delay: isVertical ? idx * 0.11 : idx * 0.04,
+              ease: [0.16, 1, 0.3, 1],
+            },
+          }}
+        >
+          <CircularProgress
+            value={ring.value}
+            max={ring.max}
+            label={ring.label}
+            displayValue={ring.displayValue}
+            theme={theme}
+          />
+        </motion.div>
+      ))}
     </motion.div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { CountdownEvent, CountdownStyle, ThemeId, TimeRemaining } from './types/countdown';
 import { THEMES } from './utils/themes';
-import { calculateTimeRemaining, getDefaultPresets } from './utils/time';
+import { calculateTimeRemaining, getDefaultPresets, getTurkeyTime } from './utils/time';
 import { 
   playTickSound, 
   playCelebrationChime, 
@@ -10,7 +10,9 @@ import {
   playHoverClickSound,
   startAmbientMusic,
   stopAmbientMusic,
-  playWeatherNotificationSound 
+  playWeatherNotificationSound,
+  playWeatherExitSound,
+  playHourlyChimeSound 
 } from './utils/audio';
 import { fireCelebrationConfetti } from './utils/confetti';
 import { AmbientBackground } from './components/AmbientBackground';
@@ -21,6 +23,7 @@ import { ThemesView } from './components/ThemesView';
 import { CountdownModal } from './components/CountdownModal';
 import { ShareModal } from './components/ShareModal';
 import { TheBestExperienceView } from './components/TheBestExperienceView';
+import { WeatherDevBlogView } from './components/WeatherDevBlogView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
@@ -43,17 +46,39 @@ const isBestExperiencePage = () => {
   );
 };
 
+const isWeatherDevBlogPage = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  return (
+    path === '/weathernotifications' ||
+    path === '/weathernotifications/' ||
+    path.endsWith('/weathernotifications') ||
+    path.endsWith('/weathernotifications/') ||
+    path.includes('weathernotifications') ||
+    search.includes('weathernotifications') ||
+    hash.includes('weathernotifications')
+  );
+};
+
 export default function App() {
-  // Check if user is navigating to /thebestexperience
+  // Check if user is navigating to special routes
   const [isBestExperience, setIsBestExperience] = useState<boolean>(isBestExperiencePage);
+  const [isWeatherDevBlog, setIsWeatherDevBlog] = useState<boolean>(isWeatherDevBlogPage);
 
   useEffect(() => {
     const handlePopState = () => {
       setIsBestExperience(isBestExperiencePage());
+      setIsWeatherDevBlog(isWeatherDevBlogPage());
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  if (isWeatherDevBlog) {
+    return <WeatherDevBlogView />;
+  }
 
   if (isBestExperience) {
     return <TheBestExperienceView />;
@@ -163,6 +188,7 @@ export default function App() {
   );
 
   const prevSecondsRef = useRef<number>(timeRemaining.seconds);
+  const prevHourRef = useRef<number>(-1);
   const hasCelebratedRef = useRef<boolean>(timeRemaining.isPast);
 
   // Persistent storage sync
@@ -214,45 +240,64 @@ export default function App() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Trigger smooth, real weather notification in fullscreen (with cooldown to prevent spam)
+  const lastNotifiedMessageRef = useRef<string>('');
+
+  // Continuous real-time weather monitoring & proactive forecast alerts in fullscreen
   useEffect(() => {
-    if (!isFullscreen) {
-      setWeatherNotification(null);
-      return;
-    }
-
-    const now = Date.now();
-    // 15-minute cooldown between weather notifications
-    if (now - lastWeatherShowRef.current < 15 * 60 * 1000) {
-      return;
-    }
-
     let isCancelled = false;
 
-    // Smooth delay after entering fullscreen so the transition is graceful
-    const timer = setTimeout(async () => {
-      if (isCancelled) return;
-      const weather = await fetchRealWeather();
-      if (weather && !isCancelled) {
-        lastWeatherShowRef.current = Date.now();
-        setWeatherNotification(weather);
-        if (soundEnabled) {
-          playWeatherNotificationSound(activeEvent.theme);
-        }
+    const checkWeatherAlerts = async (isInitial = false) => {
+      if (isCancelled || !isFullscreen) return;
 
-        // Auto-dismiss after 7.5 seconds
+      const weather = await fetchRealWeather(isInitial);
+      if (!weather || isCancelled) return;
+
+      const now = Date.now();
+      const isSevereAlert = weather.message.includes('Şiddetli') || 
+                            weather.message.includes('Fırtına') || 
+                            weather.message.includes('Birazdan Başlayacak') ||
+                            weather.message.includes('Kar');
+
+      const isNewCondition = weather.message !== lastNotifiedMessageRef.current;
+      const cooldownPassed = now - lastWeatherShowRef.current > 12 * 60 * 1000;
+
+      // Alert if:
+      // 1. Initial entry into fullscreen (with cooldown check)
+      // 2. OR proactive condition change (e.g. severe rain coming, rain starting soon)
+      if ((isInitial && cooldownPassed) || (isNewCondition && (isSevereAlert || cooldownPassed))) {
+        lastWeatherShowRef.current = now;
+        lastNotifiedMessageRef.current = weather.message;
+        setWeatherNotification(weather);
+        playWeatherNotificationSound(activeEvent.theme);
+
         setTimeout(() => {
           if (!isCancelled) {
+            playWeatherExitSound(activeEvent.theme);
             setWeatherNotification(null);
           }
         }, 7500);
       }
-    }, 1800);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
     };
+
+    if (isFullscreen) {
+      // 1.8s delay upon entering fullscreen for smooth graceful arrival
+      const initialTimer = setTimeout(() => {
+        checkWeatherAlerts(true);
+      }, 1800);
+
+      // Periodically check every 2.5 minutes in real-time
+      const monitorInterval = setInterval(() => {
+        checkWeatherAlerts(false);
+      }, 2.5 * 60 * 1000);
+
+      return () => {
+        isCancelled = true;
+        clearTimeout(initialTimer);
+        clearInterval(monitorInterval);
+      };
+    } else {
+      setWeatherNotification(null);
+    }
   }, [isFullscreen, activeEvent.theme, soundEnabled]);
 
   // Real-time ticker effect
@@ -266,18 +311,40 @@ export default function App() {
       const updated = calculateTimeRemaining(activeEvent.targetDate, activeEvent.createdAt);
       setTimeRemaining(updated);
 
-      // Play tick sound when seconds change
-      if (soundEnabled && updated.seconds !== prevSecondsRef.current && !updated.isPast) {
-        playTickSound(0.06);
-      }
-      prevSecondsRef.current = updated.seconds;
+      if (updated.isPast) {
+        // Turkey Time (Europe/Istanbul UTC+3) is actively displayed
+        const tr = getTurkeyTime();
 
-      // Celebrate arrival
-      if (updated.isPast && !hasCelebratedRef.current) {
-        hasCelebratedRef.current = true;
-        fireCelebrationConfetti();
-        if (soundEnabled) {
-          playCelebrationChime(0.2);
+        // 1. Clock tick sound on every second
+        if (soundEnabled && tr.seconds !== prevSecondsRef.current) {
+          playTickSound(0.06);
+
+          // 2. Majestic hourly chime at top of the hour (00:00)
+          if (tr.minutes === 0 && tr.seconds === 0 && tr.hours !== prevHourRef.current) {
+            playHourlyChimeSound(tr.hours, activeEvent.theme, 0.24);
+            prevHourRef.current = tr.hours;
+          }
+        }
+
+        if (tr.minutes !== 0) {
+          prevHourRef.current = -1;
+        }
+
+        prevSecondsRef.current = tr.seconds;
+      } else {
+        // Active countdown is ticking
+        if (soundEnabled && updated.seconds !== prevSecondsRef.current) {
+          playTickSound(0.06);
+        }
+        prevSecondsRef.current = updated.seconds;
+
+        // Celebrate arrival
+        if (updated.isPast && !hasCelebratedRef.current) {
+          hasCelebratedRef.current = true;
+          fireCelebrationConfetti();
+          if (soundEnabled) {
+            playCelebrationChime(0.2);
+          }
         }
       }
     }, intervalTime);
@@ -522,6 +589,11 @@ export default function App() {
     handleToggleVertical,
   ]);
 
+  const handleDismissWeather = () => {
+    playWeatherExitSound(activeEvent.theme);
+    setWeatherNotification(null);
+  };
+
   return (
     <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}>
       {/* Dynamic Animated Ambient Canvas & Mesh */}
@@ -577,6 +649,7 @@ export default function App() {
                 onOpenShortcuts={() => setIsShortcutsOpen(true)}
                 isVertical={isVertical}
                 onToggleVertical={handleToggleVertical}
+                onTestChime={() => playHourlyChimeSound(getTurkeyTime().hours, activeEvent.theme, 0.24)}
               />
             </motion.div>
           )}
@@ -638,11 +711,23 @@ export default function App() {
         <footer className="w-full border-t border-white/5 py-4 px-6 text-center text-xs text-neutral-500 relative z-10 backdrop-blur-xs">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div>
-              <span className="font-semibold text-neutral-400">ContTo</span>
+              <span className="font-semibold text-neutral-400">CountTo</span>
               <span aria-hidden="true" className="mx-2">·</span>
               <span>Dinamik & Minimalist Zaman Sayacı</span>
             </div>
             <div className="flex items-center gap-4 text-[11px] text-neutral-500">
+              <a
+                href="/weathernotifications"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.history.pushState({}, '', '/weathernotifications');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }}
+                className="hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Hava Durumu DevBlog →
+              </a>
+              <span aria-hidden="true">·</span>
               <span>{events.length} Kayıtlı Geri Sayım</span>
               <span aria-hidden="true">·</span>
               <span>Yerel Depolama & Çevrimdışı Uyumlu</span>
@@ -677,12 +762,11 @@ export default function App() {
       />
 
       {/* Real Weather Fullscreen Notification Toast */}
-      {isFullscreen && (
-        <FullscreenWeatherToast
-          notification={weatherNotification}
-          onDismiss={() => setWeatherNotification(null)}
-        />
-      )}
+      {/* Real Weather Fullscreen Notification Toast (Always mounted for smooth exit animation) */}
+      <FullscreenWeatherToast
+        notification={isFullscreen ? weatherNotification : null}
+        onDismiss={handleDismissWeather}
+      />
     </div>
   );
 }

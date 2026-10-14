@@ -253,4 +253,102 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     labelColor: 'text-green-200/70',
     ringColor: '#22c55e',
   },
+  dustypink: {
+    id: 'dustypink',
+    name: 'Toz Pembe (Dusty Rose)',
+    primary: '#f498a8',      // soft dusty pastel pink
+    secondary: '#e27a94',    // deeper muted rose
+    glow: 'rgba(244, 152, 168, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(244, 152, 168, 0.13) 0%, rgba(24, 12, 18, 0.98) 70%)',
+    cardBg: 'rgba(32, 18, 24, 0.65)',
+    cardBorder: 'rgba(244, 152, 168, 0.22)',
+    textAccent: 'text-pink-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-pink-200/70',
+    ringColor: '#f498a8',
+  },
+  lavender: {
+    id: 'lavender',
+    name: 'Lavanta Esintisi (Lavender Mist)',
+    primary: '#c4b5fd',      // violet-300
+    secondary: '#8b5cf6',    // violet-500
+    glow: 'rgba(196, 181, 253, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(196, 181, 253, 0.12) 0%, rgba(16, 12, 28, 0.98) 70%)',
+    cardBg: 'rgba(26, 20, 40, 0.65)',
+    cardBorder: 'rgba(196, 181, 253, 0.22)',
+    textAccent: 'text-violet-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-violet-200/70',
+    ringColor: '#c4b5fd',
+  },
+  deepocean: {
+    id: 'deepocean',
+    name: 'Okyanus Derinliği (Deep Ocean)',
+    primary: '#38bdf8',      // sky-400
+    secondary: '#0284c7',    // sky-600
+    glow: 'rgba(56, 189, 248, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.13) 0%, rgba(4, 16, 32, 0.98) 70%)',
+    cardBg: 'rgba(8, 22, 42, 0.65)',
+    cardBorder: 'rgba(56, 189, 248, 0.22)',
+    textAccent: 'text-sky-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-sky-200/70',
+    ringColor: '#38bdf8',
+  },
+  caramel: {
+    id: 'caramel',
+    name: 'Sıcak Karamel (Caramel Warmth)',
+    primary: '#fbbf24',      // amber-400
+    secondary: '#d97706',    // amber-600
+    glow: 'rgba(251, 191, 36, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(251, 191, 36, 0.13) 0%, rgba(26, 16, 6, 0.98) 70%)',
+    cardBg: 'rgba(34, 22, 10, 0.65)',
+    cardBorder: 'rgba(251, 191, 36, 0.22)',
+    textAccent: 'text-amber-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-amber-200/70',
+    ringColor: '#fbbf24',
+  },
+  sage: {
+    id: 'sage',
+    name: 'Adaçayı Dinginliği (Sage Zen)',
+    primary: '#86efac',      // green-300
+    secondary: '#22c55e',    // green-500
+    glow: 'rgba(134, 239, 172, 0.25)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(134, 239, 172, 0.11) 0%, rgba(10, 20, 14, 0.98) 70%)',
+    cardBg: 'rgba(16, 28, 20, 0.65)',
+    cardBorder: 'rgba(134, 239, 172, 0.2)',
+    textAccent: 'text-green-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-green-200/70',
+    ringColor: '#86efac',
+  },
+  cobalt: {
+    id: 'cobalt',
+    name: 'Buzul Kobalt (Ice Cobalt)',
+    primary: '#60a5fa',      // blue-400
+    secondary: '#2563eb',    // blue-600
+    glow: 'rgba(96, 165, 250, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(96, 165, 250, 0.14) 0%, rgba(8, 14, 34, 0.98) 70%)',
+    cardBg: 'rgba(14, 22, 46, 0.65)',
+    cardBorder: 'rgba(96, 165, 250, 0.24)',
+    textAccent: 'text-blue-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-blue-200/70',
+    ringColor: '#60a5fa',
+  },
+  copper: {
+    id: 'copper',
+    name: 'Bakır Ufuk (Copper Horizon)',
+    primary: '#f97316',      // orange-500
+    secondary: '#c2410c',    // orange-700
+    glow: 'rgba(249, 115, 22, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(249, 115, 22, 0.12) 0%, rgba(28, 12, 8, 0.98) 70%)',
+    cardBg: 'rgba(36, 16, 12, 0.65)',
+    cardBorder: 'rgba(249, 115, 22, 0.22)',
+    textAccent: 'text-orange-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-orange-200/70',
+    ringColor: '#f97316',
+  },
 };

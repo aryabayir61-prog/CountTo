@@ -13,8 +13,7 @@ import {
   Zap, 
   Activity,
   CheckCircle2,
-  Keyboard,
-  CloudRain
+  Keyboard
 } from 'lucide-react';
 import { CountdownEvent, CountdownStyle, ThemeConfig, TimeRemaining } from '../types/countdown';
 import { FlipCardView } from './styles/FlipCardView';
@@ -38,7 +37,9 @@ interface CountdownDisplayProps {
   onToggleMilliseconds: () => void;
   onCelebrateAgain?: () => void;
   onOpenShortcuts?: () => void;
-  onTriggerWeatherAlert?: () => void;
+  isVertical?: boolean;
+  onToggleVertical?: () => void;
+  onTestChime?: () => void;
 }
 
 export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
@@ -55,7 +56,9 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   onToggleMilliseconds,
   onCelebrateAgain,
   onOpenShortcuts,
-  onTriggerWeatherAlert,
+  isVertical = false,
+  onToggleVertical,
+  onTestChime,
 }) => {
   const styles: { id: CountdownStyle; name: string }[] = [
     { id: 'countTo', name: 'CountTo (Aşağı Kayma)' },
@@ -197,10 +200,18 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
           {/* Category & Status Line */}
           <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-neutral-400 mb-3 tracking-wide flex-wrap">
             {isFinished ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-semibold text-xs shadow-sm">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <button
+                type="button"
+                onClick={onTestChime}
+                title="Saat başı çanı & saniye sesi aktif · Tıklayarak saat başı çanını dinleyin"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-semibold text-xs shadow-sm hover:bg-cyan-500/20 transition-all cursor-pointer group select-none"
+              >
+                <Clock className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
                 <span>Türkiye Yerel Saati (UTC+3)</span>
-              </span>
+                {soundEnabled && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse ml-0.5" title="Ses Açık" />
+                )}
+              </button>
             ) : (
               <>
                 <span className="flex items-center gap-1.5 font-medium text-neutral-300">
@@ -442,17 +453,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Düzenle</span>
               </button>
-
-              {/* Weather Alert Trigger Button */}
-              {onTriggerWeatherAlert && (
-                <button
-                  onClick={onTriggerWeatherAlert}
-                  title="Hava Durumu Bildirimi Gönder (Kısayol: W)"
-                  className="p-1.5 px-2.5 rounded-full text-neutral-400 hover:text-white border border-transparent hover:bg-white/5 transition-all text-xs font-medium flex items-center select-none"
-                >
-                  <CloudRain className="w-3.5 h-3.5 text-cyan-400" />
-                </button>
-              )}
 
               {/* Fullscreen Button */}
               <button

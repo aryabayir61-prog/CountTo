@@ -33,7 +33,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           onClick={() => onNavigate('display')}
           className="text-xl sm:text-2xl font-black tracking-tight text-white hover:opacity-90 transition-opacity flex items-center gap-1.5 focus-visible:outline-none"
         >
-          <span>ContTo</span>
+          <span>CountTo</span>
           <span 
             className="w-2 h-2 rounded-full inline-block animate-pulse" 
             style={{ backgroundColor: theme.primary }} 

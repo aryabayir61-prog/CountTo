@@ -24,6 +24,9 @@ export function playTickSound(volume = 0.08) {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -42,6 +45,85 @@ export function playTickSound(volume = 0.08) {
     osc.stop(ctx.currentTime + 0.04);
   } catch {
     // Ignore audio permission or playback errors
+  }
+}
+
+/**
+ * Plays a warm, noble horological chime for the top of the hour in Turkey Time.
+ * Uses a resonant celestial chime sequence followed by an acoustic clock gong.
+ */
+export function playHourlyChimeSound(hours: number, themeId: ThemeId = 'aurora', volume = 0.22): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    // 4-note melodic chime motif (Westminster-inspired gentle acoustic chime)
+    const chimeMotif = [
+      { freq: 659.25, time: 0 },       // E5
+      { freq: 523.25, time: 0.22 },    // C5
+      { freq: 587.33, time: 0.44 },    // D5
+      { freq: 392.00, time: 0.66 },    // G4
+    ];
+
+    chimeMotif.forEach(({ freq, time }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const noteTime = now + time;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0.0001, noteTime);
+      gain.gain.linearRampToValueAtTime(volume * 0.75, noteTime + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.6);
+    });
+
+    // Deep resonant acoustic clock gong strike at 1.05s
+    const gongTime = now + 1.05;
+    const gongFrequencies = [130.81, 261.63, 392.00, 523.25]; // C3, C4, G4, C5 warm gong harmonics
+
+    const gongFilter = ctx.createBiquadFilter();
+    gongFilter.type = 'lowpass';
+    gongFilter.frequency.setValueAtTime(1400, gongTime);
+    gongFilter.frequency.exponentialRampToValueAtTime(320, gongTime + 2.4);
+
+    const gongMasterGain = ctx.createGain();
+    gongMasterGain.gain.setValueAtTime(volume * 0.95, gongTime);
+    gongMasterGain.gain.exponentialRampToValueAtTime(0.0001, gongTime + 2.5);
+
+    gongFilter.connect(gongMasterGain);
+    gongMasterGain.connect(ctx.destination);
+
+    gongFrequencies.forEach((f, idx) => {
+      const gongOsc = ctx.createOscillator();
+      const gongGain = ctx.createGain();
+      gongOsc.type = idx === 0 ? 'sine' : 'triangle';
+      gongOsc.frequency.setValueAtTime(f, gongTime);
+
+      const voiceVol = idx === 0 ? 0.35 : 0.2 / idx;
+      gongGain.gain.setValueAtTime(0.0001, gongTime);
+      gongGain.gain.linearRampToValueAtTime(voiceVol, gongTime + 0.04);
+      gongGain.gain.exponentialRampToValueAtTime(0.0001, gongTime + 2.2);
+
+      gongOsc.connect(gongGain);
+      gongGain.connect(gongFilter);
+
+      gongOsc.start(gongTime);
+      gongOsc.stop(gongTime + 2.5);
+    });
+  } catch {
+    // Ignore audio playback errors
   }
 }
 
@@ -271,6 +353,41 @@ export function playThemeSound(theme: ThemeId, volume = 0.28) {
         playCosmicSwell(ctx, now, matrixNotes, 2750, 2.6, volume, 1.45);
         break;
       }
+      case 'dustypink': {
+        const dustyNotes = [174.61, 261.63, 329.63, 392.00, 523.25, 783.99];
+        playCosmicSwell(ctx, now, dustyNotes, 2400, 2.3, volume, 1.5);
+        break;
+      }
+      case 'lavender': {
+        const lavNotes = [146.83, 220.00, 293.66, 440.00, 659.25, 880.00];
+        playCosmicSwell(ctx, now, lavNotes, 2600, 2.4, volume, 1.55);
+        break;
+      }
+      case 'deepocean': {
+        const oceanNotes = [130.81, 196.00, 261.63, 392.00, 587.33, 783.99];
+        playCosmicSwell(ctx, now, oceanNotes, 2100, 2.5, volume, 1.6);
+        break;
+      }
+      case 'caramel': {
+        const caramelNotes = [146.83, 220.00, 293.66, 370.00, 554.37, 739.99];
+        playCosmicSwell(ctx, now, caramelNotes, 2300, 2.2, volume, 1.5);
+        break;
+      }
+      case 'sage': {
+        const sageNotes = [164.81, 246.94, 329.63, 440.00, 659.25, 987.77];
+        playCosmicSwell(ctx, now, sageNotes, 2200, 2.1, volume, 1.45);
+        break;
+      }
+      case 'cobalt': {
+        const cobaltNotes = [110.00, 164.81, 220.00, 329.63, 493.88, 659.25];
+        playCosmicSwell(ctx, now, cobaltNotes, 2700, 2.7, volume, 1.5);
+        break;
+      }
+      case 'copper': {
+        const copperNotes = [130.81, 196.00, 261.63, 329.63, 493.88, 659.25];
+        playCosmicSwell(ctx, now, copperNotes, 2350, 2.4, volume, 1.55);
+        break;
+      }
     }
   } catch {
     // Ignore audio permission errors
@@ -278,9 +395,10 @@ export function playThemeSound(theme: ThemeId, volume = 0.28) {
 }
 
 /**
- * Plays a luxurious, theme-tuned celestial chime for weather notifications.
+ * Plays a studio-grade celestial chord swell for real-time weather alerts,
+ * tuned with rich polyphonic harmonics matching the active theme's aura.
  */
-export function playWeatherNotificationSound(themeId: ThemeId, volume = 0.16): void {
+export function playWeatherNotificationSound(themeId: ThemeId, volume = 0.24): void {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -290,55 +408,260 @@ export function playWeatherNotificationSound(themeId: ThemeId, volume = 0.16): v
 
     const now = ctx.currentTime;
 
-    // Theme frequency pairings for crystalline notification chimes
-    const themePitchMap: Record<ThemeId, [number, number]> = {
-      aurora: [587.33, 880.00],    // D5 -> A5
-      cyber: [523.25, 783.99],     // C5 -> G5
-      violet: [440.00, 659.25],    // A4 -> E5
-      gold: [493.88, 739.99],      // B4 -> F#5
-      emerald: [523.25, 659.25],   // C5 -> E5
-      monochrome: [440.00, 880.00],// A4 -> A5
-      crimson: [415.30, 622.25],   // G#4 -> D#5
-      midnight: [370.00, 554.37],  // F#4 -> C#5
-      sakura: [659.25, 987.77],    // E5 -> B5
-      hyperlime: [587.33, 880.00], // D5 -> A5
-      sunset: [440.00, 659.25],    // A4 -> E5
-      nordic: [698.46, 1046.50],   // F5 -> C6
-      synthwave: [554.37, 830.61], // C#5 -> G#5
-      nebula: [493.88, 739.99],    // B4 -> F#5
-      solarpunk: [523.25, 783.99], // C5 -> G5
-      aquamarine: [659.25, 987.77],// E5 -> B5
-      volcano: [392.00, 587.33],   // G4 -> D5
-      matrix: [440.00, 659.25],    // A4 -> E5
+    // 5-voice rich celestial chord charts tuned per theme
+    const themeChordMap: Record<ThemeId, { notes: number[]; filterCutoff: number; q: number }> = {
+      aurora: {
+        notes: [277.18, 415.30, 554.37, 830.61, 1108.73], // C#maj9 ethereal shimmer
+        filterCutoff: 2900,
+        q: 2.3,
+      },
+      synthwave: {
+        notes: [220.00, 329.63, 440.00, 554.37, 880.00], // Neon A6/9
+        filterCutoff: 3100,
+        q: 2.6,
+      },
+      cyber: {
+        notes: [261.63, 392.00, 523.25, 659.25, 783.99], // Pristine Cmaj9
+        filterCutoff: 2800,
+        q: 2.4,
+      },
+      violet: {
+        notes: [220.00, 349.23, 440.00, 523.25, 783.99], // Deep Cosmic Fmaj7#11
+        filterCutoff: 2600,
+        q: 2.2,
+      },
+      gold: {
+        notes: [246.94, 370.00, 493.88, 622.25, 739.99], // Luminous Bmaj9
+        filterCutoff: 2700,
+        q: 2.5,
+      },
+      emerald: {
+        notes: [196.00, 293.66, 392.00, 493.88, 659.25], // Forest Gmaj9
+        filterCutoff: 2400,
+        q: 2.1,
+      },
+      monochrome: {
+        notes: [220.00, 329.63, 440.00, 659.25, 880.00], // Pure Asymmetric Sus2
+        filterCutoff: 2500,
+        q: 2.2,
+      },
+      crimson: {
+        notes: [207.65, 311.13, 415.30, 622.25, 830.61], // Velvet G#m9
+        filterCutoff: 2750,
+        q: 2.5,
+      },
+      midnight: {
+        notes: [185.00, 277.18, 370.00, 554.37, 739.99], // Dark F#m11
+        filterCutoff: 2300,
+        q: 2.1,
+      },
+      sakura: {
+        notes: [261.63, 349.23, 523.25, 698.46, 1046.50], // Blossom Fmaj9
+        filterCutoff: 3000,
+        q: 2.2,
+      },
+      hyperlime: {
+        notes: [246.94, 370.00, 493.88, 739.99, 987.77], // Vibrant Bsus4
+        filterCutoff: 3200,
+        q: 2.7,
+      },
+      sunset: {
+        notes: [220.00, 293.66, 440.00, 587.33, 783.99], // Twilight Dsus2/A
+        filterCutoff: 2600,
+        q: 2.3,
+      },
+      nordic: {
+        notes: [261.63, 392.00, 587.33, 783.99, 1174.66], // Crystal Gsus2
+        filterCutoff: 3100,
+        q: 2.1,
+      },
+      nebula: {
+        notes: [220.00, 329.63, 493.88, 659.25, 987.77], // Plasma Bm11
+        filterCutoff: 2850,
+        q: 2.4,
+      },
+      solarpunk: {
+        notes: [261.63, 329.63, 392.00, 523.25, 783.99], // Warm Amber C6
+        filterCutoff: 2750,
+        q: 2.3,
+      },
+      aquamarine: {
+        notes: [329.63, 493.88, 659.25, 987.77, 1318.51], // Lagoon Emaj9
+        filterCutoff: 3200,
+        q: 2.2,
+      },
+      volcano: {
+        notes: [220.00, 293.66, 440.00, 587.33, 880.00], // Molten Dm9
+        filterCutoff: 2450,
+        q: 2.5,
+      },
+      matrix: {
+        notes: [246.94, 370.00, 493.88, 739.99, 987.77], // Emerald Bm9
+        filterCutoff: 3000,
+        q: 2.6,
+      },
+      dustypink: {
+        notes: [261.63, 329.63, 392.00, 523.25, 659.25], // Cmaj9 soft powdery rose
+        filterCutoff: 2700,
+        q: 2.2,
+      },
+      lavender: {
+        notes: [220.00, 293.66, 440.00, 587.33, 880.00], // Dsus2 velvet purple
+        filterCutoff: 2900,
+        q: 2.4,
+      },
+      deepocean: {
+        notes: [196.00, 261.63, 392.00, 523.25, 783.99], // C5 deep marine resonance
+        filterCutoff: 2500,
+        q: 2.3,
+      },
+      caramel: {
+        notes: [220.00, 277.18, 329.63, 440.00, 659.25], // A6 golden honey
+        filterCutoff: 2600,
+        q: 2.2,
+      },
+      sage: {
+        notes: [196.00, 246.94, 293.66, 392.00, 587.33], // Gmaj7 matcha peace
+        filterCutoff: 2400,
+        q: 2.1,
+      },
+      cobalt: {
+        notes: [220.00, 329.63, 440.00, 659.25, 880.00], // E5 crystalline cobalt
+        filterCutoff: 3100,
+        q: 2.6,
+      },
+      copper: {
+        notes: [220.00, 293.66, 370.00, 554.37, 739.99], // Dmaj7 terra cotta
+        filterCutoff: 2550,
+        q: 2.3,
+      },
     };
 
-    const [f1, f2] = themePitchMap[themeId] || [523.25, 783.99];
+    const config = themeChordMap[themeId] || themeChordMap.aurora;
 
-    // Note 1
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(f1, now);
-    gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(volume * 0.7, now + 0.04);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 1.25);
+    // Resonant master lowpass filter with smooth dynamic breath
+    const masterFilter = ctx.createBiquadFilter();
+    masterFilter.type = 'lowpass';
+    masterFilter.Q.setValueAtTime(config.q, now);
+    masterFilter.frequency.setValueAtTime(config.filterCutoff * 0.65, now);
+    masterFilter.frequency.linearRampToValueAtTime(config.filterCutoff, now + 0.16);
+    masterFilter.frequency.exponentialRampToValueAtTime(800, now + 2.3);
 
-    // Note 2 (slightly delayed celestial harmonic)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(f2, now + 0.12);
-    gain2.gain.setValueAtTime(0, now + 0.12);
-    gain2.gain.linearRampToValueAtTime(volume, now + 0.16);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.12);
-    osc2.stop(now + 1.65);
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(volume * 0.9, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
+
+    masterFilter.connect(masterGain);
+    masterGain.connect(ctx.destination);
+
+    // Cascading harmonic voices with micro-detuning
+    config.notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const voiceGain = ctx.createGain();
+
+      osc.type = idx === config.notes.length - 1 ? 'triangle' : 'sine';
+
+      // Micro-detuning for shimmer
+      const detuneCents = (idx % 2 === 0 ? 1 : -1) * (idx * 1.3);
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(detuneCents, now);
+
+      const staggerStart = now + idx * 0.026;
+      const duration = 2.1 - idx * 0.1;
+
+      voiceGain.gain.setValueAtTime(0.0001, staggerStart);
+      voiceGain.gain.linearRampToValueAtTime(0.25, staggerStart + 0.05);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, staggerStart + duration);
+
+      osc.connect(voiceGain);
+      voiceGain.connect(masterFilter);
+
+      osc.start(staggerStart);
+      osc.stop(staggerStart + duration + 0.1);
+    });
+  } catch {
+    // Ignore audio errors
+  }
+}
+
+/**
+ * Plays a delicate, whispering descending celestial shimmer as the notification smoothly exits.
+ * Duration matches the 0.65s exit animation.
+ */
+export function playWeatherExitSound(themeId: ThemeId, volume = 0.15): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    // Descending harmonic triad tuned to theme root
+    const themeExitPitches: Record<ThemeId, [number, number, number]> = {
+      aurora: [830.61, 554.37, 415.30],
+      synthwave: [659.25, 554.37, 440.00],
+      cyber: [783.99, 659.25, 523.25],
+      violet: [659.25, 523.25, 440.00],
+      gold: [739.99, 622.25, 493.88],
+      emerald: [659.25, 493.88, 392.00],
+      monochrome: [659.25, 523.25, 440.00],
+      crimson: [622.25, 523.25, 415.30],
+      midnight: [554.37, 440.00, 370.00],
+      sakura: [783.99, 659.25, 523.25],
+      hyperlime: [739.99, 587.33, 493.88],
+      sunset: [659.25, 587.33, 440.00],
+      nordic: [783.99, 587.33, 392.00],
+      nebula: [659.25, 493.88, 440.00],
+      solarpunk: [659.25, 523.25, 392.00],
+      aquamarine: [783.99, 659.25, 493.88],
+      volcano: [587.33, 440.00, 370.00],
+      matrix: [659.25, 493.88, 440.00],
+      dustypink: [659.25, 523.25, 392.00],
+      lavender: [783.99, 587.33, 440.00],
+      deepocean: [587.33, 392.00, 261.63],
+      caramel: [659.25, 554.37, 440.00],
+      sage: [587.33, 493.88, 392.00],
+      cobalt: [880.00, 659.25, 440.00],
+      copper: [739.99, 554.37, 440.00],
+    };
+
+    const pitches = themeExitPitches[themeId] || [659.25, 523.25, 440.00];
+
+    // Smooth sweeping lowpass filter descending from warm to deep whisper
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.Q.setValueAtTime(1.8, now);
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(350, now + 0.65);
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(volume * 0.7, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.68);
+
+    filter.connect(masterGain);
+    masterGain.connect(ctx.destination);
+
+    pitches.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const voiceGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      const start = now + idx * 0.045;
+      const dur = 0.55 - idx * 0.04;
+
+      voiceGain.gain.setValueAtTime(0.0001, start);
+      voiceGain.gain.linearRampToValueAtTime(0.18, start + 0.04);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
+      osc.connect(voiceGain);
+      voiceGain.connect(filter);
+
+      osc.start(start);
+      osc.stop(start + dur + 0.05);
+    });
   } catch {
     // Ignore audio errors
   }
@@ -563,6 +886,83 @@ const THEME_MUSICAL_PROFILES: Record<ThemeId, MusicalThemeProfile> = {
       [46.25, 92.5, 138.59, 185.0, 277.18],
     ],
     filterCutoff: 1250,
+  },
+  dustypink: {
+    bpm: 52,
+    pulseFreq: 58,
+    chords: [
+      [87.31, 130.81, 174.61, 261.63, 329.63],
+      [65.41, 130.81, 196.0, 246.94, 329.63],
+      [73.42, 110.0, 164.81, 220.0, 261.63],
+      [58.27, 116.54, 174.61, 220.0, 293.66],
+    ],
+    filterCutoff: 1100,
+  },
+  lavender: {
+    bpm: 54,
+    pulseFreq: 60,
+    chords: [
+      [73.42, 110.0, 146.83, 220.0, 293.66],
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+      [58.27, 116.54, 174.61, 220.0, 293.66],
+      [49.0, 98.0, 146.83, 196.0, 293.66],
+    ],
+    filterCutoff: 1200,
+  },
+  deepocean: {
+    bpm: 50,
+    pulseFreq: 52,
+    chords: [
+      [65.41, 98.0, 130.81, 196.0, 261.63],
+      [58.27, 87.31, 116.54, 174.61, 233.08],
+      [49.0, 73.42, 98.0, 146.83, 220.0],
+      [55.0, 82.41, 110.0, 164.81, 220.0],
+    ],
+    filterCutoff: 1000,
+  },
+  caramel: {
+    bpm: 54,
+    pulseFreq: 62,
+    chords: [
+      [73.42, 110.0, 146.83, 185.0, 220.0],
+      [65.41, 98.0, 130.81, 164.81, 196.0],
+      [55.0, 82.41, 110.0, 146.83, 220.0],
+      [49.0, 73.42, 98.0, 130.81, 196.0],
+    ],
+    filterCutoff: 1150,
+  },
+  sage: {
+    bpm: 50,
+    pulseFreq: 56,
+    chords: [
+      [49.0, 73.42, 98.0, 123.47, 146.83],
+      [41.2, 61.74, 82.41, 110.0, 146.83],
+      [55.0, 82.41, 110.0, 138.59, 164.81],
+      [43.65, 65.41, 87.31, 116.54, 146.83],
+    ],
+    filterCutoff: 1050,
+  },
+  cobalt: {
+    bpm: 58,
+    pulseFreq: 64,
+    chords: [
+      [55.0, 110.0, 164.81, 220.0, 329.63],
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+      [49.0, 98.0, 146.83, 196.0, 293.66],
+      [73.42, 110.0, 146.83, 220.0, 293.66],
+    ],
+    filterCutoff: 1320,
+  },
+  copper: {
+    bpm: 52,
+    pulseFreq: 58,
+    chords: [
+      [65.41, 130.81, 196.0, 246.94, 293.66],
+      [55.0, 110.0, 164.81, 220.0, 261.63],
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+    ],
+    filterCutoff: 1120,
   },
 };
 
