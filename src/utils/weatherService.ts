@@ -1,9 +1,11 @@
 export interface RealWeatherNotification {
-  header: string; // "CountTo Hava Durumu Bildirimi"
-  message: string; // e.g. "Yağmur Birazdan Başlayacak"
-  iconType: 'rain' | 'heavyRain' | 'thunder' | 'snow' | 'fog' | 'cloud' | 'sun' | 'moon';
+  header: string; // "CountTo Hava Durumu"
+  message: string; // e.g. "Hava birazdan bulutlu olacak", "Yağmur birazdan başlayacak"
+  context?: string;
+  iconType: 'rain' | 'heavyRain' | 'thunder' | 'snow' | 'fog' | 'cloud' | 'sun' | 'moon' | 'wind' | 'freeze' | 'tempDrop' | 'hail' | 'rainClearing' | 'heat';
   temperature: number;
   weatherCode: number;
+  isPredictive?: boolean;
 }
 
 interface Coords {
@@ -25,7 +27,7 @@ export async function getRealUserCoordinates(): Promise<Coords | null> {
     return cachedCoords;
   }
 
-  // 1. Try native browser geolocation (this will prompt the user for permission)
+  // 1. Try native browser geolocation
   if (typeof window !== 'undefined' && 'geolocation' in navigator) {
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -82,12 +84,14 @@ export async function getRealUserCoordinates(): Promise<Coords | null> {
 }
 
 /**
- * Fetches 100% genuine real-time weather and precipitation forecast from Open-Meteo
+ * Fetches 100% genuine real-time weather and predictive short-term forecast from Open-Meteo.
+ * Predicts upcoming transitions (cloud cover, rain starting/stopping, wind picking up, etc.)
+ * a few minutes before they occur based on real live data.
  */
 export async function fetchRealWeather(forceRefresh = false): Promise<RealWeatherNotification | null> {
   const now = Date.now();
-  // Return cached result if fetched within the last 2.5 minutes (unless forceRefresh)
-  if (!forceRefresh && lastWeatherNotification && now - lastFetchedTime < 2.5 * 60 * 1000) {
+  // Return cached result if fetched within the last 2 minutes (unless forceRefresh)
+  if (!forceRefresh && lastWeatherNotification && now - lastFetchedTime < 2 * 60 * 1000) {
     return lastWeatherNotification;
   }
 
@@ -95,7 +99,7 @@ export async function fetchRealWeather(forceRefresh = false): Promise<RealWeathe
   if (!coords) return null;
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,precipitation,rain,showers,snowfall,weather_code,cloud_cover&hourly=precipitation_probability,precipitation,weather_code&forecast_days=1&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}&current=temperature_2m,relative_humidity_2m,is_day,precipitation,rain,showers,snowfall,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_gusts_10m&forecast_days=1&timezone=auto`;
 
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -109,94 +113,129 @@ export async function fetchRealWeather(forceRefresh = false): Promise<RealWeathe
     const temp = Math.round(current.temperature_2m ?? 20);
     const code = current.weather_code ?? 0;
     const precipitation = current.precipitation ?? 0;
+    const currentCloud = current.cloud_cover ?? 0;
+    const currentWind = current.wind_speed_10m ?? 0;
+    const currentGusts = current.wind_gusts_10m ?? 0;
+    const isDay = current.is_day === 1;
+
     const currentHourIndex = new Date().getHours();
 
-    // Check next 3 hours forecast for proactive real-time warnings
+    // Upcoming hour metrics (predictive real intelligence)
     const nextHourProb = hourly?.precipitation_probability?.[currentHourIndex + 1] ?? 0;
     const nextHourPrecip = hourly?.precipitation?.[currentHourIndex + 1] ?? 0;
     const nextHourCode = hourly?.weather_code?.[currentHourIndex + 1] ?? code;
-
-    const secondHourProb = hourly?.precipitation_probability?.[currentHourIndex + 2] ?? 0;
-    const secondHourPrecip = hourly?.precipitation?.[currentHourIndex + 2] ?? 0;
-    const secondHourCode = hourly?.weather_code?.[currentHourIndex + 2] ?? code;
+    const nextHourCloud = hourly?.cloud_cover?.[currentHourIndex + 1] ?? currentCloud;
+    const nextHourWind = hourly?.wind_speed_10m?.[currentHourIndex + 1] ?? currentWind;
+    const nextHourGusts = hourly?.wind_gusts_10m?.[currentHourIndex + 1] ?? currentGusts;
+    const nextHourTemp = Math.round(hourly?.temperature_2m?.[currentHourIndex + 1] ?? temp);
 
     let message = 'Hava Açık ve Berrak';
-    let iconType: RealWeatherNotification['iconType'] = 'sun';
+    let iconType: RealWeatherNotification['iconType'] = isDay ? 'sun' : 'moon';
 
     const isCurrentlyRaining = precipitation > 0 || (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
+    const isNextHourThunder = nextHourCode === 95 || nextHourCode === 96 || nextHourCode === 99;
+    const isNextHourSnow = (nextHourCode >= 71 && nextHourCode <= 77) || nextHourCode === 85 || nextHourCode === 86;
 
-    // 1. Thunderstorm incoming or active
-    if (
-      code === 95 || code === 96 || code === 99 ||
-      nextHourCode === 95 || nextHourCode === 96 || nextHourCode === 99
-    ) {
-      message = 'Gök Gürültülü Fırtına Bekleniyor';
+    // 1. Thunderstorm: Approaching or active
+    if (isNextHourThunder || code === 95 || code === 96 || code === 99) {
+      if (code !== 95 && code !== 96 && code !== 99) {
+        message = 'Gök gürültülü fırtına yaklaşıyor';
+      } else {
+        message = 'Gök gürültülü sağanak etkili';
+      }
       iconType = 'thunder';
     }
-    // 2. Snow incoming or active
-    else if (
-      (code >= 71 && code <= 77) || code === 85 || code === 86 ||
-      (nextHourCode >= 71 && nextHourCode <= 77) ||
-      (current.snowfall ?? 0) > 0
-    ) {
-      message = 'Kar Yağışı Bekleniyor';
+    // 2. Snow: Approaching or active
+    else if (isNextHourSnow || (code >= 71 && code <= 77) || code === 85 || code === 86 || (current.snowfall ?? 0) > 0) {
+      if (!((code >= 71 && code <= 77) || (current.snowfall ?? 0) > 0)) {
+        message = 'Kar yağışı birazdan başlayacak';
+      } else {
+        message = 'Kar yağışı etkili';
+      }
       iconType = 'snow';
     }
-    // 3. Active Rain Intelligence (Detecting if rain is speeding up or clearing)
-    else if (isCurrentlyRaining) {
-      if (nextHourPrecip > precipitation * 1.25 || nextHourPrecip >= 2.0 || nextHourCode === 65 || nextHourCode === 82) {
-        message = 'Yağan Yağmur, Daha da Hızlanacak';
-        iconType = 'heavyRain';
-      } else if (precipitation >= 2.5) {
-        message = 'Şiddetli Yağmur Etkili';
-        iconType = 'heavyRain';
-      } else if (nextHourPrecip < precipitation * 0.45 && nextHourProb < 40) {
-        message = 'Yağan Yağmur, Yakında Diniyor';
-        iconType = 'rain';
+    // 3. Heavy / Severe rain approaching or active
+    else if (
+      (precipitation === 0 && (nextHourCode === 65 || nextHourCode === 82 || nextHourPrecip >= 2.5)) ||
+      (precipitation >= 2.5)
+    ) {
+      if (precipitation === 0) {
+        message = 'Şiddetli yağmur birazdan başlayacak';
       } else {
-        message = precipitation >= 1.0 ? 'Yağmur Yağışı Etkili' : 'Hafif Yağmur Çiseliyor';
+        message = 'Şiddetli yağmur etkili';
+      }
+      iconType = 'heavyRain';
+    }
+    // 4. Active Rain Trend: Is rain stopping soon or speeding up?
+    else if (isCurrentlyRaining) {
+      if (nextHourPrecip < 0.1 && nextHourProb < 25) {
+        message = 'Yağmur birazdan dinecek';
+        iconType = 'rain';
+      } else if (nextHourPrecip >= precipitation * 1.6 && nextHourPrecip >= 1.5) {
+        message = 'Yağış birazdan hızlanacak';
+        iconType = 'heavyRain';
+      } else {
+        message = precipitation >= 1.0 ? 'Yağmur yağışı etkili' : 'Hafif yağmur çiseliyor';
         iconType = 'rain';
       }
     }
-    // 4. Imminent Severe / Heavy Rain Forecast (Dry right now, but heavy rain arriving)
-    else if (
-      nextHourCode === 65 || nextHourCode === 82 ||
-      secondHourCode === 65 || secondHourCode === 82 ||
-      nextHourPrecip >= 2.2 || secondHourPrecip >= 2.8
-    ) {
-      message = 'Şiddetli Yağmur Bekleniyor';
-      iconType = 'heavyRain';
-    }
-    // 5. Imminent Rain Starting Shortly (Dry right now, rain arriving in 1-2 hours)
-    else if (nextHourProb >= 35 || nextHourPrecip >= 0.2 || secondHourProb >= 50) {
-      message = 'Yağmur Birazdan Başlayacak';
+    // 5. Rain Starting Soon (Predictive transition a few minutes before start)
+    else if (nextHourProb >= 38 || nextHourPrecip >= 0.15) {
+      if (nextHourPrecip <= 0.5 || (nextHourCode >= 51 && nextHourCode <= 55)) {
+        message = 'Hafif çiseleme bekleniyor';
+      } else {
+        message = 'Yağmur birazdan başlayacak';
+      }
       iconType = 'rain';
     }
-    // 6. Fog / Mist
-    else if (code === 45 || code === 48) {
-      message = 'Puslu ve Sisli Hava';
-      iconType = 'fog';
+    // 6. Wind Picking Up (Predictive wind change)
+    else if (currentWind < 22 && (nextHourWind >= 32 || nextHourGusts >= 46)) {
+      message = 'Rüzgar birazdan sertleşebilir';
+      iconType = 'wind';
+    } else if (currentWind >= 35 || currentGusts >= 50) {
+      message = 'Kuvvetli rüzgar etkili';
+      iconType = 'wind';
     }
-    // 7. Overcast / Cloudy
-    else if (code === 2 || code === 3 || (current.cloud_cover ?? 0) >= 70) {
-      message = 'Bulutlu Bir Gökyüzü';
+    // 7. Cloud Cover Changes: "Hava birazdan bulutlu olacak" or "Gökyüzü birazdan açılacak"
+    else if (currentCloud <= 40 && nextHourCloud >= 75) {
+      message = 'Hava birazdan bulutlu olacak';
+      iconType = 'cloud';
+    } else if (currentCloud >= 75 && nextHourCloud <= 35) {
+      message = isDay ? 'Gökyüzü birazdan açılacak' : 'Bulutlar dağılıyor, gökyüzü açılacak';
+      iconType = isDay ? 'sun' : 'moon';
+    }
+    // 8. Noticeable temperature drop (cold front arriving)
+    else if (nextHourTemp <= temp - 3) {
+      message = 'Hava birazdan serinleyecek';
       iconType = 'cloud';
     }
-    // 8. Clear / Sunny
+    // 9. Fog / Low Visibility
+    else if (code === 45 || code === 48 || nextHourCode === 45 || nextHourCode === 48) {
+      if (code !== 45 && code !== 48) {
+        message = 'Görüş mesafesi düşebilir, sis bekleniyor';
+      } else {
+        message = 'Puslu ve sisli hava hakim';
+      }
+      iconType = 'fog';
+    }
+    // 10. Steady Overcast
+    else if (code === 2 || code === 3 || currentCloud >= 70) {
+      message = 'Bulutlu bir gökyüzü';
+      iconType = 'cloud';
+    }
+    // 11. Clear Sky (Day or Night)
     else {
-      const hour = new Date().getHours();
-      const isNight = hour >= 21 || hour < 6;
-      if (isNight) {
-        message = 'Açık ve Berrak Gece';
+      if (!isDay) {
+        message = 'Açık ve berrak gece';
         iconType = 'moon';
       } else {
-        message = 'Açık ve Güneşli';
+        message = 'Açık ve güneşli';
         iconType = 'sun';
       }
     }
 
     const notification: RealWeatherNotification = {
-      header: 'CountTo Hava Durumu Bildirimi',
+      header: 'CountTo Hava Durumu',
       message,
       iconType,
       temperature: temp,

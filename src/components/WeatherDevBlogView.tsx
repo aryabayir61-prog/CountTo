@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   CloudRain, 
   Volume2, 
@@ -9,18 +8,153 @@ import {
   Activity, 
   Cpu, 
   ShieldCheck, 
-  Layers, 
   Bell,
-  Play,
   RotateCw,
   Clock,
-  Radio
+  Radio,
+  Wind,
+  Snowflake,
+  ThermometerSnowflake,
+  ShieldAlert,
+  ThermometerSun,
+  CloudFog,
 } from 'lucide-react';
 import { FullscreenWeatherToast } from './FullscreenWeatherToast';
 import { fetchRealWeather, getRealUserCoordinates, RealWeatherNotification } from '../utils/weatherService';
 import { playWeatherNotificationSound, playWeatherExitSound, playHoverClickSound } from '../utils/audio';
 import { THEMES } from '../utils/themes';
 import { ThemeId } from '../types/countdown';
+
+const SAMPLE_NOTIFICATIONS: Array<{ label: string; icon: React.FC<{ className?: string }>; notification: RealWeatherNotification }> = [
+  {
+    label: 'Yaklaşan Yağmur',
+    icon: CloudRain,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Birkaç Dakika İçinde Yağmur Başlayacak',
+      context: 'Yağmur bulutları yaklaşıyor; şemsiyenizi hazırlayın',
+      iconType: 'rain',
+      temperature: 14,
+      weatherCode: 61,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Fırtına Yaklaşıyor',
+    icon: CloudRain,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Fırtına Yaklaşıyor',
+      context: 'Birkaç dakika içinde gök gürültülü sağanak başlayacak',
+      iconType: 'thunder',
+      temperature: 17,
+      weatherCode: 95,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Kuvvetli Rüzgar',
+    icon: Wind,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Kuvvetli Rüzgar Hamlesi',
+      context: 'Rüzgar hamlesi 56 km/s hızına ulaşıyor; dikkatli olun',
+      iconType: 'wind',
+      temperature: 12,
+      weatherCode: 3,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Don & Buzlanma',
+    icon: Snowflake,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Don ve Gizli Buzlanma Riski',
+      context: 'Zemin sıcaklığı donma sınırında; yollarda gizli buzlanmaya dikkat',
+      iconType: 'freeze',
+      temperature: 0,
+      weatherCode: 71,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Ani Sıcaklık Düşüşü',
+    icon: ThermometerSnowflake,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Ani Sıcaklık Düşüşü',
+      context: "Sıcaklık 16°C'den 10°C'ye düşecek; hava hızla soğuyor",
+      iconType: 'tempDrop',
+      temperature: 11,
+      weatherCode: 3,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Kar Başlamak Üzere',
+    icon: Snowflake,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Kar Yağışı Başlamak Üzere',
+      context: 'Birkaç dakika içinde kar yağışı başlayacak',
+      iconType: 'snow',
+      temperature: -1,
+      weatherCode: 71,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Dolu & Gök Gürültüsü',
+    icon: ShieldAlert,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Dolu ve Gök Gürültüsü Uyarısı',
+      context: 'Birkaç dakika içinde dolu ve şiddetli şimşek aktivitesi bekleniyor',
+      iconType: 'hail',
+      temperature: 15,
+      weatherCode: 96,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Yağmur Diniyor',
+    icon: CloudRain,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Yağmur Birkaç Dakika İçinde Diniyor',
+      context: 'Bulutlar dağılıyor; yağış yakında sona erecek',
+      iconType: 'rainClearing',
+      temperature: 15,
+      weatherCode: 61,
+      isPredictive: true,
+    },
+  },
+  {
+    label: 'Yoğun Sis & Görüş',
+    icon: CloudFog,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Yoğun Sis ve Düşük Görüş',
+      context: 'Görüş mesafesi oldukça düşük; trafikte ve yürüyüşte dikkatli olun',
+      iconType: 'fog',
+      temperature: 8,
+      weatherCode: 45,
+    },
+  },
+  {
+    label: 'Aşırı Sıcak Dalgası',
+    icon: ThermometerSun,
+    notification: {
+      header: 'CountTo Hava Durumu',
+      message: 'Aşırı Sıcak Uyarısı',
+      context: 'Hissedilen sıcaklık 38°C; bol sıvı tüketin ve gölgede kalın',
+      iconType: 'heat',
+      temperature: 36,
+      weatherCode: 0,
+    },
+  },
+];
 
 export const WeatherDevBlogView: React.FC = () => {
   const [liveWeather, setLiveWeather] = useState<RealWeatherNotification | null>(null);
@@ -54,13 +188,11 @@ export const WeatherDevBlogView: React.FC = () => {
     setActiveToast(null);
   };
 
-  // Trigger live demo notification
-  const handleTriggerDemoToast = () => {
-    if (!liveWeather) return;
-    setActiveToast(liveWeather);
+  // Trigger custom toast
+  const handleTriggerToast = (notif: RealWeatherNotification) => {
+    setActiveToast(notif);
     playWeatherNotificationSound(selectedTheme, 0.24);
 
-    // Auto-dismiss after 7.5 seconds with exit sound
     setTimeout(() => {
       playWeatherExitSound(selectedTheme);
       setActiveToast(null);
@@ -107,7 +239,7 @@ export const WeatherDevBlogView: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              CountTo DevBlog · Sistem Mimarisi
+              CountTo DevBlog · Meteoroloji Sistemi
             </span>
           </div>
         </div>
@@ -116,13 +248,13 @@ export const WeatherDevBlogView: React.FC = () => {
         <div className="mb-12 text-center sm:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold mb-3">
             <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>Sıfır Mock Veri · %100 Canlı Meteoroloji</span>
+            <span>Canlı Meteoroloji · Erken Uyarı Bildirimleri</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
-            Canlı Hava Durumu Bildirim Sistemi Nasıl Çalışıyor?
+            Akıllı Hava Durumu ve Erken Uyarı Sistemi
           </h1>
           <p className="text-sm sm:text-base text-neutral-400 max-w-3xl leading-relaxed">
-            CountTo tam ekrandayken devreye giren hassas hava durumu bildirimleri; gerçek zamanlı WMO meteoroloji kodları, yaklaşan yağış tahmin algoritmaları ve Web Audio API ile temaya göre akort edilen göksel ses tınılarının mükemmel bir uyumudur.
+            CountTo tam ekrandayken devreye giren bildirimler; 15 dakikalık şimdi-tahmin (nowcasting) algoritmaları ile yaklaşan yağmur, fırtına, şiddetli rüzgar veya ani sıcaklık düşüşlerini olay gerçekleşmeden birkaç dakika önce sakin ve bilgilendirici şekilde sunar.
           </p>
         </div>
 
@@ -132,10 +264,10 @@ export const WeatherDevBlogView: React.FC = () => {
             <div>
               <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                İnteraktif Canlı Demo Sandbox
+                İnteraktif Test ve Önizleme
               </span>
               <h2 className="text-xl sm:text-2xl font-bold text-white">
-                Bileşeni ve Sesi Canlı Test Edin
+                Bildirim Türlerini Canlı Deneyin
               </h2>
             </div>
 
@@ -164,7 +296,7 @@ export const WeatherDevBlogView: React.FC = () => {
             <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
               <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1.5 mb-1">
                 <Activity className="w-3 h-3 text-amber-400" />
-                Canlı Sıcaklık & Durum
+                Anlık Canlı Durum
               </span>
               <p className="text-sm font-bold text-white truncate">
                 {isLoading ? 'Hesaplanıyor...' : liveWeather ? `${liveWeather.temperature}°C · ${liveWeather.message}` : 'Veri Hazır'}
@@ -174,23 +306,23 @@ export const WeatherDevBlogView: React.FC = () => {
             <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
               <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1.5 mb-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                Veri Doğruluğu
+                Kaynak Doğruluğu
               </span>
               <p className="text-sm font-bold text-emerald-400">
-                %100 Doğrulanmış Open-Meteo
+                Open-Meteo 15-Dakika Nowcast
               </p>
             </div>
           </div>
 
-          {/* Live Action Buttons */}
+          {/* Real Live Weather Trigger */}
           <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
             <button
-              onClick={handleTriggerDemoToast}
+              onClick={() => liveWeather && handleTriggerToast(liveWeather)}
               disabled={isLoading || !liveWeather}
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
             >
               <Bell className="w-4 h-4 text-neutral-900" />
-              <span>Canlı Yandan Bildirim Demosunu Tetikle</span>
+              <span>Anlık Canlı Bildirimi Test Et</span>
             </button>
 
             <button
@@ -198,8 +330,38 @@ export const WeatherDevBlogView: React.FC = () => {
               className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-white font-bold text-sm border border-white/10 shadow-lg flex items-center justify-center gap-2.5 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
             >
               <Volume2 className="w-4 h-4 text-cyan-400" />
-              <span>Temaya Uygun Bildirim Sesini Dinle</span>
+              <span>Temaya Göre Ses Efektini Dinle</span>
             </button>
+          </div>
+
+          {/* Expanded Notification Types Gallery */}
+          <div className="mb-8 pt-6 border-t border-white/10">
+            <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-3">
+              Farklı Erken Uyarı Türlerini Önizleyin (Tıklayıp Test Edin):
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+              {SAMPLE_NOTIFICATIONS.map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => handleTriggerToast(item.notification)}
+                    onMouseEnter={() => playHoverClickSound(0.05)}
+                    className="p-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-neutral-200 hover:text-white transition-all text-left flex flex-col gap-1.5 cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <IconComponent className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                      {item.notification.isPredictive && (
+                        <span className="text-[9px] font-semibold text-cyan-300 bg-cyan-950/80 px-1 py-0.2 rounded">
+                          Tahmin
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Theme Sound Audition Picker */}
@@ -251,7 +413,7 @@ export const WeatherDevBlogView: React.FC = () => {
                 1. Gerçek Konum & Çift Kademeli Tespit
               </h3>
               <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                Uygulama açılır açılmaz tarayıcının <code className="text-cyan-300">navigator.geolocation</code> arabirimi tetiklenir. Kullanıcı izin verirse metre hassasiyetinde GPS koordinatları alınır. Kullanıcı izni reddederse veya cihazda GPS yoksa, güvenli IP coğrafi konum servisi üzerinden anında gerçek koordinatlar tespit edilir. Sıfır sahte veri kullanılır.
+                Tarayıcının <code className="text-cyan-300">navigator.geolocation</code> arabirimi ile GPS koordinatları alınır. Kullanıcı izin vermediğinde güvenli IP tabanlı coğrafi tespit devreye girerek yerel veriler kesintisiz sağlanır.
               </p>
             </div>
 
@@ -261,10 +423,10 @@ export const WeatherDevBlogView: React.FC = () => {
                 <CloudRain className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2">
-                2. Yaklaşan Yağış Tahmin Algoritması
+                2. 15-Dakikalık Nowcasting ile Önceden Tahmin
               </h3>
               <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                Sistem yalnızca havanın şu an yağmurlu olup olmadığına bakmaz; Open-Meteo&apos;nun saatlik tahmin eğrilerini inceleyerek önümüzdeki 1–2 saat içindeki <code className="text-cyan-300">precipitation_probability</code> oranını ve milimetre projeksiyonunu tarar. Yağmur henüz başlamadan önce <strong>&quot;Yağmur Birazdan Başlayacak&quot;</strong> bildirimini tam zamanında üretir.
+                Open-Meteo&apos;nun 15 dakikalık yüksek çözünürlüklü projeksiyonu taranır. Yağış, fırtına hamlesi, don noktası veya ani sıcaklık düşüşü başlamadan önce kullanıcı bilgilendirilir.
               </p>
             </div>
 
@@ -277,7 +439,7 @@ export const WeatherDevBlogView: React.FC = () => {
                 3. Tam Ekran Zamanlaması & Anti-Spam
               </h3>
               <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                Kullanıcı odaklanma veya etkinlik için tam ekrana geçtiğinde <code className="text-cyan-300">fullscreenchange</code> olayı dinlenir. 1.8 saniye beklenerek geçişin tamamlanması sağlanır. Ayrıca ardışık tam ekran geçişlerinde kullanıcıyı rahatsız etmemek adına <strong>15 dakikalık akıllı bekleme süresi (cooldown)</strong> devreye girer.
+                Tam ekrana geçişten 1.8 saniye sonra devreye girer. Kritik hava değişimlerinde hemen; olağan durumlarda ise 12 dakikalık akıllı dinlenme süresiyle kullanıcıyı rahatsız etmeden çalışır.
               </p>
             </div>
 
@@ -290,7 +452,7 @@ export const WeatherDevBlogView: React.FC = () => {
                 4. Web Audio API ile Temaya Uygun Tını
               </h3>
               <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                Statik ses dosyaları yüklemek yerine, tarayıcının ses motorunda gerçek zamanlı iki tonlu göksel kristal akorlar (<code className="text-cyan-300">sine oscillator + exponential gain envelope</code>) sentezlenir. Her tema (Aurora, Synthwave, Matrix, vb.) için özel olarak hesaplanan rezonans frekansları çalınır.
+                Tarayıcıda gerçek zamanlı göksel kristal akorlar (<code className="text-cyan-300">sine oscillator + exponential gain envelope</code>) sentezlenir. Her tema için özel harmonikler üretilir.
               </p>
             </div>
           </div>

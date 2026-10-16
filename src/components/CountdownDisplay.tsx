@@ -40,6 +40,7 @@ interface CountdownDisplayProps {
   isVertical?: boolean;
   onToggleVertical?: () => void;
   onTestChime?: () => void;
+  onFocusModeChange?: (isFocusMode: boolean) => void;
 }
 
 export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
@@ -59,6 +60,7 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   isVertical = false,
   onToggleVertical,
   onTestChime,
+  onFocusModeChange,
 }) => {
   const styles: { id: CountdownStyle; name: string }[] = [
     { id: 'countTo', name: 'CountTo (Aşağı Kayma)' },
@@ -73,6 +75,10 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   const [showHint, setShowHint] = useState<boolean>(false);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    onFocusModeChange?.(isFullscreen && !controlsVisible);
+  }, [isFullscreen, controlsVisible, onFocusModeChange]);
 
   // Real-time Turkey Time ticker for finished/no-countdown state
   const isFinished = !event || time.isPast;
@@ -228,7 +234,10 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
           </div>
 
           {/* Primary Event Title */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-3 text-balance leading-tight">
+          <h1 
+            data-rain-surface="true"
+            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-3 text-balance leading-tight"
+          >
             {isFinished ? 'Şu Anki Saat' : event?.title}
           </h1>
 
@@ -248,7 +257,10 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
 
         {/* Main Interactive Animated Countdown / Turkey Clock Area */}
         {/* Exactly uses the selected countdown style, but hides 'GÜN' when finished! */}
-        <div className="w-full flex items-center justify-center my-2 sm:my-6 transition-all duration-500">
+        <div 
+          data-rain-surface="true"
+          className="w-full flex items-center justify-center my-2 sm:my-6 transition-all duration-500"
+        >
           {event.style === 'countTo' && (
             <CountToRollView
               time={effectiveDisplayTime}
@@ -337,7 +349,10 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
             className="mt-8 sm:mt-10 flex flex-col items-center gap-3 w-full"
           >
             {/* 1. Animation Style Segmented Pill Selector (Theme colored & smoothly sliding) */}
-            <div className="p-1 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-2xl flex items-center shadow-2xl overflow-x-auto max-w-full relative">
+            <div 
+              data-rain-surface="true"
+              className="p-1 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-2xl flex items-center shadow-2xl overflow-x-auto max-w-full relative"
+            >
               {styles.map((s) => {
                 const isActive = event.style === s.id;
                 return (

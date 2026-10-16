@@ -1175,3 +1175,228 @@ export function stopAmbientMusic(fadeSeconds = 1.4) {
     // Ignore
   }
 }
+
+/**
+ * Realistic acoustic paper page rustle / note placement sound.
+ * Plays when a sticky note is created.
+ */
+export function playPaperPageSound(volume = 0.28): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const duration = 0.22;
+    const sampleRate = ctx.sampleRate;
+    const bufferSize = Math.floor(sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Generate crisp paper rustle noise with micro-flutter
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / bufferSize;
+      const flutter = 1 + 0.35 * Math.sin(t * 120);
+      data[i] = (Math.random() * 2 - 1) * flutter;
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    // Resonant bandpass filter sweeping slightly downward (simulates sliding paper page)
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.setValueAtTime(2200, now);
+    bandpass.frequency.exponentialRampToValueAtTime(1100, now + duration);
+    bandpass.Q.setValueAtTime(2.2, now);
+
+    // Highpass filter to keep it crisp and clear
+    const highpass = ctx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(600, now);
+
+    // Dynamic amplitude envelope: quick gentle swell, fluttering decay
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(volume, now + 0.025);
+    gainNode.gain.exponentialRampToValueAtTime(volume * 0.45, now + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    // Gentle tactile soft low tap (simulates adhesive contact with surface)
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(65, now + 0.06);
+
+    oscGain.gain.setValueAtTime(volume * 0.35, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.065);
+
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.07);
+
+    noiseSource.connect(bandpass);
+    bandpass.connect(highpass);
+    highpass.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    noiseSource.start(now);
+    noiseSource.stop(now + duration);
+  } catch {
+    // Ignore audio playback errors
+  }
+}
+
+/**
+ * Realistic paper tear / ripping sound.
+ * Simulates high-tension fiber fracture and rapid shearing friction when closing a sticky note.
+ */
+export function playPaperTearSound(volume = 0.35): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const duration = 0.32;
+    const sampleRate = ctx.sampleRate;
+    const bufferSize = Math.floor(sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Paper tearing has irregular abrasive micro-bursts as fibers snap
+    let ripEnv = 0.2;
+    for (let i = 0; i < bufferSize; i++) {
+      const progress = i / bufferSize;
+      if (i % 180 === 0) {
+        ripEnv = 0.3 + Math.random() * 0.7;
+      }
+      const shape = progress < 0.15 
+        ? progress / 0.15 
+        : Math.pow(1 - progress, 1.4);
+      data[i] = (Math.random() * 2 - 1) * ripEnv * shape;
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    // Resonant bandpass to highlight gritty paper shred frequencies
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.setValueAtTime(3200, now);
+    bandpass.frequency.linearRampToValueAtTime(1800, now + duration * 0.7);
+    bandpass.frequency.exponentialRampToValueAtTime(900, now + duration);
+    bandpass.Q.setValueAtTime(2.8, now);
+
+    // Highpass to eliminate low rumble and make it sharp and papery
+    const highpass = ctx.createBiquadFilter();
+    highpass.type = 'highpass';
+    highpass.frequency.setValueAtTime(950, now);
+
+    // Peaking filter for signature tearing rip resonance
+    const peak = ctx.createBiquadFilter();
+    peak.type = 'peaking';
+    peak.frequency.setValueAtTime(2600, now);
+    peak.gain.setValueAtTime(6, now);
+    peak.Q.setValueAtTime(3.0, now);
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(volume, now + 0.02);
+    gainNode.gain.setValueAtTime(volume * 0.95, now + 0.12);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    noiseSource.connect(bandpass);
+    bandpass.connect(peak);
+    peak.connect(highpass);
+    highpass.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    noiseSource.start(now);
+    noiseSource.stop(now + duration);
+  } catch {
+    // Ignore audio playback errors
+  }
+}
+
+/**
+ * Atmospheric soft rain sound with gentle acoustic droplet tings.
+ * Plays when "Yağmur Teması" is selected.
+ */
+export function playRainThemeSound(volume = 0.24): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const duration = 1.6;
+    const sampleRate = ctx.sampleRate;
+    const bufferSize = Math.floor(sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Soft rain noise buffer with natural fluctuation
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / bufferSize;
+      const wave = Math.sin(t * 15) * 0.2 + 0.8;
+      data[i] = (Math.random() * 2 - 1) * wave;
+    }
+
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    // Lowpass filter for warm, relaxing rain patter
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(700, now + duration);
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.linearRampToValueAtTime(volume * 0.7, now + 0.15);
+    gainNode.gain.linearRampToValueAtTime(volume * 0.5, now + 0.8);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    noiseSource.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    noiseSource.start(now);
+    noiseSource.stop(now + duration);
+
+    // A few gentle water droplet tings
+    const dropPitches = [880, 1174, 1318, 987];
+    dropPitches.forEach((freq, idx) => {
+      const dropTime = now + 0.08 + idx * 0.16 + Math.random() * 0.05;
+      const osc = ctx.createOscillator();
+      const dropGain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, dropTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.6, dropTime + 0.08);
+
+      dropGain.gain.setValueAtTime(0.0001, dropTime);
+      dropGain.gain.linearRampToValueAtTime(volume * 0.35, dropTime + 0.01);
+      dropGain.gain.exponentialRampToValueAtTime(0.0001, dropTime + 0.09);
+
+      osc.connect(dropGain);
+      dropGain.connect(ctx.destination);
+
+      osc.start(dropTime);
+      osc.stop(dropTime + 0.1);
+    });
+  } catch {
+    // Ignore audio playback errors
+  }
+}
+
+

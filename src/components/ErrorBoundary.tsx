@@ -38,6 +38,13 @@ export class ErrorBoundary extends Component<Props, State> {
             <h2 className="text-xl font-bold text-white mb-2">
               Bir Yükleme Hatası Oluştu
             </h2>
+            {this.state.error && (
+              <pre className="text-left bg-black/60 p-3 rounded-lg text-rose-400 font-mono text-[11px] mb-4 overflow-x-auto max-h-40">
+                {this.state.error.name}: {this.state.error.message}
+                {'\n'}
+                {this.state.error.stack}
+              </pre>
+            )}
             <p className="text-xs text-neutral-400 mb-6 leading-relaxed">
               CountTo güvenli modda çalışıyor. Sayfayı yenileyerek veya ana ekrana dönerek devam edebilirsiniz.
             </p>

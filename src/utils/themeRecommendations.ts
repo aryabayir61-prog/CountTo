@@ -53,10 +53,50 @@ const DIURNAL_CLUSTER_BASELINE: Record<DiurnalPhase, Record<ThemeCluster, number
 
 // Cluster aesthetic compatibility matrix
 const CLUSTER_AFFINITIES: Record<ThemeCluster, Record<ThemeCluster, number>> = {
-  neon: { neon: 40, cosmic: 25, warm: 20, zen: 10 },
-  cosmic: { cosmic: 40, neon: 25, zen: 20, warm: 15 },
-  warm: { warm: 40, neon: 20, cosmic: 15, zen: 15 },
-  zen: { zen: 40, cosmic: 25, warm: 15, neon: 10 },
+  neon: { neon: 42, cosmic: 26, warm: 22, zen: 12 },
+  cosmic: { cosmic: 42, neon: 26, zen: 22, warm: 16 },
+  warm: { warm: 42, neon: 22, cosmic: 18, zen: 16 },
+  zen: { zen: 42, cosmic: 26, warm: 16, neon: 12 },
+};
+
+// Seasonal thematic harmony based on calendar month
+const SEASONAL_AFFINITIES: Record<number, Record<ThemeCluster, number>> = {
+  // Winter (Dec, Jan, Feb): crisp cosmic & cold zen
+  11: { cosmic: 30, zen: 24, neon: 18, warm: 12 },
+  0:  { cosmic: 32, zen: 26, neon: 16, warm: 12 },
+  1:  { cosmic: 28, zen: 26, neon: 18, warm: 14 },
+  // Spring (Mar, Apr, May): organic zen & uplifting cosmic
+  2:  { zen: 32, cosmic: 24, warm: 18, neon: 14 },
+  3:  { zen: 34, cosmic: 22, warm: 20, neon: 14 },
+  4:  { zen: 30, warm: 26, cosmic: 20, neon: 16 },
+  // Summer (Jun, Jul, Aug): high-energy neon & warm sun
+  5:  { neon: 30, warm: 28, zen: 20, cosmic: 12 },
+  6:  { neon: 32, warm: 30, zen: 18, cosmic: 10 },
+  7:  { warm: 30, neon: 28, zen: 20, cosmic: 12 },
+  // Autumn (Sep, Oct, Nov): warm amber/copper & cozy cosmic
+  8:  { warm: 32, cosmic: 24, zen: 20, neon: 14 },
+  9:  { warm: 34, cosmic: 26, zen: 18, neon: 12 },
+  10: { warm: 30, cosmic: 28, zen: 20, neon: 14 },
+};
+
+// Specific seasonal hero themes getting natural atmospheric resonance
+const SEASONAL_HERO_THEMES: Record<number, ThemeId[]> = {
+  // Autumn (Sep, Oct, Nov): Copper, Caramel, Solarpunk, Dusty Rose
+  8:  ['copper', 'caramel', 'solarpunk', 'dustypink', 'sunset'],
+  9:  ['copper', 'caramel', 'volcano', 'crimson', 'dustypink'],
+  10: ['copper', 'caramel', 'solarpunk', 'gold', 'lavender'],
+  // Winter: Nordic, Aurora, Cobalt, Deep Ocean, Midnight
+  11: ['nordic', 'aurora', 'cobalt', 'deepocean', 'midnight'],
+  0:  ['nordic', 'cobalt', 'aurora', 'monochrome', 'lavender'],
+  1:  ['nordic', 'cobalt', 'deepocean', 'aurora', 'matrix'],
+  // Spring: Sakura, Dusty Rose, Lavender, Sage, Emerald
+  2:  ['sakura', 'dustypink', 'lavender', 'sage', 'emerald'],
+  3:  ['sakura', 'dustypink', 'sage', 'lavender', 'aquamarine'],
+  4:  ['dustypink', 'sage', 'emerald', 'lavender', 'hyperlime'],
+  // Summer: Aquamarine, Deep Ocean, Hyperlime, Cyber, Synthwave
+  5:  ['aquamarine', 'deepocean', 'hyperlime', 'cyber', 'sunset'],
+  6:  ['aquamarine', 'deepocean', 'solarpunk', 'hyperlime', 'synthwave'],
+  7:  ['deepocean', 'aquamarine', 'sunset', 'cyber', 'gold'],
 };
 
 export interface ThemeSelectionLog {
@@ -178,13 +218,14 @@ export function getRecommendedThemes(currentTheme: ThemeId): ThemeId[] {
   const currentPhase = getDiurnalPhase(currentHour);
   const currentCluster = THEME_CLUSTERS[currentTheme] || 'cosmic';
 
+  const currentMonth = now.getMonth();
+  const currentDayOfWeek = now.getDay();
+  const isWeekendVibe = (currentDayOfWeek === 5 && currentHour >= 16) || currentDayOfWeek === 6 || currentDayOfWeek === 0;
+
   // Date seed for subtle daily variety (YYYYMMDD)
   const dateSeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
 
   const allThemes = Object.keys(THEMES) as ThemeId[];
-
-  // Calculate total selections to gauge how well we know the user
-  const totalSelections = Object.values(profile.counts).reduce((acc, c) => acc + c, 0);
 
   const scored = allThemes.map((tid) => {
     const tidCluster = THEME_CLUSTERS[tid] || 'cosmic';
@@ -194,6 +235,19 @@ export function getRecommendedThemes(currentTheme: ThemeId): ThemeId[] {
 
     // B. Natural Diurnal / Time-of-Day Baseline
     score += DIURNAL_CLUSTER_BASELINE[currentPhase][tidCluster] || 12;
+
+    // C. Seasonal Atmospheric Resonance (Current month climate mood)
+    score += SEASONAL_AFFINITIES[currentMonth]?.[tidCluster] || 14;
+    if (SEASONAL_HERO_THEMES[currentMonth]?.includes(tid)) {
+      score += 12;
+    }
+
+    // D. Weekly Rhythm: Weekend celebration boost vs Weekday focus
+    if (isWeekendVibe && (tidCluster === 'neon' || tidCluster === 'warm')) {
+      score += 10;
+    } else if (!isWeekendVibe && (tidCluster === 'zen' || tidCluster === 'cosmic')) {
+      score += 8;
+    }
 
     // C. Learned Hourly Personal Preferences (Strongest Circadian Signal)
     // Examines selections made at current hour and adjacent hours (+- 2h)

@@ -31,7 +31,7 @@ export const TopNav: React.FC<TopNavProps> = ({
         {/* Zone 1: Single text element wordmark */}
         <button
           onClick={() => onNavigate('display')}
-          className="text-xl sm:text-2xl font-black tracking-tight text-white hover:opacity-90 transition-opacity flex items-center gap-1.5 focus-visible:outline-none"
+          className="text-xl sm:text-2xl font-black tracking-tight text-white hover:opacity-90 transition-opacity flex items-center gap-1.5 focus-visible:outline-none cursor-pointer"
         >
           <span>CountTo</span>
           <span 
@@ -49,7 +49,7 @@ export const TopNav: React.FC<TopNavProps> = ({
                 <button
                   key={item.id}
                   onClick={() => onNavigate(item.id)}
-                  className="relative px-4 sm:px-5 py-1.5 rounded-full text-xs font-semibold select-none whitespace-nowrap transition-colors focus-visible:outline-none"
+                  className="relative px-3.5 sm:px-5 py-1.5 rounded-full text-xs font-semibold select-none whitespace-nowrap transition-colors focus-visible:outline-none cursor-pointer"
                 >
                   {isActive && (
                     <motion.div
@@ -76,11 +76,11 @@ export const TopNav: React.FC<TopNavProps> = ({
           </div>
         </nav>
 
-        {/* Zone 3: 1-2 primary actions */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Zone 3: Primary action button */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onOpenCreateModal}
-            className="px-4 py-1.5 text-xs font-bold text-neutral-950 rounded-full transition-all duration-200 flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 whitespace-nowrap border border-white/20"
+            className="px-4 py-1.5 text-xs font-bold text-neutral-950 rounded-full transition-all duration-200 flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 whitespace-nowrap border border-white/20 cursor-pointer"
             style={{
               backgroundColor: theme.primary,
             }}

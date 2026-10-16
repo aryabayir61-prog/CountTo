@@ -8,6 +8,7 @@ import {
   Sun, 
   Moon, 
   CloudFog,
+  Wind,
 } from 'lucide-react';
 import { RealWeatherNotification } from '../utils/weatherService';
 
@@ -33,10 +34,22 @@ export const FullscreenWeatherToast: React.FC<FullscreenWeatherToastProps> = ({
         return <CloudSnow className={iconClass} />;
       case 'fog':
         return <CloudFog className={iconClass} />;
+      case 'wind':
+        return <Wind className={iconClass} />;
       case 'cloud':
         return <Cloud className={iconClass} />;
       case 'moon':
         return <Moon className={iconClass} />;
+      case 'freeze':
+        return <CloudSnow className={iconClass} />;
+      case 'tempDrop':
+        return <Cloud className={iconClass} />;
+      case 'hail':
+        return <CloudLightning className={iconClass} />;
+      case 'rainClearing':
+        return <Sun className={iconClass} />;
+      case 'heat':
+        return <Sun className={iconClass} />;
       case 'sun':
       default:
         return <Sun className={iconClass} />;
@@ -63,13 +76,20 @@ export const FullscreenWeatherToast: React.FC<FullscreenWeatherToastProps> = ({
           {/* Clean White Bubble matching user screenshot */}
           <div className="bg-white text-neutral-900 rounded-2xl px-5 py-3.5 shadow-2xl flex flex-col gap-2 border border-black/5 hover:scale-[1.01] transition-transform relative overflow-hidden">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm sm:text-base tracking-tight text-neutral-900">
-                  {notification.message}
-                </span>
-                <span className="text-xs sm:text-sm font-medium text-neutral-500">
-                  {notification.temperature}°C
-                </span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm sm:text-base tracking-tight text-neutral-900">
+                    {notification.message}
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-neutral-500">
+                    {notification.temperature}°C
+                  </span>
+                </div>
+                {notification.context && (
+                  <p className="text-xs text-neutral-500 font-normal mt-0.5">
+                    {notification.context}
+                  </p>
+                )}
               </div>
 
               <div className="pl-1">

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { Check, Sparkles, Volume2, VolumeX, CloudRain } from 'lucide-react';
 import { ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
-import { playThemeSound, playHoverClickSound } from '../utils/audio';
+import { playThemeSound, playHoverClickSound, playRainThemeSound } from '../utils/audio';
 import { recordThemeSelection } from '../utils/themeRecommendations';
 import { RecommendedThemesSlider } from './RecommendedThemesSlider';
 
@@ -12,6 +12,8 @@ interface ThemesViewProps {
   onBackToDisplay: () => void;
   ambientEnabled?: boolean;
   onToggleAmbient?: () => void;
+  isRainThemeActive?: boolean;
+  onToggleRainTheme?: () => void;
 }
 
 export const ThemesView: React.FC<ThemesViewProps> = ({
@@ -20,6 +22,8 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
   onBackToDisplay,
   ambientEnabled = false,
   onToggleAmbient,
+  isRainThemeActive = false,
+  onToggleRainTheme,
 }) => {
   const themeIds = Object.keys(THEMES) as ThemeId[];
   const activeThemeConfig = THEMES[currentTheme];
@@ -28,6 +32,11 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
     recordThemeSelection(tid);
     onSelectTheme(tid);
     playThemeSound(tid);
+  };
+
+  const handleRainThemeClick = () => {
+    onToggleRainTheme?.();
+    playRainThemeSound(0.24);
   };
 
   return (
@@ -46,16 +55,82 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
             <span>Tüm Görsel Renk Temaları</span>
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Geri sayım ekranınız için tasarlanmış {themeIds.length} farklı sinematik palet
+            Geri sayım ekranınız için tasarlanmış sinematik renk ve atmosfer temaları
           </p>
         </div>
         <span className="text-xs font-semibold text-neutral-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-          {themeIds.length} Tema
+          {themeIds.length + 1} Tema
         </span>
       </div>
 
       {/* Grid of Themes - Expansive 3 Columns with Generous Width */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+        {/* Özel Yağmur Teması Kartı (Atmosferik · Yüzey Çarpışmalı) */}
+        <div
+          onClick={handleRainThemeClick}
+          onMouseEnter={() => playHoverClickSound()}
+          className={`group cursor-pointer rounded-3xl border p-6 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
+            isRainThemeActive
+              ? 'border-cyan-400/70 bg-neutral-900/90 ring-2 ring-cyan-400/30 shadow-2xl scale-[1.01]'
+              : 'border-white/10 bg-neutral-900/40 hover:border-cyan-400/40 hover:bg-neutral-900/60'
+          }`}
+          style={{
+            boxShadow: isRainThemeActive ? '0 15px 35px -10px rgba(6, 182, 212, 0.35)' : undefined,
+          }}
+        >
+          {/* Preview Box with Falling Rain Simulation */}
+          <div className="relative h-32 sm:h-36 w-full rounded-2xl overflow-hidden mb-5 border border-cyan-500/20 flex items-center justify-center bg-gradient-to-b from-slate-950 via-slate-900 to-cyan-950/60">
+            {/* Animated raindrops in preview */}
+            <div className="absolute inset-0 pointer-events-none opacity-70">
+              <span className="absolute w-[1.5px] h-8 bg-gradient-to-b from-transparent via-cyan-200 to-white left-[18%] top-[12%] animate-pulse" />
+              <span className="absolute w-[1.5px] h-10 bg-gradient-to-b from-transparent via-cyan-200 to-white left-[42%] top-[24%] animate-pulse" />
+              <span className="absolute w-[1.5px] h-7 bg-gradient-to-b from-transparent via-cyan-200 to-white left-[68%] top-[10%] animate-pulse" />
+              <span className="absolute w-[1.5px] h-9 bg-gradient-to-b from-transparent via-cyan-200 to-white left-[88%] top-[20%] animate-pulse" />
+            </div>
+
+            {/* Ambient water glow */}
+            <div className="w-24 h-24 rounded-full blur-2xl opacity-60 bg-cyan-500/30 absolute" />
+
+            {/* Sample numbers preview */}
+            <div className="relative z-10 font-mono-numbers text-2xl sm:text-3xl font-black text-white drop-shadow-md whitespace-nowrap tracking-wide flex items-center justify-center gap-2 select-none">
+              <span className="text-cyan-100">07</span>
+              <span className="text-cyan-300/40 font-light text-xl sm:text-2xl pb-0.5">:</span>
+              <span className="text-cyan-100">42</span>
+              <span className="text-cyan-300/40 font-light text-xl sm:text-2xl pb-0.5">:</span>
+              <span className="text-cyan-100">19</span>
+            </div>
+
+            {/* Atmospheric Rain Badge */}
+            <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-[10px] font-semibold text-cyan-300 flex items-center gap-1 backdrop-blur-xs">
+              <CloudRain className="w-3 h-3" />
+              <span>Yağmur</span>
+            </div>
+          </div>
+
+          {/* Title & Selection */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-bold text-base sm:text-lg text-white truncate tracking-tight flex items-center gap-2">
+                <span>Yağmur Teması</span>
+              </h3>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0 bg-cyan-400 shadow-xs" />
+                <span className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0 bg-blue-500 shadow-xs" />
+                <span className="text-xs text-cyan-300/80">Atmosferik · Yüzey Çarpışmalı</span>
+              </div>
+            </div>
+
+            {isRainThemeActive ? (
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-950 font-bold shadow-md bg-cyan-400 shrink-0">
+                <Check className="w-4 h-4 stroke-[3]" />
+              </div>
+            ) : (
+              <span className="text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white/5 group-hover:bg-cyan-500/20 text-neutral-400 group-hover:text-cyan-300 border border-white/5 transition-all shrink-0">
+                Seç
+              </span>
+            )}
+          </div>
+        </div>
         {themeIds.map((tid) => {
           const t = THEMES[tid];
           const isSelected = tid === currentTheme;

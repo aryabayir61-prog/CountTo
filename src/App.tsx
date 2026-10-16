@@ -26,6 +26,8 @@ import { TheBestExperienceView } from './components/TheBestExperienceView';
 import { WeatherDevBlogView } from './components/WeatherDevBlogView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
+import { StickyNotesLayer } from './components/StickyNotesLayer';
+import { RainEffectCanvas } from './components/RainEffectCanvas';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
@@ -158,6 +160,21 @@ export default function App() {
     }
     return false;
   });
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+  const [isRainThemeActive, setIsRainThemeActive] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('contto_rain_theme_enabled') === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('contto_rain_theme_enabled', String(isRainThemeActive));
+    } catch {
+      // Ignore
+    }
+  }, [isRainThemeActive]);
 
   // Request real location permission on application startup
   useEffect(() => {
@@ -253,18 +270,12 @@ export default function App() {
       if (!weather || isCancelled) return;
 
       const now = Date.now();
-      const isSevereAlert = weather.message.includes('Şiddetli') || 
-                            weather.message.includes('Fırtına') || 
-                            weather.message.includes('Birazdan Başlayacak') ||
-                            weather.message.includes('Kar');
-
       const isNewCondition = weather.message !== lastNotifiedMessageRef.current;
-      const cooldownPassed = now - lastWeatherShowRef.current > 12 * 60 * 1000;
+      const cooldownPassed = now - lastWeatherShowRef.current > 4 * 60 * 1000;
+      const spacingPassed = now - lastWeatherShowRef.current > 2 * 60 * 1000;
 
-      // Alert if:
-      // 1. Initial entry into fullscreen (with cooldown check)
-      // 2. OR proactive condition change (e.g. severe rain coming, rain starting soon)
-      if ((isInitial && cooldownPassed) || (isNewCondition && (isSevereAlert || cooldownPassed))) {
+      // Proactive alert on initial entry or when genuine condition transition is predicted
+      if ((isInitial && cooldownPassed) || (isNewCondition && spacingPassed)) {
         lastWeatherShowRef.current = now;
         lastNotifiedMessageRef.current = weather.message;
         setWeatherNotification(weather);
@@ -599,6 +610,9 @@ export default function App() {
       {/* Dynamic Animated Ambient Canvas & Mesh */}
       <AmbientBackground theme={currentTheme} />
 
+      {/* Realistic Physical Rain Theme Canvas with Collision & Splashing */}
+      {isRainThemeActive && <RainEffectCanvas />}
+
       {/* Top Bar Contract (hidden in fullscreen cinema mode for ultimate immersion) */}
       {!isFullscreen && (
         <TopNav
@@ -650,6 +664,7 @@ export default function App() {
                 isVertical={isVertical}
                 onToggleVertical={handleToggleVertical}
                 onTestChime={() => playHourlyChimeSound(getTurkeyTime().hours, activeEvent.theme, 0.24)}
+                onFocusModeChange={setIsFocusMode}
               />
             </motion.div>
           )}
@@ -700,6 +715,8 @@ export default function App() {
                 onBackToDisplay={() => setActiveView('display')}
                 ambientEnabled={ambientEnabled}
                 onToggleAmbient={() => setAmbientEnabled((prev) => !prev)}
+                isRainThemeActive={isRainThemeActive}
+                onToggleRainTheme={() => setIsRainThemeActive((prev) => !prev)}
               />
             </motion.div>
           )}
@@ -766,6 +783,13 @@ export default function App() {
       <FullscreenWeatherToast
         notification={isFullscreen ? weatherNotification : null}
         onDismiss={handleDismissWeather}
+      />
+
+      {/* Sticky Notes Layer */}
+      <StickyNotesLayer
+        theme={currentTheme}
+        isFullscreen={isFullscreen}
+        isFocusMode={isFocusMode}
       />
     </div>
   );
