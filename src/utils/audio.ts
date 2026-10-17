@@ -1399,4 +1399,59 @@ export function playRainThemeSound(volume = 0.24): void {
   }
 }
 
+/**
+ * Resonant liquid frosted glass bubble pop sound.
+ * Plays when the liquid glass widget spawn menu opens on double-click.
+ */
+export function playLiquidPopSound(volume = 0.22): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    // Resonant water droplet bubble pop
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Frequency sweeps swiftly upward like a liquid bubble expanding
+    osc.frequency.setValueAtTime(460, now);
+    osc.frequency.exponentialRampToValueAtTime(940, now + 0.025);
+    osc.frequency.exponentialRampToValueAtTime(720, now + 0.14);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(volume, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+
+    // Subtle glass resonance harmonic
+    const harm = ctx.createOscillator();
+    const harmGain = ctx.createGain();
+    harm.type = 'triangle';
+    harm.frequency.setValueAtTime(1480, now);
+    harm.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+
+    harmGain.gain.setValueAtTime(0.0001, now);
+    harmGain.gain.linearRampToValueAtTime(volume * 0.25, now + 0.01);
+    harmGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    harm.connect(harmGain);
+    harmGain.connect(ctx.destination);
+
+    osc.start(now);
+    harm.start(now);
+    osc.stop(now + 0.17);
+    harm.stop(now + 0.12);
+  } catch {
+    // Ignore audio permission errors
+  }
+}
+
+
 

@@ -28,6 +28,11 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
 import { StickyNotesLayer } from './components/StickyNotesLayer';
 import { RainEffectCanvas } from './components/RainEffectCanvas';
+import { MusicView } from './components/MusicView';
+import { SpotifyPlayerBar } from './components/SpotifyPlayerBar';
+import { SpotifyTrack } from './types/music';
+import { SPOTIFY_TRACKS } from './utils/spotifyCatalog';
+import { isFavoriteTrack, toggleFavoriteTrack } from './utils/musicRecommendationEngine';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
@@ -139,7 +144,10 @@ export default function App() {
     return newYear ? newYear.id : (events[0]?.id || 'preset-current-time');
   });
 
-  const [activeView, setActiveView] = useState<'display' | 'list' | 'themes'>('display');
+  const [activeView, setActiveView] = useState<'display' | 'list' | 'themes' | 'music'>('display');
+  const [activeSpotifyTrack, setActiveSpotifyTrack] = useState<SpotifyTrack | null>(null);
+  const [isSpotifyPlaying, setIsSpotifyPlaying] = useState<boolean>(false);
+  const [favMusicVersion, setFavMusicVersion] = useState<number>(0);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(SOUND_KEY) === 'true';
@@ -453,6 +461,43 @@ export default function App() {
     playCelebrationChime(0.25);
   };
 
+  const handlePlaySpotifyTrack = (track: SpotifyTrack) => {
+    setActiveSpotifyTrack(track);
+    setIsSpotifyPlaying(true);
+    if (ambientEnabled) {
+      setAmbientEnabled(false);
+    }
+  };
+
+  const handleToggleSpotifyPlay = () => {
+    setIsSpotifyPlaying((prev) => !prev);
+  };
+
+  const handleNextSpotifyTrack = () => {
+    if (!activeSpotifyTrack) {
+      handlePlaySpotifyTrack(SPOTIFY_TRACKS[0]);
+      return;
+    }
+    const idx = SPOTIFY_TRACKS.findIndex((t) => t.id === activeSpotifyTrack.id);
+    const nextIdx = (idx + 1) % SPOTIFY_TRACKS.length;
+    handlePlaySpotifyTrack(SPOTIFY_TRACKS[nextIdx]);
+  };
+
+  const handlePreviousSpotifyTrack = () => {
+    if (!activeSpotifyTrack) {
+      handlePlaySpotifyTrack(SPOTIFY_TRACKS[0]);
+      return;
+    }
+    const idx = SPOTIFY_TRACKS.findIndex((t) => t.id === activeSpotifyTrack.id);
+    const prevIdx = (idx - 1 + SPOTIFY_TRACKS.length) % SPOTIFY_TRACKS.length;
+    handlePlaySpotifyTrack(SPOTIFY_TRACKS[prevIdx]);
+  };
+
+  const handleToggleSpotifyFavorite = (track: SpotifyTrack) => {
+    toggleFavoriteTrack(track);
+    setFavMusicVersion((prev) => prev + 1);
+  };
+
   // Global Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -561,6 +606,13 @@ export default function App() {
       if (key === 'l') {
         e.preventDefault();
         setActiveView((v) => (v === 'list' ? 'display' : 'list'));
+        return;
+      }
+
+      // 9. Music page shortcut ('u')
+      if (key === 'u') {
+        e.preventDefault();
+        setActiveView((v) => (v === 'music' ? 'display' : 'music'));
         return;
       }
 
@@ -720,6 +772,24 @@ export default function App() {
               />
             </motion.div>
           )}
+
+          {activeView === 'music' && (
+            <motion.div
+              key="music"
+              initial={{ opacity: 0, x: 32, filter: 'blur(3px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: -32, filter: 'blur(3px)' }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full flex justify-center"
+            >
+              <MusicView
+                activeTrack={activeSpotifyTrack}
+                isPlaying={isSpotifyPlaying}
+                onPlayTrack={handlePlaySpotifyTrack}
+                onTogglePlay={handleToggleSpotifyPlay}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -790,6 +860,21 @@ export default function App() {
         theme={currentTheme}
         isFullscreen={isFullscreen}
         isFocusMode={isFocusMode}
+      />
+
+      {/* Spotify In-App Floating Player Bar */}
+      <SpotifyPlayerBar
+        track={activeSpotifyTrack}
+        isPlaying={isSpotifyPlaying}
+        onTogglePlay={handleToggleSpotifyPlay}
+        onNext={handleNextSpotifyTrack}
+        onPrevious={handlePreviousSpotifyTrack}
+        onToggleFavorite={handleToggleSpotifyFavorite}
+        isFavorite={Boolean(activeSpotifyTrack && isFavoriteTrack(activeSpotifyTrack.id))}
+        onClose={() => {
+          setIsSpotifyPlaying(false);
+          setActiveSpotifyTrack(null);
+        }}
       />
     </div>
   );
