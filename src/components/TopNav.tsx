@@ -49,8 +49,8 @@ export const TopNav: React.FC<TopNavProps> = ({
           setDisplayText(currentTarget.slice(0, displayText.length + 1));
         }, 70);
       } else {
-        // Pause at full text
-        const pauseTime = currentTarget === 'CountTo' ? 8500 : 4200;
+        // Pause at full text: CountTo waits a full 1 minute (60s) before looping again
+        const pauseTime = currentTarget === 'CountTo' ? 60000 : 4200;
         timeoutId = setTimeout(() => {
           setIsDeleting(true);
         }, pauseTime);
