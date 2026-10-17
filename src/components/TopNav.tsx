@@ -6,8 +6,8 @@ import { THEMES } from '../utils/themes';
 
 interface TopNavProps {
   currentTheme: ThemeId;
-  activeView: 'display' | 'list' | 'themes';
-  onNavigate: (view: 'display' | 'list' | 'themes') => void;
+  activeView: 'display' | 'list' | 'themes' | 'music';
+  onNavigate: (view: 'display' | 'list' | 'themes' | 'music') => void;
   onOpenCreateModal: () => void;
 }
 
