@@ -39,6 +39,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [isEditorFocused, setIsEditorFocused] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dynamicHeight, setDynamicHeight] = useState<number>(note.height || 260);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef<boolean>(false);
@@ -65,6 +66,26 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
     isGlobalFocusMode && !isHovered && !isEditorFocused && !showColorMenu && !isDragging
   );
 
+  // Auto-grow height downwards when note content gets longer (smoothly, without premature scrollbar)
+  const updateDynamicHeight = useCallback(() => {
+    if (!contentRef.current) return;
+
+    const headerH = isControlsHidden ? 8 : 36;
+    const footerH = isControlsHidden ? 0 : 40;
+    const paddingH = 28; // p-3.5 is 14px top + 14px bottom
+    const textH = contentRef.current.scrollHeight || 140;
+
+    const minH = isControlsHidden ? 160 : 255;
+    // "çok da değil" - cap sensibly up to 480px or screen boundary
+    const maxAvailable = typeof window !== 'undefined'
+      ? Math.max(minH, window.innerHeight - note.y - 32)
+      : 480;
+    const maxH = Math.min(480, maxAvailable);
+
+    const neededH = Math.min(maxH, Math.max(minH, textH + headerH + footerH + paddingH));
+    setDynamicHeight(neededH);
+  }, [isControlsHidden, note.y]);
+
   // Synchronize initial content and auto-focus if newly created
   useEffect(() => {
     if (contentRef.current) {
@@ -75,8 +96,26 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
       if (Date.now() - note.createdAt < 1500 && !note.content) {
         contentRef.current.focus();
       }
+      updateDynamicHeight();
     }
   }, []);
+
+  // Update dynamic height whenever content changes or controls toggle
+  useEffect(() => {
+    updateDynamicHeight();
+  }, [note.content, isControlsHidden, updateDynamicHeight]);
+
+  // Observe content resizing via ResizeObserver to smoothly expand downwards on type/paste/delete
+  useEffect(() => {
+    if (!contentRef.current || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      updateDynamicHeight();
+    });
+
+    observer.observe(contentRef.current);
+    return () => observer.disconnect();
+  }, [updateDynamicHeight]);
 
   // Dragging logic via pointer events on header
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -106,14 +145,13 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
 
       // Constrain position within window boundaries
       const noteWidth = note.width || 270;
-      const noteHeight = note.height || 260;
       const maxX = Math.max(0, window.innerWidth - noteWidth);
-      const maxY = Math.max(0, window.innerHeight - 48);
+      const maxY = Math.max(0, window.innerHeight - dynamicHeight);
 
       const nextX = Math.max(0, Math.min(maxX, dragStartRef.current.startX + dx));
       const nextY = Math.max(0, Math.min(maxY, dragStartRef.current.startY + dy));
 
-      onUpdate(note.id, { x: nextX, y: nextY });
+      onUpdate(note.id, { x: nextX, y: nextY, height: dynamicHeight });
     };
 
     const handlePointerUp = () => {
@@ -146,12 +184,14 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
     document.execCommand(command, false);
     if (contentRef.current) {
       onUpdate(note.id, { content: contentRef.current.innerHTML });
+      updateDynamicHeight();
     }
   };
 
   const handleInput = () => {
     if (contentRef.current) {
       onUpdate(note.id, { content: contentRef.current.innerHTML });
+      updateDynamicHeight();
     }
   };
 
@@ -232,7 +272,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
         </div>
       </div>
 
-      {/* Note Body: Only the written text remains in focus mode */}
+      {/* Note Body: Only the written text remains in focus mode; expands smoothly downwards */}
       <div className="relative flex-1 p-3.5 overflow-y-auto cursor-text text-[13.5px] leading-relaxed tracking-wide min-h-[140px] focus:outline-none transition-all duration-300">
         <div
           ref={contentRef}
@@ -244,7 +284,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
             onBringToFront(note.id);
           }}
           onBlur={() => setIsEditorFocused(false)}
-          className={`w-full h-full min-h-[140px] focus:outline-none whitespace-pre-wrap break-words ${
+          className={`w-full min-h-[140px] focus:outline-none whitespace-pre-wrap break-words ${
             isControlsHidden ? 'empty:before:hidden' : "empty:before:content-['Not_alın...'] empty:before:text-neutral-500 empty:before:pointer-events-none"
           }`}
         />
@@ -379,8 +419,9 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
         left: `${note.x}px`,
         top: `${note.y}px`,
         width: `${note.width || 270}px`,
-        height: `${note.height || 260}px`,
+        height: `${dynamicHeight}px`,
         zIndex: note.zIndex,
+        transition: isDragging ? 'none' : 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       onPointerDown={() => onBringToFront(note.id)}
       onMouseEnter={() => setIsHovered(true)}
