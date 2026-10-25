@@ -77,7 +77,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     <header className="w-full border-b border-white/10 backdrop-blur-2xl bg-neutral-950/80 sticky top-0 z-40 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between relative">
         {/* Zone 1: Interactive Wordmark with Backspacing Easter Egg (Pinned to left, never pushes middle tabs) */}
-        <div className="flex items-center min-w-0 max-w-[calc(50%-160px)] sm:max-w-[calc(50%-180px)] z-10">
+        <div className="flex items-center min-w-0 max-w-[calc(50%-190px)] sm:max-w-[calc(50%-220px)] z-10">
           <button
             onClick={() => onNavigate('display')}
             className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-white hover:opacity-90 transition-opacity flex items-center gap-1.5 focus-visible:outline-none cursor-pointer shrink-0 select-none group min-w-0"

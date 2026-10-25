@@ -5,15 +5,14 @@ import {
   Play, 
   Pause, 
   Heart, 
-  ExternalLink, 
-  Radio, 
   Music as MusicIcon, 
   Flame,
   Coffee,
   Moon,
   Zap,
-  Mic2,
-  Guitar
+  Radio,
+  Loader2,
+  Globe
 } from 'lucide-react';
 import { SpotifyTrack } from '../types/music';
 import { SPOTIFY_TRACKS } from '../utils/spotifyCatalog';
@@ -23,6 +22,7 @@ import {
   toggleFavoriteTrack, 
   isFavoriteTrack 
 } from '../utils/musicRecommendationEngine';
+import { searchYouTubeMusic, extractYouTubeId } from '../utils/audioStreamService';
 import { RecommendedMusicSlider } from './RecommendedMusicSlider';
 
 interface MusicViewProps {
@@ -32,7 +32,7 @@ interface MusicViewProps {
   onTogglePlay: () => void;
 }
 
-type FilterCategory = 'all' | 'popular' | 'lofi' | 'acoustic' | 'pop' | 'rap' | 'rock' | 'favorites';
+type FilterCategory = 'all' | 'lofi' | 'acoustic' | 'popular' | 'electronic' | 'favorites';
 
 export const MusicView: React.FC<MusicViewProps> = ({
   activeTrack,
@@ -43,8 +43,10 @@ export const MusicView: React.FC<MusicViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('all');
   const [favRefresh, setFavRefresh] = useState<number>(0);
+  const [onlineResults, setOnlineResults] = useState<SpotifyTrack[]>([]);
+  const [isSearchingOnline, setIsSearchingOnline] = useState<boolean>(false);
 
-  // Recommendations calculated via CountTo Recommendation Algorithm
+  // Personalized recommendations for top carousel slider (like ThemesView)
   const recommendations = useMemo(() => {
     return getPersonalizedRecommendations(SPOTIFY_TRACKS);
   }, [favRefresh, activeTrack]);
@@ -64,20 +66,42 @@ export const MusicView: React.FC<MusicViewProps> = ({
     setFavRefresh((prev) => prev + 1);
   };
 
+  // Online Piped/Invidious Search
+  const handlePerformOnlineSearch = async () => {
+    if (!searchQuery.trim() || isSearchingOnline) return;
+    setIsSearchingOnline(true);
+    try {
+      const results = await searchYouTubeMusic(searchQuery);
+      setOnlineResults(results);
+    } catch {
+      // Ignore
+    } finally {
+      setIsSearchingOnline(false);
+    }
+  };
+
   const categories: { id: FilterCategory; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'Tümü', icon: <MusicIcon className="w-3.5 h-3.5" /> },
-    { id: 'popular', label: '🔥 Türkiye Popüler', icon: <Flame className="w-3.5 h-3.5 text-amber-400" /> },
     { id: 'lofi', label: '🎧 Odaklanma & Lo-Fi', icon: <Coffee className="w-3.5 h-3.5 text-cyan-400" /> },
     { id: 'acoustic', label: '🌙 Gece & Akustik', icon: <Moon className="w-3.5 h-3.5 text-purple-400" /> },
-    { id: 'pop', label: '⚡ Popüler Pop', icon: <Zap className="w-3.5 h-3.5 text-yellow-400" /> },
-    { id: 'rap', label: '🎤 Türkçe Rap', icon: <Mic2 className="w-3.5 h-3.5 text-rose-400" /> },
-    { id: 'rock', label: '🎸 Alternatif Rock', icon: <Guitar className="w-3.5 h-3.5 text-emerald-400" /> },
+    { id: 'popular', label: '🔥 Popüler Hit', icon: <Flame className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'electronic', label: '⚡ Synthwave & Enerji', icon: <Zap className="w-3.5 h-3.5 text-yellow-400" /> },
     { id: 'favorites', label: '❤️ Favorilerim', icon: <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> },
   ];
 
+  // Combined track list (local catalog + any searched online results)
+  const allTracks = useMemo(() => {
+    if (onlineResults.length > 0) {
+      const existingIds = new Set(SPOTIFY_TRACKS.map((t) => t.id));
+      const newItems = onlineResults.filter((t) => !existingIds.has(t.id));
+      return [...newItems, ...SPOTIFY_TRACKS];
+    }
+    return SPOTIFY_TRACKS;
+  }, [onlineResults]);
+
   // Filtering logic
   const filteredTracks = useMemo(() => {
-    return SPOTIFY_TRACKS.filter((track) => {
+    return allTracks.filter((track) => {
       // 1. Search Query Filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -95,7 +119,7 @@ export const MusicView: React.FC<MusicViewProps> = ({
         return isFavoriteTrack(track.id);
       }
       if (activeCategory === 'popular') {
-        return track.isPopularInTurkey;
+        return track.isPopularInTurkey || track.popularity >= 95;
       }
       if (activeCategory === 'lofi') {
         return track.genre === 'lofi';
@@ -103,30 +127,27 @@ export const MusicView: React.FC<MusicViewProps> = ({
       if (activeCategory === 'acoustic') {
         return track.genre === 'acoustic';
       }
-      if (activeCategory === 'pop') {
-        return track.genre === 'pop';
-      }
-      if (activeCategory === 'rap') {
-        return track.genre === 'rap';
-      }
-      if (activeCategory === 'rock') {
-        return track.genre === 'rock';
+      if (activeCategory === 'electronic') {
+        return track.genre === 'electronic';
       }
 
       return true;
     });
-  }, [searchQuery, activeCategory, favRefresh]);
+  }, [allTracks, searchQuery, activeCategory, favRefresh]);
 
   const formatDuration = (ms: number) => {
+    if (!ms) return '3:00';
     const totalSec = Math.floor(ms / 1000);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
     return `${min}:${sec < 10 ? '0' : ''}${sec}`;
   };
 
+  const isYouTubeUrl = Boolean(extractYouTubeId(searchQuery));
+
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 z-10 select-none pb-28">
-      {/* 3D Stepped Recommended Music Carousel (Like ThemesView) */}
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 z-10 select-none pb-32">
+      {/* 3D Stepped Recommended Music Carousel (Identical concept to ThemesView) */}
       <RecommendedMusicSlider
         recommendations={recommendations}
         activeTrack={activeTrack}
@@ -143,48 +164,69 @@ export const MusicView: React.FC<MusicViewProps> = ({
         isFavorite={(id) => isFavoriteTrack(id)}
       />
 
-      {/* Clean Divider & Section Header */}
+      {/* Clean Section Header */}
       <div className="mb-6 pt-4 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <span className="w-3 h-3 rounded-full bg-[#1DB954]" />
-            <span>Spotify Müzik Kataloğu</span>
-            <span className="text-xs font-bold text-[#1DB954] bg-[#1DB954]/10 border border-[#1DB954]/30 px-2.5 py-0.5 rounded-full">
-              Spotify API Aktif
-            </span>
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Müzik & Odaklanma</span>
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-            Geri sayım, çalışma seansları ve odaklanma anlarınız için Türkiye hitleri ve Lo-Fi çalma listeleri
+            Geri sayımına ve çalışma seanslarına eşlik edecek ses akışları
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-neutral-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-            {filteredTracks.length} Şarkı
+            {filteredTracks.length} Parça
           </span>
         </div>
       </div>
 
-      {/* Search Input Bar */}
-      <div className="relative mb-6 w-full">
-        <div className="relative flex items-center">
-          <Search className="w-5 h-5 text-neutral-400 absolute left-4 pointer-events-none" />
+      {/* Search Bar & YouTube Link Handler */}
+      <div className="flex flex-col sm:flex-row items-center gap-2.5 mb-6 w-full">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-neutral-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Şarkı adı, sanatçı veya tarz ara (ör. Simge, Dedublüman, Lvbel C5, Lo-Fi, Rock)..."
-            className="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-neutral-900/80 border border-white/10 focus:border-[#1DB954]/60 text-white placeholder-neutral-500 text-sm focus:outline-none transition-all shadow-inner"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handlePerformOnlineSearch();
+              }
+            }}
+            placeholder="Şarkı, sanatçı ara veya YouTube linki yapıştır..."
+            className="w-full pl-11 pr-24 py-3 rounded-2xl bg-neutral-900/80 border border-white/10 focus:border-cyan-400/60 text-white placeholder-neutral-500 text-sm focus:outline-none transition-all shadow-inner"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-4 text-xs font-semibold text-neutral-400 hover:text-white px-2 py-1 rounded-full bg-white/5 cursor-pointer"
+              onClick={() => {
+                setSearchQuery('');
+                setOnlineResults([]);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-neutral-400 hover:text-white px-2 py-0.5 rounded-full bg-white/5 cursor-pointer"
             >
               Temizle
             </button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={handlePerformOnlineSearch}
+          disabled={!searchQuery.trim() || isSearchingOnline}
+          className="w-full sm:w-auto px-4 py-3 rounded-2xl text-xs font-bold bg-white/10 hover:bg-white/15 border border-white/15 text-white flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 active:scale-95"
+        >
+          {isSearchingOnline ? (
+            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+          ) : isYouTubeUrl ? (
+            <Globe className="w-4 h-4 text-cyan-400" />
+          ) : (
+            <Search className="w-4 h-4 text-cyan-400" />
+          )}
+          <span>{isYouTubeUrl ? 'Linki Başlat' : 'Çevrimiçi Ara'}</span>
+        </button>
       </div>
 
       {/* Filter Categories Chips */}
@@ -197,7 +239,7 @@ export const MusicView: React.FC<MusicViewProps> = ({
               onClick={() => setActiveCategory(cat.id)}
               className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#1DB954] text-neutral-950 font-bold shadow-lg shadow-[#1DB954]/25 scale-[1.02]'
+                  ? 'bg-cyan-400 text-neutral-950 font-bold shadow-lg shadow-cyan-400/25 scale-[1.02]'
                   : 'bg-neutral-900/80 border border-white/10 text-neutral-300 hover:bg-neutral-800 hover:border-white/20'
               }`}
             >
@@ -208,18 +250,19 @@ export const MusicView: React.FC<MusicViewProps> = ({
         })}
       </div>
 
-      {/* Grid of Track Cards: 3 Columns matching ThemesView */}
+      {/* Grid of Track Cards: 3 Columns matching ThemesView layout */}
       {filteredTracks.length === 0 ? (
         <div className="text-center py-16 bg-neutral-900/30 rounded-3xl border border-white/5">
           <MusicIcon className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
-          <p className="text-base font-semibold text-neutral-300">Aradığınız kriterlere uygun şarkı bulunamadı</p>
-          <p className="text-xs text-neutral-500 mt-1">Farklı bir arama terimi veya filtre kategorisi deneyebilirsiniz</p>
+          <p className="text-base font-semibold text-neutral-300">Aradığınız kriterlere uygun parça bulunamadı</p>
+          <p className="text-xs text-neutral-500 mt-1">Farklı bir arama yapabilir veya çevrimiçi arama yapabilirsiniz</p>
           <button
             onClick={() => {
               setSearchQuery('');
               setActiveCategory('all');
+              setOnlineResults([]);
             }}
-            className="mt-4 px-4 py-1.5 rounded-full bg-white/10 text-xs text-white hover:bg-white/20 transition-colors"
+            className="mt-4 px-4 py-1.5 rounded-full bg-white/10 text-xs text-white hover:bg-white/20 transition-colors cursor-pointer"
           >
             Filtreleri Sıfırla
           </button>
@@ -236,12 +279,12 @@ export const MusicView: React.FC<MusicViewProps> = ({
                 onClick={() => handleTrackClick(track)}
                 className={`group cursor-pointer rounded-3xl border p-5 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
                   isThisPlaying
-                    ? 'border-[#1DB954]/70 bg-neutral-900/90 ring-2 ring-[#1DB954]/30 shadow-2xl scale-[1.01]'
-                    : 'border-white/10 bg-neutral-900/40 hover:border-[#1DB954]/40 hover:bg-neutral-900/60'
+                    ? 'border-cyan-400/70 bg-neutral-900/90 ring-2 ring-cyan-400/30 shadow-2xl scale-[1.01]'
+                    : 'border-white/10 bg-neutral-900/40 hover:border-cyan-400/40 hover:bg-neutral-900/60'
                 }`}
                 style={{
                   boxShadow: isThisPlaying
-                    ? '0 15px 35px -10px rgba(29, 185, 84, 0.35)'
+                    ? '0 15px 35px -10px rgba(6, 182, 212, 0.35)'
                     : undefined,
                 }}
               >
@@ -259,8 +302,8 @@ export const MusicView: React.FC<MusicViewProps> = ({
                     <div
                       className={`w-14 h-14 rounded-full flex items-center justify-center transition-all transform shadow-2xl ${
                         isThisPlaying
-                          ? 'bg-[#1DB954] text-neutral-950 scale-100 shadow-[#1DB954]/40'
-                          : 'bg-black/60 text-white backdrop-blur-md opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:bg-[#1DB954] group-hover:text-neutral-950'
+                          ? 'bg-cyan-400 text-neutral-950 scale-100 shadow-cyan-400/40'
+                          : 'bg-black/60 text-white backdrop-blur-md opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:bg-cyan-400 group-hover:text-neutral-950'
                       }`}
                     >
                       {isThisPlaying ? (
@@ -274,10 +317,10 @@ export const MusicView: React.FC<MusicViewProps> = ({
                   {/* Equalizer Sound Waves when Playing */}
                   {isThisPlaying && (
                     <div className="absolute bottom-3 right-3 flex items-end gap-1 h-5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-md">
-                      <span className="w-1 bg-[#1DB954] h-full animate-[pulse_0.6s_ease-in-out_infinite]" />
-                      <span className="w-1 bg-[#1DB954] h-2/3 animate-[pulse_0.4s_ease-in-out_infinite]" />
-                      <span className="w-1 bg-[#1DB954] h-4/5 animate-[pulse_0.7s_ease-in-out_infinite]" />
-                      <span className="w-1 bg-[#1DB954] h-1/2 animate-[pulse_0.5s_ease-in-out_infinite]" />
+                      <span className="w-1 bg-cyan-400 h-full animate-[pulse_0.6s_ease-in-out_infinite]" />
+                      <span className="w-1 bg-cyan-400 h-2/3 animate-[pulse_0.4s_ease-in-out_infinite]" />
+                      <span className="w-1 bg-cyan-400 h-4/5 animate-[pulse_0.7s_ease-in-out_infinite]" />
+                      <span className="w-1 bg-cyan-400 h-1/2 animate-[pulse_0.5s_ease-in-out_infinite]" />
                     </div>
                   )}
 
@@ -291,7 +334,7 @@ export const MusicView: React.FC<MusicViewProps> = ({
                       type="button"
                       onClick={(e) => handleFavoriteClick(e, track)}
                       title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-                      className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:text-rose-400 transition-colors"
+                      className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:text-rose-400 transition-colors cursor-pointer"
                     >
                       <Heart
                         className={`w-4 h-4 ${
@@ -305,7 +348,7 @@ export const MusicView: React.FC<MusicViewProps> = ({
                 {/* Track Details */}
                 <div className="flex flex-col">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base sm:text-lg font-bold text-white truncate group-hover:text-[#1DB954] transition-colors">
+                    <h3 className="text-base sm:text-lg font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
                       {track.name}
                     </h3>
                     <span className="text-xs font-mono text-neutral-400 shrink-0">
@@ -319,21 +362,21 @@ export const MusicView: React.FC<MusicViewProps> = ({
 
                   {/* Bottom Action Footer */}
                   <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-neutral-400">
-                      Popülerlik: <span className="text-[#1DB954]">%{track.popularity}</span>
+                    <span className="text-[11px] font-semibold text-neutral-400 flex items-center gap-1.5">
+                      <Radio className="w-3 h-3 text-cyan-400" />
+                      <span>Reklamsız Akış</span>
                     </span>
 
-                    <a
-                      href={track.spotifyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      title="Spotify'da Dinle"
-                      className="inline-flex items-center gap-1.5 text-xs text-[#1DB954] hover:underline font-semibold"
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTrackClick(track);
+                      }}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer"
                     >
-                      <span>Spotify'da Aç</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                      {isThisPlaying ? 'Durdur' : 'Dinle'}
+                    </button>
                   </div>
                 </div>
               </div>

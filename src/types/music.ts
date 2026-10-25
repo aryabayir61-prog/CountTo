@@ -6,6 +6,8 @@ export interface SpotifyTrack {
   albumCover: string;
   durationMs: number;
   previewUrl?: string;
+  youtubeId?: string;
+  streamUrl?: string;
   spotifyUri: string;
   spotifyUrl: string;
   genre: 'pop' | 'lofi' | 'rap' | 'acoustic' | 'rock' | 'electronic';

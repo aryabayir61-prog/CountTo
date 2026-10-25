@@ -9,6 +9,7 @@ interface RainDrop {
   alpha: number;
   thickness: number;
   speed: number;
+  isForeground: boolean;
 }
 
 interface SplashParticle {
@@ -22,7 +23,7 @@ interface SplashParticle {
   decay: number;
 }
 
-interface Ripple {
+interface GroundRipple {
   x: number;
   y: number;
   radius: number;
@@ -44,35 +45,35 @@ export const RainEffectCanvas: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     let animId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-      updateSurfaces();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Surfaces that rain can hit and splash/bounce off
+    // Surfaces that foreground rain can hit (strictly physical floating windows like sticky notes)
     let surfaces: SurfaceRect[] = [];
 
     const updateSurfaces = () => {
+      // Query ONLY real physical floating cards (sticky notes, weather widgets)
+      // Absolutely NEVER full-width containers, headers, or text elements!
       const elements = document.querySelectorAll(
-        '[data-rain-surface="true"], .sticky-note-window, .rain-bounce-target, h1'
+        '.sticky-note-window, .weather-widget-window, .rain-bounce-target'
       );
       const newSurfaces: SurfaceRect[] = [];
 
       elements.forEach((el) => {
         const rect = el.getBoundingClientRect();
-        // Only consider elements that are visible and have meaningful dimensions
-        if (rect.width > 30 && rect.height > 20 && rect.top < height && rect.bottom > 0) {
+        // Strict physical validity: must be a compact floating card, not a wide layout box
+        if (
+          rect.width > 40 &&
+          rect.height > 35 &&
+          rect.width < width * 0.65 && // Cannot span more than 65% of screen width
+          rect.top > 10 &&
+          rect.top < height - 50 &&
+          rect.bottom > 0
+        ) {
           newSurfaces.push({
             left: rect.left,
             right: rect.right,
@@ -85,66 +86,98 @@ export const RainEffectCanvas: React.FC = () => {
       surfaces = newSurfaces;
     };
 
-    // Initial query and periodic update for dynamic layouts
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      updateSurfaces();
+    };
+
+    window.addEventListener('resize', handleResize);
     updateSurfaces();
-    const surfaceInterval = setInterval(updateSurfaces, 400);
+    const surfaceInterval = setInterval(updateSurfaces, 800);
 
     // Raindrop physics configuration
-    const dropCount = Math.min(220, Math.floor((width * height) / 8000));
+    // Natural density: ~160-240 drops depending on viewport
+    const dropCount = Math.min(240, Math.max(130, Math.floor((width * height) / 7500)));
     const raindrops: RainDrop[] = [];
     const splashParticles: SplashParticle[] = [];
-    const ripples: Ripple[] = [];
+    const groundRipples: GroundRipple[] = [];
 
-    // Wind angle: gentle natural tilt (~4-7 degrees)
-    const windAngle = -0.09;
+    // Wind angle: gentle natural tilt (~4.5 degrees leftward)
+    const windAngle = -0.08;
     const sinAngle = Math.sin(windAngle);
     const cosAngle = Math.cos(windAngle);
 
     const createDrop = (randomY = false): RainDrop => {
-      const speed = Math.random() * 12 + 18; // 18 - 30 px per frame
+      const isForeground = Math.random() < 0.35; // 35% crisp foreground, 65% ambient background
+      const baseSpeed = isForeground ? Math.random() * 8 + 24 : Math.random() * 8 + 18;
+
       return {
-        x: Math.random() * (width + 300) - 150,
-        y: randomY ? Math.random() * height : -Math.random() * 80 - 20,
-        vx: sinAngle * speed,
-        vy: cosAngle * speed,
-        length: Math.random() * 18 + 16,
-        alpha: Math.random() * 0.45 + 0.35,
-        thickness: Math.random() * 0.8 + 1.1,
-        speed,
+        x: Math.random() * (width + 350) - 175,
+        y: randomY ? Math.random() * height : -Math.random() * 100 - 20,
+        vx: sinAngle * baseSpeed,
+        vy: cosAngle * baseSpeed,
+        length: isForeground ? Math.random() * 16 + 22 : Math.random() * 12 + 15,
+        alpha: isForeground ? Math.random() * 0.4 + 0.45 : Math.random() * 0.25 + 0.18,
+        thickness: isForeground ? Math.random() * 0.6 + 1.2 : Math.random() * 0.4 + 0.8,
+        speed: baseSpeed,
+        isForeground,
       };
     };
 
-    // Initialize raindrops scattered across viewport
+    // Initialize raindrops scattered naturally across viewport
     for (let i = 0; i < dropCount; i++) {
       raindrops.push(createDrop(true));
     }
 
-    const spawnSplash = (x: number, y: number, surfaceVx = 0) => {
-      // 1. Splash micro-droplets bouncing upward and outward
-      const particleCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 micro droplets
+    // 1. Physical card impact: only 1-2 subtle micro mist droplets bouncing upward, NO ripples!
+    const spawnCardSplash = (x: number, y: number) => {
+      const particleCount = Math.floor(Math.random() * 2) + 1;
       for (let p = 0; p < particleCount; p++) {
-        if (splashParticles.length > 200) break; // Limit pool
+        if (splashParticles.length > 120) break;
         splashParticles.push({
           x,
           y,
-          vx: (Math.random() - 0.5) * 4.2 + surfaceVx,
-          vy: -(Math.random() * 3.6 + 1.4), // upward bounce!
+          vx: (Math.random() - 0.5) * 3 - 0.3,
+          vy: -(Math.random() * 2 + 1.2),
+          gravity: 0.25,
+          size: Math.random() * 1.0 + 0.6,
+          alpha: 0.65,
+          decay: Math.random() * 0.045 + 0.045,
+        });
+      }
+    };
+
+    // 2. Ground impact (bottom of screen only): water splash and expanding puddle ripple!
+    const spawnGroundSplash = (x: number) => {
+      const groundY = height - 2;
+
+      // Ground bounce droplets
+      const particleCount = Math.floor(Math.random() * 3) + 2;
+      for (let p = 0; p < particleCount; p++) {
+        if (splashParticles.length > 200) break;
+        splashParticles.push({
+          x,
+          y: groundY,
+          vx: (Math.random() - 0.5) * 4.2 - 0.4,
+          vy: -(Math.random() * 3.2 + 1.4),
           gravity: 0.22,
-          size: Math.random() * 1.5 + 0.9,
+          size: Math.random() * 1.4 + 0.8,
           alpha: 0.75,
           decay: Math.random() * 0.035 + 0.035,
         });
       }
 
-      // 2. Surface impact micro-ripple
-      if (ripples.length < 80) {
-        ripples.push({
+      // Ground puddle ripple: STRICTLY on the floor (height - 2), NEVER in mid-air!
+      if (groundRipples.length < 60) {
+        groundRipples.push({
           x,
-          y,
+          y: groundY,
           radius: 1,
-          maxRadius: Math.random() * 5 + 4,
-          alpha: 0.55,
-          decay: 0.05,
+          maxRadius: Math.random() * 7 + 5,
+          alpha: 0.45,
+          decay: 0.035,
         });
       }
     };
@@ -153,33 +186,32 @@ export const RainEffectCanvas: React.FC = () => {
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Draw Surface Ripples
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.radius += (r.maxRadius - r.radius) * 0.18 + 0.4;
+      // 1. Draw Ground Puddle Ripples (Exclusively at viewport bottom!)
+      for (let i = groundRipples.length - 1; i >= 0; i--) {
+        const r = groundRipples[i];
+        r.radius += (r.maxRadius - r.radius) * 0.16 + 0.35;
         r.alpha -= r.decay;
 
         if (r.alpha <= 0 || r.radius >= r.maxRadius) {
-          ripples.splice(i, 1);
+          groundRipples.splice(i, 1);
           continue;
         }
 
         ctx.save();
         ctx.beginPath();
-        // Flattened ellipse for horizontal perspective
-        ctx.ellipse(r.x, r.y, r.radius * 1.7, r.radius * 0.45, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(215, 235, 255, ${r.alpha})`;
+        // Flattened horizontal perspective ellipse at bottom of screen
+        ctx.ellipse(r.x, r.y, r.radius * 2.2, r.radius * 0.45, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(195, 230, 255, ${r.alpha * 0.5})`;
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.restore();
       }
 
-      // 2. Draw Falling Raindrops with Trajectory Collision
+      // 2. Draw Falling Raindrops
       ctx.lineCap = 'round';
 
       for (let i = 0; i < raindrops.length; i++) {
         const drop = raindrops[i];
-        const prevX = drop.x;
         const prevY = drop.y;
 
         drop.x += drop.vx;
@@ -187,42 +219,42 @@ export const RainEffectCanvas: React.FC = () => {
 
         let collided = false;
 
-        // Check collision against UI element surfaces (top edges)
-        for (let s = 0; s < surfaces.length; s++) {
-          const surface = surfaces[s];
-          if (drop.x >= surface.left && drop.x <= surface.right) {
-            // Did raindrop cross the top edge during this frame?
-            if (prevY <= surface.top && drop.y >= surface.top) {
-              collided = true;
-              spawnSplash(drop.x, surface.top);
-              // Reset drop to top of screen
-              Object.assign(drop, createDrop(false));
-              break;
+        // Foreground raindrops check collisions against real floating cards (sticky notes)
+        if (drop.isForeground && surfaces.length > 0) {
+          for (let s = 0; s < surfaces.length; s++) {
+            const surface = surfaces[s];
+            if (drop.x >= surface.left && drop.x <= surface.right) {
+              if (prevY <= surface.top && drop.y >= surface.top) {
+                collided = true;
+                spawnCardSplash(drop.x, surface.top);
+                Object.assign(drop, createDrop(false));
+                break;
+              }
             }
           }
         }
 
-        // Check collision against bottom of viewport
+        // Collision with bottom of viewport (ground)
         if (!collided && drop.y >= height - 2) {
-          spawnSplash(drop.x, height - 2);
+          spawnGroundSplash(drop.x);
           Object.assign(drop, createDrop(false));
           continue;
         }
 
-        // Off-screen horizontally or far below
-        if (!collided && (drop.x < -100 || drop.x > width + 100 || drop.y > height + 60)) {
+        // Reset if drifted too far off-screen
+        if (!collided && (drop.x < -120 || drop.x > width + 120 || drop.y > height + 50)) {
           Object.assign(drop, createDrop(false));
           continue;
         }
 
-        // Draw raindrop streak
+        // Draw raindrop streak with smooth gradient
         if (!collided) {
           const tailX = drop.x - sinAngle * drop.length;
           const tailY = drop.y - cosAngle * drop.length;
 
           const gradient = ctx.createLinearGradient(tailX, tailY, drop.x, drop.y);
           gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-          gradient.addColorStop(0.65, `rgba(220, 240, 255, ${drop.alpha * 0.7})`);
+          gradient.addColorStop(0.65, `rgba(215, 240, 255, ${drop.alpha * 0.6})`);
           gradient.addColorStop(1, `rgba(255, 255, 255, ${drop.alpha})`);
 
           ctx.beginPath();
@@ -249,7 +281,7 @@ export const RainEffectCanvas: React.FC = () => {
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(235, 245, 255, ${p.alpha})`;
+        ctx.fillStyle = `rgba(225, 242, 255, ${p.alpha})`;
         ctx.fill();
       }
 

@@ -34,6 +34,7 @@ import { SpotifyTrack } from './types/music';
 import { SPOTIFY_TRACKS } from './utils/spotifyCatalog';
 import { isFavoriteTrack, toggleFavoriteTrack } from './utils/musicRecommendationEngine';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
+import { audioPlayer } from './utils/audioPlayerManager';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
 const SOUND_KEY = 'contto_sound_enabled';
@@ -461,16 +462,32 @@ export default function App() {
     playCelebrationChime(0.25);
   };
 
+  useEffect(() => {
+    const unsubscribe = audioPlayer.subscribe((state) => {
+      setIsSpotifyPlaying(state.isPlaying);
+      if (state.track) {
+        setActiveSpotifyTrack(state.track);
+      }
+    });
+
+    audioPlayer.setOnTrackEnded(() => {
+      handleNextSpotifyTrack();
+    });
+
+    return unsubscribe;
+  }, [activeSpotifyTrack]);
+
   const handlePlaySpotifyTrack = (track: SpotifyTrack) => {
     setActiveSpotifyTrack(track);
     setIsSpotifyPlaying(true);
+    audioPlayer.playTrack(track);
     if (ambientEnabled) {
       setAmbientEnabled(false);
     }
   };
 
   const handleToggleSpotifyPlay = () => {
-    setIsSpotifyPlaying((prev) => !prev);
+    audioPlayer.togglePlay();
   };
 
   const handleNextSpotifyTrack = () => {
@@ -862,7 +879,7 @@ export default function App() {
         isFocusMode={isFocusMode}
       />
 
-      {/* Spotify In-App Floating Player Bar */}
+      {/* Rectangular Mini Player Bar */}
       <SpotifyPlayerBar
         track={activeSpotifyTrack}
         isPlaying={isSpotifyPlaying}
@@ -871,7 +888,10 @@ export default function App() {
         onPrevious={handlePreviousSpotifyTrack}
         onToggleFavorite={handleToggleSpotifyFavorite}
         isFavorite={Boolean(activeSpotifyTrack && isFavoriteTrack(activeSpotifyTrack.id))}
+        isFullscreen={isFullscreen}
+        isFocusMode={isFocusMode}
         onClose={() => {
+          audioPlayer.stop();
           setIsSpotifyPlaying(false);
           setActiveSpotifyTrack(null);
         }}

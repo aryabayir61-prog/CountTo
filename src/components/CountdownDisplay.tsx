@@ -235,7 +235,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
 
           {/* Primary Event Title */}
           <h1 
-            data-rain-surface="true"
             className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-3 text-balance leading-tight"
           >
             {isFinished ? 'Şu Anki Saat' : event?.title}
@@ -258,7 +257,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         {/* Main Interactive Animated Countdown / Turkey Clock Area */}
         {/* Exactly uses the selected countdown style, but hides 'GÜN' when finished! */}
         <div 
-          data-rain-surface="true"
           className="w-full flex items-center justify-center my-2 sm:my-6 transition-all duration-500"
         >
           {event.style === 'countTo' && (
@@ -350,7 +348,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
           >
             {/* 1. Animation Style Segmented Pill Selector (Theme colored & smoothly sliding) */}
             <div 
-              data-rain-surface="true"
               className="p-1 rounded-full bg-neutral-900/90 border border-white/10 backdrop-blur-2xl flex items-center shadow-2xl overflow-x-auto max-w-full relative"
             >
               {styles.map((s) => {
