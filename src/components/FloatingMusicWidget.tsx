@@ -11,9 +11,12 @@ import {
   Music, 
   ListMusic, 
   CheckCircle2, 
-  Loader2
+  Loader2,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
+import { recordSongListen, getUserProfile } from '../utils/musicRecommendationEngine';
 
 interface FloatingMusicWidgetProps {
   themePrimary: string;
@@ -42,6 +45,34 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  
+  // Algorithmic recommendations
+  const [recommendations, setRecommendations] = useState<SongTrack[]>(() => {
+    const profile = getUserProfile();
+    return profile.dynamicRecommendations.length > 0 ? profile.dynamicRecommendations : PRESET_SONGS;
+  });
+
+  // Animated intro pop-up on first arrival
+  const [showIntroTooltip, setShowIntroTooltip] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const hasSeen = localStorage.getItem('contto_music_intro_seen_v2');
+      if (!hasSeen) {
+        const timer = setTimeout(() => {
+          setShowIntroTooltip(true);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
+
+  const dismissIntroTooltip = () => {
+    setShowIntroTooltip(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('contto_music_intro_seen_v2', 'true');
+    }
+  };
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -63,9 +94,9 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   }, []);
 
   // Smart Auto-Hide Rule:
-  // - NEVER auto-hide in 'search' mode (user is searching or browsing tracks)
-  // - NEVER auto-hide while mouse is hovering or interacting with the card/controls
-  // - ONLY auto-hide in 'player' mode after the user moves the mouse away from the card
+  // - NEVER auto-hide in 'search' mode
+  // - NEVER auto-hide while mouse is inside or interacting
+  // - ONLY auto-hide in 'player' mode after mouse leaves
   const clearTimer = () => {
     if (autoHideTimerRef.current) {
       clearTimeout(autoHideTimerRef.current);
@@ -75,11 +106,10 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
 
   const startAutoHideTimer = () => {
     clearTimer();
-    // Only auto-hide if player mode and not hovered
     if (isOpen && viewMode === 'player' && !isHovered) {
       autoHideTimerRef.current = setTimeout(() => {
         setIsOpen(false);
-      }, 2000); // Comfortable delay after user leaves the player
+      }, 2000);
     }
   };
 
@@ -127,7 +157,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
       setIsSearchingOnline(true);
       try {
         const res = await fetch(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery.trim())}&entity=song&limit=6`
+          `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery.trim())}&entity=song&limit=6&country=tr`
         );
         const data = await res.json();
         if (data.results && data.results.length > 0) {
@@ -137,7 +167,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             artist: r.artistName,
             albumCover: (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
             colors: ['#1e1b4b', '#4338ca'],
-            youtubeId: 'V9PVRfjEBTI',
+            youtubeId: '',
             durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
           }));
           setSearchResults(liveTracks);
@@ -149,17 +179,23 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
       } finally {
         setIsSearchingOnline(false);
       }
-    }, 350);
+    }, 320);
 
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, [searchQuery]);
 
-  const handleSelectTrack = (track: SongTrack) => {
+  const handleSelectTrack = async (track: SongTrack) => {
     musicAudioEngine.play(track);
     setViewMode('player');
     clearTimer();
+
+    // Trigger algorithmic recommendation learning based on played track, time-of-day, and artist!
+    const newRecs = await recordSongListen(track);
+    if (newRecs && newRecs.length > 0) {
+      setRecommendations(newRecs);
+    }
   };
 
   const handleTogglePlayPause = (e: React.MouseEvent) => {
@@ -201,15 +237,12 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     musicAudioEngine.seek(pct * duration);
   };
 
-  // Local filtered tracks or online search results
-  const localFilteredTracks = PRESET_SONGS.filter((s) =>
-    `${s.name} ${s.artist}`.toLowerCase().includes(searchQuery.toLowerCase().trim())
-  );
-  const displayTracks = searchQuery.trim().length > 1 && searchResults.length > 0 
-    ? searchResults 
-    : localFilteredTracks.length > 0 
-      ? localFilteredTracks 
-      : PRESET_SONGS;
+  // If user searched, display search results. Otherwise display intelligent algorithmic recommendations
+  const displayTracks = searchQuery.trim().length > 0
+    ? searchResults.length > 0
+      ? searchResults
+      : PRESET_SONGS.filter((s) => `${s.name} ${s.artist}`.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+    : recommendations;
 
   const activeTrack = currentTrack || PRESET_SONGS[0];
   const activeColors = hoveredTrack?.colors || activeTrack.colors || ['#4a0e4e', '#c026d3'];
@@ -218,43 +251,112 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
 
   return (
     <div className="relative inline-flex items-center">
-      {/* 1. Action Toolbar Trigger Button */}
+      {/* 1. Action Toolbar Trigger Button: Icon only, blue when playing, no text */}
       <button
         id="music-widget-toggle-btn"
         type="button"
         onClick={() => {
+          dismissIntroTooltip();
           setIsOpen((prev) => !prev);
           if (!isOpen && !currentTrack) {
             setViewMode('search');
           }
         }}
-        title={isPlaying ? 'Müzik Çalıyor' : 'Müzik Ekle'}
-        className={`px-3 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5 select-none cursor-pointer ${
+        title={isPlaying ? 'Müzik Çalıyor' : 'Müzik'}
+        className={`relative p-1.5 px-2.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center justify-center select-none cursor-pointer border ${
           isPlaying
-            ? 'bg-white/15 text-white shadow-sm border border-white/20'
-            : 'text-neutral-400 hover:text-white border border-transparent hover:bg-white/5'
+            ? 'bg-blue-500/15 border-blue-500/30 text-blue-400 shadow-[0_0_14px_rgba(59,130,246,0.35)]'
+            : 'text-neutral-400 hover:text-white border-transparent hover:bg-white/5'
         }`}
       >
-        <Music className={`w-3.5 h-3.5 ${isPlaying ? 'text-cyan-400 animate-pulse' : 'text-neutral-400'}`} />
-        <span>{isPlaying || currentTrack ? 'Müzik' : 'Müzik Ekle'}</span>
-        {isPlaying && (
-          <span className="flex items-center gap-0.5 ml-0.5">
-            <span className="w-1 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1 h-3 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+        <Music
+          className={`w-3.5 h-3.5 transition-all duration-200 ${
+            isPlaying
+              ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.9)] scale-105'
+              : 'text-neutral-400 hover:text-white'
+          }`}
+        />
+
+        {/* Subtle beacon pulse on trigger if intro tooltip is visible */}
+        {showIntroTooltip && !isOpen && (
+          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
           </span>
         )}
       </button>
 
-      {/* 2. Frosted Glass Music Pop-up (Dense, Frosted, No Distracting See-Through) */}
+      {/* 2. Mini Animated Intro Pop-up Spotlight (Polished onboarding) */}
+      <AnimatePresence>
+        {showIntroTooltip && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 14, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 280 }}
+            className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-40 select-none w-64"
+          >
+            <div className="relative p-3.5 rounded-2xl backdrop-blur-3xl bg-[#131318]/95 border border-white/20 shadow-[0_20px_45px_rgba(0,0,0,0.8)] text-white flex flex-col gap-2 overflow-hidden">
+              {/* Dynamic subtle ambient glow behind intro */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-40 bg-cyan-500 pointer-events-none" />
+
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>Yeni: Müzik Özelliği</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissIntroTooltip}
+                  className="p-1 text-white/50 hover:text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <p className="text-[11px] text-white/70 leading-relaxed relative z-10">
+                Geri sayımına eşlik eden müzikler burada! Nota simgesine tıklayarak dilediğin şarkıyı açabilirsin.
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-1 relative z-10">
+                <button
+                  type="button"
+                  onClick={dismissIntroTooltip}
+                  className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-white/60 hover:text-white cursor-pointer"
+                >
+                  Tamam
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    dismissIntroTooltip();
+                    setIsOpen(true);
+                    setViewMode('search');
+                  }}
+                  className="px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-[11px] shadow-sm transition-transform active:scale-95 cursor-pointer"
+                >
+                  Keşfet
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 3. Frosted Glass Music Pop-up (Smooth and Dynamic Spring Animation) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             ref={cardRef}
-            initial={{ opacity: 0, y: 12, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.94 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, y: 18, scale: 0.88, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: 12, scale: 0.9, filter: 'blur(4px)' }}
+            transition={{
+              type: 'spring',
+              damping: 24,
+              stiffness: 320,
+              mass: 0.75,
+            }}
             onMouseEnter={() => {
               setIsHovered(true);
               clearTimer();
@@ -263,12 +365,12 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
               setIsHovered(false);
               startAutoHideTimer();
             }}
-            className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-50 select-none"
+            className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-50 select-none origin-bottom"
           >
-            {/* Frosted Glass Slab: High optical density (88% dark frosted glass) blocks distracting background clock numbers while providing luxurious frosted texture */}
+            {/* Frosted Glass Slab */}
             <div className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-hidden">
               
-              {/* Dynamic Color Mixing Ambient Glow Canvas (Softly blended at low opacity so it never harms contrast) */}
+              {/* Dynamic Color Mixing Ambient Glow Canvas */}
               <div 
                 className="absolute -top-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-25 transition-all duration-700 pointer-events-none"
                 style={{ backgroundColor: activeColors[0] }}
@@ -444,6 +546,16 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                       Çalar
                     </button>
                   </div>
+
+                  {/* Header Subtitle showing Zevkine Göre Öneriler */}
+                  {!searchQuery.trim() && (
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        Zevkine Göre Öneriler
+                      </span>
+                    </div>
+                  )}
 
                   {/* Real Song List with Authentic Official Covers */}
                   <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-0.5 custom-sticky-scrollbar">

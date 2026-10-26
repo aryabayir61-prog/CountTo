@@ -1,189 +1,248 @@
-import { SpotifyTrack, UserMusicPreference, RecommendationResult } from '../types/music';
+import { SongTrack, PRESET_SONGS } from './musicAudioEngine';
+import { SpotifyTrack, RecommendationResult } from '../types/music';
 
-const STORAGE_KEY = 'countto_spotify_music_preferences_v1';
+const STORAGE_PROFILE_KEY = 'contto_music_profile_v2';
+const STORAGE_FAVS_KEY = 'countto_favorite_tracks';
 
-export function getUserMusicPreferences(): UserMusicPreference {
-  if (typeof window === 'undefined') {
+export interface UserMusicProfile {
+  totalListens: number;
+  artistScores: Record<string, number>;
+  albumScores: Record<string, number>;
+  recentTrackIds: string[];
+  dynamicRecommendations: SongTrack[];
+  lastUpdated: number;
+}
+
+const DEFAULT_PROFILE: UserMusicProfile = {
+  totalListens: 0,
+  artistScores: {},
+  albumScores: {},
+  recentTrackIds: [],
+  dynamicRecommendations: [],
+  lastUpdated: 0,
+};
+
+// Curated artist discovery graph for intelligent algorithmic expansion
+const ARTIST_DISCOVERY_GRAPH: Record<string, string[]> = {
+  manifest: ['Selin', 'Güneş', 'Alizade', 'Edis'],
+  'billie eilish': ['Olivia Rodrigo', 'Lorde', 'Finneas', 'Gracie Abrams'],
+  aurora: ['Florence + The Machine', 'Lorde', 'Marina', 'Susanne Sundfør'],
+  'harry styles': ['Zayn', 'Niall Horan', 'Shawn Mendes', 'The 1975'],
+  simge: ['Derya Uluğ', 'Ece Seçkin', 'İrem Derici', 'Hande Yener'],
+  'mert demir': ['Mabel Matiz', 'Melike Şahin', 'KÖFN', 'Madrigal'],
+  nalan: ['Hande Yener', 'Demet Akalın', 'Gülşen', 'Tarkan'],
+  cerpow: ['Deftones', 'Crystal Castles', 'Mareux', 'Boy Harsher'],
+};
+
+/**
+ * Determines current time of day context (Sabah, Öğlen, Akşam, Gece)
+ */
+export function getTimeOfDayContext(): {
+  period: 'morning' | 'afternoon' | 'evening' | 'night';
+  vibeQueries: string[];
+} {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) {
+    // Sabah: Ferah, tazeleyici, yumuşak akustik & pop
     return {
-      listenedTrackIds: {},
-      favoriteTrackIds: [],
-      genreScores: {},
-      artistScores: {},
+      period: 'morning',
+      vibeQueries: ['Harry Styles', 'Billie Eilish', 'Simge'],
+    };
+  } else if (hour >= 12 && hour < 18) {
+    // Öğlen: Yüksek odaklanma, hareketli çalışma ritimleri, dinamik pop
+    return {
+      period: 'afternoon',
+      vibeQueries: ['Manifest', 'Dua Lipa', 'KÖFN', 'Edis'],
+    };
+  } else if (hour >= 18 && hour < 23) {
+    // Akşam: Duygusal, dinlendirici akşam melodileri
+    return {
+      period: 'evening',
+      vibeQueries: ['Mert Demir', 'AURORA', 'Nalan Toz Pembe', 'Melike Şahin'],
+    };
+  } else {
+    // Gece: Derin lo-fi, sakin ambient melodiler
+    return {
+      period: 'night',
+      vibeQueries: ['Lofi Chill Study', 'Billie Eilish', 'Madrigal'],
     };
   }
+}
 
+export function getUserProfile(): UserMusicProfile {
+  if (typeof window === 'undefined') return DEFAULT_PROFILE;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
     if (raw) {
       return JSON.parse(raw);
     }
   } catch {
-    // Ignore JSON errors
+    // Ignore parse error
   }
-
-  return {
-    listenedTrackIds: {},
-    favoriteTrackIds: [],
-    genreScores: {
-      pop: 4,
-      rock: 3,
-      lofi: 5,
-    },
-    artistScores: {},
-  };
+  return DEFAULT_PROFILE;
 }
 
-export function saveUserMusicPreferences(prefs: UserMusicPreference): void {
+export function saveUserProfile(profile: UserMusicProfile): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
   } catch {
-    // Ignore storage quota
+    // Ignore storage limit
   }
 }
 
 /**
- * Records a listening event and dynamically updates the CountTo Recommendation Model
+ * Record a listen event and trigger the algorithmic recommendation refresh
  */
+export async function recordSongListen(track: SongTrack): Promise<SongTrack[]> {
+  const profile = getUserProfile();
+
+  profile.totalListens += 1;
+  const artistKey = track.artist.toLowerCase().trim();
+  profile.artistScores[artistKey] = (profile.artistScores[artistKey] || 0) + 5;
+
+  const trackKey = track.name.toLowerCase().trim();
+  profile.albumScores[trackKey] = (profile.albumScores[trackKey] || 0) + 3;
+
+  // Keep last 15 tracks
+  profile.recentTrackIds = [track.id, ...profile.recentTrackIds.filter((id) => id !== track.id)].slice(0, 15);
+
+  // Compute new recommendations factoring in artist, track history, and current time-of-day
+  const newRecs = await generateAlgorithmicRecommendations(profile, track);
+  profile.dynamicRecommendations = newRecs;
+  profile.lastUpdated = Date.now();
+
+  saveUserProfile(profile);
+  return newRecs;
+}
+
+/**
+ * Generates intelligent recommendations based on:
+ * 1. User listening history & artist affinity
+ * 2. Time-of-day context (morning, afternoon, evening, night)
+ * 3. Related discovery graph
+ */
+export async function generateAlgorithmicRecommendations(
+  profile: UserMusicProfile,
+  currentTrack?: SongTrack
+): Promise<SongTrack[]> {
+  const timeContext = getTimeOfDayContext();
+
+  const topArtists = Object.entries(profile.artistScores)
+    .sort(([, a], [, b]) => b - a)
+    .map(([artist]) => artist);
+
+  const primaryArtist = currentTrack
+    ? currentTrack.artist.toLowerCase()
+    : topArtists[0] || timeContext.vibeQueries[0].toLowerCase();
+
+  const relatedArtists = ARTIST_DISCOVERY_GRAPH[primaryArtist] || [];
+  
+  // Blend primary artist with related artists and time-of-day vibe queries
+  const searchTerms = [
+    primaryArtist,
+    ...(relatedArtists.slice(0, 1)),
+    ...(timeContext.vibeQueries.slice(0, 1)),
+  ];
+
+  const fetchedTracks: SongTrack[] = [];
+
+  for (const term of searchTerms) {
+    try {
+      const res = await fetch(
+        `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=4&country=tr`
+      );
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        for (const item of data.results) {
+          const id = `online-${item.trackId}`;
+          if (profile.recentTrackIds.includes(id) || fetchedTracks.some((t) => t.id === id)) {
+            continue;
+          }
+
+          fetchedTracks.push({
+            id,
+            name: item.trackName,
+            artist: item.artistName,
+            albumCover: (item.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
+            colors: currentTrack?.colors || ['#1e1b4b', '#4338ca'],
+            youtubeId: '',
+            durationSec: Math.floor((item.trackTimeMillis || 180000) / 1000),
+          });
+
+          if (fetchedTracks.length >= 8) break;
+        }
+      }
+    } catch {
+      // Ignore network errors
+    }
+    if (fetchedTracks.length >= 8) break;
+  }
+
+  // Combine with presets to guarantee an authentic, rich playlist
+  const blended: SongTrack[] = [...fetchedTracks];
+  for (const preset of PRESET_SONGS) {
+    if (!blended.some((b) => b.name.toLowerCase() === preset.name.toLowerCase())) {
+      blended.push(preset);
+    }
+  }
+
+  return blended.slice(0, 9);
+}
+
+// Backward-compatible exports for existing views
+export function isFavoriteTrack(trackOrId: SpotifyTrack | string): boolean {
+  if (typeof window === 'undefined') return false;
+  const trackId = typeof trackOrId === 'string' ? trackOrId : trackOrId.id;
+  try {
+    const raw = localStorage.getItem(STORAGE_FAVS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) && arr.includes(trackId);
+    }
+  } catch {}
+  return false;
+}
+
+export function toggleFavoriteTrack(trackOrId: SpotifyTrack | string): boolean {
+  if (typeof window === 'undefined') return false;
+  const trackId = typeof trackOrId === 'string' ? trackOrId : trackOrId.id;
+  try {
+    const raw = localStorage.getItem(STORAGE_FAVS_KEY);
+    let arr: string[] = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(arr)) arr = [];
+    const exists = arr.includes(trackId);
+    if (exists) {
+      arr = arr.filter((id) => id !== trackId);
+    } else {
+      arr.push(trackId);
+    }
+    localStorage.setItem(STORAGE_FAVS_KEY, JSON.stringify(arr));
+    return !exists;
+  } catch {}
+  return false;
+}
+
 export function recordTrackListen(track: SpotifyTrack): void {
-  const prefs = getUserMusicPreferences();
-
-  // 1. Increment track play count
-  prefs.listenedTrackIds[track.id] = (prefs.listenedTrackIds[track.id] || 0) + 1;
-
-  // 2. Boost genre score (+4 points)
-  prefs.genreScores[track.genre] = (prefs.genreScores[track.genre] || 0) + 4;
-
-  // 3. Boost artist score (+6 points)
-  prefs.artistScores[track.artist] = (prefs.artistScores[track.artist] || 0) + 6;
-
-  prefs.lastPlayedAt = Date.now();
-  saveUserMusicPreferences(prefs);
+  recordSongListen({
+    id: track.id,
+    name: track.name,
+    artist: track.artist,
+    albumCover: track.albumCover,
+    colors: ['#1e1b4b', '#4338ca'],
+    youtubeId: track.youtubeId || '',
+    durationSec: Math.floor(track.durationMs / 1000),
+  });
 }
 
-/**
- * Toggle favorite track status (+10 points to recommendation model)
- */
-export function toggleFavoriteTrack(track: SpotifyTrack): boolean {
-  const prefs = getUserMusicPreferences();
-  const index = prefs.favoriteTrackIds.indexOf(track.id);
-  const isNowFavorite = index === -1;
-
-  if (isNowFavorite) {
-    prefs.favoriteTrackIds.push(track.id);
-    prefs.genreScores[track.genre] = (prefs.genreScores[track.genre] || 0) + 8;
-    prefs.artistScores[track.artist] = (prefs.artistScores[track.artist] || 0) + 10;
-  } else {
-    prefs.favoriteTrackIds.splice(index, 1);
-  }
-
-  saveUserMusicPreferences(prefs);
-  return isNowFavorite;
-}
-
-export function isFavoriteTrack(trackId: string): boolean {
-  const prefs = getUserMusicPreferences();
-  return prefs.favoriteTrackIds.includes(trackId);
-}
-
-/**
- * CountTo Algoritmik Müzik Öneri Motoru:
- * Dinleme geçmişi, tür ağırlıkları, günün saati (gece/gündüz odaklanma) ve popülerlik
- * verilerini harmanlayarak dinamik % eşleşme puanı ve neden üretir.
- */
 export function getPersonalizedRecommendations(
-  allTracks: SpotifyTrack[]
+  allTracks: SpotifyTrack[],
+  limit: number = 6
 ): RecommendationResult[] {
-  const prefs = getUserMusicPreferences();
-  const hour = new Date().getHours();
-  const isNight = hour >= 22 || hour < 6;
-
-  // Find top genre and artist from user profile
-  let topGenre = 'pop';
-  let maxGenreScore = -1;
-  Object.entries(prefs.genreScores).forEach(([genre, score]) => {
-    if (score > maxGenreScore) {
-      maxGenreScore = score;
-      topGenre = genre;
-    }
-  });
-
-  let topArtist = '';
-  let maxArtistScore = -1;
-  Object.entries(prefs.artistScores).forEach(([artist, score]) => {
-    if (score > maxArtistScore) {
-      maxArtistScore = score;
-      topArtist = artist;
-    }
-  });
-
-  const scoredTracks = allTracks.map((track) => {
-    let score = 50; // Base score
-
-    // Popularity factor (0-20 points)
-    score += (track.popularity / 100) * 20;
-
-    // Genre affinity (up to 25 points)
-    const genreScore = prefs.genreScores[track.genre] || 0;
-    if (track.genre === topGenre) {
-      score += 25;
-    } else if (genreScore > 0) {
-      score += Math.min(20, genreScore * 2);
-    }
-
-    // Artist affinity (up to 20 points)
-    if (topArtist && track.artist.toLowerCase().includes(topArtist.toLowerCase())) {
-      score += 20;
-    } else if (prefs.artistScores[track.artist]) {
-      score += Math.min(15, prefs.artistScores[track.artist] * 2);
-    }
-
-    // Time-of-day contextual alignment (up to 15 points)
-    if (isNight && (track.genre === 'lofi' || track.genre === 'acoustic')) {
-      score += 15;
-    } else if (!isNight && (track.genre === 'pop' || track.energy === 'upbeat')) {
-      score += 10;
-    }
-
-    // Favorited bonus
-    if (prefs.favoriteTrackIds.includes(track.id)) {
-      score += 10;
-    }
-
-    // Calculate match percentage between 78% and 99%
-    const matchPercentage = Math.min(99, Math.max(78, Math.round(score)));
-
-    // Generate human algorithmic reason
-    let reason = 'Türkiye listelerinde trend şarkı';
-    if (prefs.favoriteTrackIds.includes(track.id)) {
-      reason = 'Favori listenizdeki benzer parçalara göre';
-    } else if (topArtist && track.artist.toLowerCase().includes(topArtist.toLowerCase())) {
-      reason = `${topArtist} dinleme alışkanlığına göre`;
-    } else if (isNight && track.genre === 'lofi') {
-      reason = 'Gece çalışma ve odaklanma saatine özel';
-    } else if (track.genre === topGenre) {
-      const genreNames: Record<string, string> = {
-        pop: 'Popüler Türkçe',
-        lofi: 'Derin Odaklanma & Lo-Fi',
-        rap: 'Türkçe Hip-Hop & Rap',
-        rock: 'Alternatif & Rock',
-        acoustic: 'Sakin Akustik',
-        electronic: 'Elektronik & Ritim',
-      };
-      reason = `En çok dinlediğin ${genreNames[track.genre] || track.genre} türüne göre`;
-    } else if (track.isPopularInTurkey) {
-      reason = "Türkiye'de şu an en çok çalınan hit";
-    }
-
-    return {
-      track,
-      matchPercentage,
-      reason,
-    };
-  });
-
-  // Sort descending by match percentage
-  scoredTracks.sort((a, b) => b.matchPercentage - a.matchPercentage);
-
-  return scoredTracks;
+  const profile = getUserProfile();
+  return allTracks.slice(0, limit).map((track) => ({
+    track,
+    matchPercentage: Math.min(99, 78 + ((profile.artistScores[track.artist.toLowerCase()] || 0) * 4)),
+    reason: 'CountTo Müzik Önerisi',
+  }));
 }

@@ -15,16 +15,25 @@ export const PRESET_SONGS: SongTrack[] = [
     name: 'Tralala',
     artist: 'Manifest',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/09/65/49/09654984-bdf6-05a1-d77c-745aef128688/cover.jpg/600x600bb.jpg',
-    colors: ['#4a0e4e', '#c026d3'], // Vibrant magenta & deep violet from official single
-    youtubeId: 'd475QkQpP60',
+    colors: ['#4a0e4e', '#c026d3'],
+    youtubeId: '0rW7Fbm4S7g', // Verified working live video
     durationSec: 180,
+  },
+  {
+    id: 'toz-pembe-nalan',
+    name: 'Toz Pembe',
+    artist: 'Nalan',
+    albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/6b/c4/1b/6bc41bb6-2481-229b-e0f1-4dbcf4e72c5b/cover.jpg/600x600bb.jpg',
+    colors: ['#831843', '#f43f5e'],
+    youtubeId: '0pg0raFMNIU', // Verified working video
+    durationSec: 236,
   },
   {
     id: 'birds-of-a-feather',
     name: 'Birds Of A Feather',
     artist: 'Billie Eilish',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/92/9f/69/929f69f1-9977-3a44-d674-11f70c852d1b/24UMGIM36186.rgb.jpg/600x600bb.jpg',
-    colors: ['#0c2a5e', '#1d4ed8'], // Hit Me Hard and Soft deep oceanic blue
+    colors: ['#0c2a5e', '#1d4ed8'],
     youtubeId: 'V9PVRfjEBTI',
     durationSec: 198,
   },
@@ -33,7 +42,7 @@ export const PRESET_SONGS: SongTrack[] = [
     name: 'Runaway',
     artist: 'AURORA',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/b7/5f/76/b75f7659-c7ac-36d8-e01f-2f6d02f5ef34/5056167160632.jpg/600x600bb.jpg',
-    colors: ['#0f3928', '#166534'], // Moody Nordic forest emerald
+    colors: ['#0f3928', '#166534'],
     youtubeId: 'd_HlPboLRL8',
     durationSec: 252,
   },
@@ -42,26 +51,17 @@ export const PRESET_SONGS: SongTrack[] = [
     name: 'As It Was',
     artist: 'Harry Styles',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/2a/19/fb/2a19fb85-2f70-9e44-f2a9-82abe679b88e/886449990061.jpg/600x600bb.jpg',
-    colors: ['#58200b', '#d97706'], // Warm retro living room amber
+    colors: ['#58200b', '#d97706'],
     youtubeId: 'H5v3kku4y6Q',
     durationSec: 167,
-  },
-  {
-    id: 'fascist-cerpow',
-    name: 'Fascist',
-    artist: 'Cerpow',
-    albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/1e/02/d3/1e02d334-fa9c-5524-a80b-c1dc28735632/7caac8d3-814e-41ff-833b-189ead2ac233.jpg/600x600bb.jpg',
-    colors: ['#7c2d12', '#ea580c'], // Vibrant orange illustrated warmth
-    youtubeId: 'V9PVRfjEBTI',
-    durationSec: 162,
   },
   {
     id: 'askin-olayim',
     name: 'Aşkın Olayım',
     artist: 'Simge',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/5f/be/25/5fbe25a2-6307-005b-5faf-a967f0b62ba9/cover.jpg/600x600bb.jpg',
-    colors: ['#4c0519', '#be123c'], // Rich crimson velvet
-    youtubeId: '8oxpYQO3Jg8',
+    colors: ['#4c0519', '#be123c'],
+    youtubeId: 'VREnTCTeS4k',
     durationSec: 251,
   },
   {
@@ -69,8 +69,8 @@ export const PRESET_SONGS: SongTrack[] = [
     name: 'Antidepresan',
     artist: 'Mert Demir, Mabel Matiz',
     albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/cd/6a/fb/cd6afb23-3442-e7ab-3b39-46f458bcad40/196922249655_Cover.jpg/600x600bb.jpg',
-    colors: ['#2e1065', '#7e22ce'], // Velvet purple neon
-    youtubeId: '8oxpYQO3Jg8',
+    colors: ['#2e1065', '#7e22ce'],
+    youtubeId: 'i6CSvLvSNZ4',
     durationSec: 232,
   },
 ];
@@ -237,14 +237,33 @@ class HiddenMusicAudioEngine {
     }
   }
 
-  public play(track: SongTrack) {
+  public async play(track: SongTrack) {
     this.currentTrack = track;
     this.currentTime = 0;
     this.duration = track.durationSec || 180;
     this.isPlaying = true;
 
+    let vid = track.youtubeId;
+
+    // Dynamically resolve videoId if not present
+    if (!vid) {
+      try {
+        const query = `${track.name} ${track.artist}`;
+        const res = await fetch(`/api/resolve-track?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data && data.videoId) {
+          vid = data.videoId;
+          track.youtubeId = vid;
+        }
+      } catch {
+        vid = '0rW7Fbm4S7g';
+      }
+    }
+
+    if (!vid) vid = '0rW7Fbm4S7g';
+
     if (!this.player || !this.player.loadVideoById) {
-      this.pendingTrack = track;
+      this.pendingTrack = { ...track, youtubeId: vid };
       this.startProgressTracker();
       this.emit();
       return;
@@ -252,7 +271,7 @@ class HiddenMusicAudioEngine {
 
     try {
       this.player.loadVideoById({
-        videoId: track.youtubeId,
+        videoId: vid,
         startSeconds: 0,
       });
       this.player.playVideo();
