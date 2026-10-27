@@ -13,10 +13,16 @@ import {
   CheckCircle2, 
   Loader2,
   Sparkles,
+  Users,
   X
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
-import { recordSongListen, getUserProfile } from '../utils/musicRecommendationEngine';
+import { 
+  generatePersonalized5Recommendations, 
+  generateCoListeningRecommendations, 
+  recordImplicitSignal,
+  getUserTasteMap 
+} from '../utils/musicRecommendationEngine';
 
 interface FloatingMusicWidgetProps {
   themePrimary: string;
@@ -46,10 +52,20 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   
-  // Algorithmic recommendations
-  const [recommendations, setRecommendations] = useState<SongTrack[]>(() => {
-    const profile = getUserProfile();
-    return profile.dynamicRecommendations.length > 0 ? profile.dynamicRecommendations : PRESET_SONGS;
+  // Algorithmic State: Exactly 5 personalized recommendations + Co-listening section
+  const [personalized5, setPersonalized5] = useState<SongTrack[]>(() => {
+    const map = getUserTasteMap();
+    return map.cachedRecommendations.length === 5 
+      ? map.cachedRecommendations 
+      : PRESET_SONGS.slice(0, 5);
+  });
+  const [coListeningTracks, setCoListeningTracks] = useState<SongTrack[]>(() => {
+    const map = getUserTasteMap();
+    return map.coListeningTracks || [];
+  });
+  const [lastFinishedTrack, setLastFinishedTrack] = useState<SongTrack | null>(() => {
+    const map = getUserTasteMap();
+    return map.lastFinishedTrack || PRESET_SONGS[0];
   });
 
   // Animated intro pop-up on first arrival
@@ -78,7 +94,26 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Subscribe to audio engine
+  // Initial load of recommendations and co-listening tracks
+  useEffect(() => {
+    generatePersonalized5Recommendations().then((tracks) => {
+      if (tracks && tracks.length === 5) {
+        setPersonalized5(tracks);
+      }
+    });
+
+    const initialFinished = getUserTasteMap().lastFinishedTrack || PRESET_SONGS[0];
+    if (initialFinished) {
+      setLastFinishedTrack(initialFinished);
+      generateCoListeningRecommendations(initialFinished).then((colist) => {
+        if (colist && colist.length > 0) {
+          setCoListeningTracks(colist);
+        }
+      });
+    }
+  }, []);
+
+  // Subscribe to audio engine state
   useEffect(() => {
     const unsubscribe = musicAudioEngine.subscribe((state) => {
       setIsPlaying(state.isPlaying);
@@ -93,10 +128,23 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     return () => unsubscribe();
   }, []);
 
-  // Smart Auto-Hide Rule:
-  // - NEVER auto-hide in 'search' mode
-  // - NEVER auto-hide while mouse is inside or interacting
-  // - ONLY auto-hide in 'player' mode after mouse leaves
+  // Update co-listening recommendations every time a song finishes playing!
+  useEffect(() => {
+    const unsub = musicAudioEngine.onTrackCompleted(async (finishedTrack) => {
+      setLastFinishedTrack(finishedTrack);
+      const newCoList = await generateCoListeningRecommendations(finishedTrack);
+      if (newCoList && newCoList.length > 0) {
+        setCoListeningTracks(newCoList);
+      }
+      const new5 = await generatePersonalized5Recommendations();
+      if (new5 && new5.length === 5) {
+        setPersonalized5(new5);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Smart Auto-Hide Rule
   const clearTimer = () => {
     if (autoHideTimerRef.current) {
       clearTimeout(autoHideTimerRef.current);
@@ -187,15 +235,15 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   }, [searchQuery]);
 
   const handleSelectTrack = async (track: SongTrack) => {
+    recordImplicitSignal(track, 'play_select');
     musicAudioEngine.play(track);
     setViewMode('player');
     clearTimer();
 
-    // Trigger algorithmic recommendation learning based on played track, time-of-day, and artist!
-    const newRecs = await recordSongListen(track);
-    if (newRecs && newRecs.length > 0) {
-      setRecommendations(newRecs);
-    }
+    // Trigger background taste learning
+    generatePersonalized5Recommendations().then((new5) => {
+      if (new5 && new5.length === 5) setPersonalized5(new5);
+    });
   };
 
   const handleTogglePlayPause = (e: React.MouseEvent) => {
@@ -237,17 +285,67 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     musicAudioEngine.seek(pct * duration);
   };
 
-  // If user searched, display search results. Otherwise display intelligent algorithmic recommendations
-  const displayTracks = searchQuery.trim().length > 0
-    ? searchResults.length > 0
-      ? searchResults
-      : PRESET_SONGS.filter((s) => `${s.name} ${s.artist}`.toLowerCase().includes(searchQuery.toLowerCase().trim()))
-    : recommendations;
-
   const activeTrack = currentTrack || PRESET_SONGS[0];
   const activeColors = hoveredTrack?.colors || activeTrack.colors || ['#4a0e4e', '#c026d3'];
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
+
+  // Reusable track row renderer preserving the exact UI design
+  const renderSongRow = (song: SongTrack) => {
+    const isThisActive = currentTrack?.id === song.id;
+
+    return (
+      <div
+        key={song.id}
+        onMouseEnter={() => setHoveredTrack(song)}
+        onMouseLeave={() => setHoveredTrack(null)}
+        onClick={() => handleSelectTrack(song)}
+        className={`flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer group ${
+          isThisActive
+            ? 'bg-white/20 border border-white/25 shadow-md backdrop-blur-md'
+            : 'hover:bg-white/10 border border-transparent'
+        }`}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <img
+            src={song.albumCover}
+            alt={song.name}
+            className="w-10 h-10 rounded-xl object-cover shrink-0 shadow-sm border border-white/15"
+            loading="lazy"
+          />
+
+          <div className="flex flex-col min-w-0">
+            <span className="text-white text-xs font-bold truncate group-hover:text-lime-300 transition-colors">
+              {song.name}
+            </span>
+            <span className="text-white/70 text-[11px] truncate">
+              Song · {song.artist} · {formatMinutes(song.durationSec)}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSelectTrack(song);
+          }}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
+            isThisActive && isPlaying
+              ? 'bg-lime-400 text-neutral-950 shadow-md'
+              : 'bg-white text-neutral-950 hover:bg-white/90 active:scale-95'
+          }`}
+        >
+          {isThisActive && isPlaying ? (
+            <Pause className="w-3 h-3 fill-neutral-950" />
+          ) : (
+            <Play className="w-3 h-3 fill-neutral-950" />
+          )}
+          <span>{isThisActive && isPlaying ? 'Çalıyor' : 'Play'}</span>
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="relative inline-flex items-center">
@@ -277,7 +375,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
           }`}
         />
 
-        {/* Subtle beacon pulse on trigger if intro tooltip is visible */}
         {showIntroTooltip && !isOpen && (
           <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
@@ -286,7 +383,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         )}
       </button>
 
-      {/* 2. Mini Animated Intro Pop-up Spotlight (Polished onboarding) */}
+      {/* 2. Mini Animated Intro Pop-up Spotlight */}
       <AnimatePresence>
         {showIntroTooltip && !isOpen && (
           <motion.div
@@ -297,7 +394,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-40 select-none w-64"
           >
             <div className="relative p-3.5 rounded-2xl backdrop-blur-3xl bg-[#131318]/95 border border-white/20 shadow-[0_20px_45px_rgba(0,0,0,0.8)] text-white flex flex-col gap-2 overflow-hidden">
-              {/* Dynamic subtle ambient glow behind intro */}
               <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-40 bg-cyan-500 pointer-events-none" />
 
               <div className="flex items-center justify-between relative z-10">
@@ -343,7 +439,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         )}
       </AnimatePresence>
 
-      {/* 3. Frosted Glass Music Pop-up (Smooth and Dynamic Spring Animation) */}
+      {/* 3. Frosted Glass Music Pop-up */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -606,76 +702,41 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                       </button>
                     </div>
 
-                    {/* Header Subtitle showing Zevkine Göre Öneriler */}
-                    {!searchQuery.trim() && (
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
-                          <Sparkles className="w-3 h-3 text-cyan-400" />
-                          Zevkine Göre Öneriler
-                        </span>
-                      </div>
-                    )}
-
                     {/* Real Song List with Authentic Official Covers */}
                     <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-0.5 custom-sticky-scrollbar">
-                      {displayTracks.map((song) => {
-                        const isThisActive = currentTrack?.id === song.id;
+                      {searchQuery.trim().length > 0 ? (
+                        /* Live Search Mode Results */
+                        (searchResults.length > 0 ? searchResults : PRESET_SONGS).map((song) =>
+                          renderSongRow(song)
+                        )
+                      ) : (
+                        /* Algorithmic Mode: Top 5 Personalized + Divider + Co-Listening */
+                        <>
+                          {/* 1. Header: Zevkine Göre Öneriler (Tam 5 Şarkı) */}
+                          <div className="flex items-center justify-between px-1 py-0.5">
+                            <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
+                              <Sparkles className="w-3 h-3 text-cyan-400" />
+                              Zevkine Göre Öneriler
+                            </span>
+                          </div>
 
-                        return (
-                          <div
-                            key={song.id}
-                            onMouseEnter={() => setHoveredTrack(song)}
-                            onMouseLeave={() => setHoveredTrack(null)}
-                            onClick={() => handleSelectTrack(song)}
-                            className={`flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer group ${
-                              isThisActive
-                                ? 'bg-white/20 border border-white/25 shadow-md backdrop-blur-md'
-                                : 'hover:bg-white/10 border border-transparent'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {/* Real Album Artwork */}
-                              <img
-                                src={song.albumCover}
-                                alt={song.name}
-                                className="w-10 h-10 rounded-xl object-cover shrink-0 shadow-sm border border-white/15"
-                                loading="lazy"
-                              />
+                          {personalized5.map((song) => renderSongRow(song))}
 
-                              {/* Track Details */}
-                              <div className="flex flex-col min-w-0">
-                                <span className="text-white text-xs font-bold truncate group-hover:text-lime-300 transition-colors">
-                                  {song.name}
-                                </span>
-                                <span className="text-white/70 text-[11px] truncate">
-                                  Song · {song.artist} · {formatMinutes(song.durationSec)}
+                          {/* 2. Çizgi ve "[Şarkı] Dinleyenler Bunları da Dinledi" Bölümü */}
+                          {coListeningTracks.length > 0 && lastFinishedTrack && (
+                            <>
+                              <div className="my-2 border-t border-white/10 mx-1" />
+                              <div className="flex items-center justify-between px-1 py-0.5">
+                                <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
+                                  <Users className="w-3 h-3 text-cyan-400" />
+                                  {lastFinishedTrack.name} Dinleyenler Bunları da Dinledi
                                 </span>
                               </div>
-                            </div>
-
-                            {/* Play Action Button */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectTrack(song);
-                              }}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
-                                isThisActive && isPlaying
-                                  ? 'bg-lime-400 text-neutral-950 shadow-md'
-                                  : 'bg-white text-neutral-950 hover:bg-white/90 active:scale-95'
-                              }`}
-                            >
-                              {isThisActive && isPlaying ? (
-                                <Pause className="w-3 h-3 fill-neutral-950" />
-                              ) : (
-                                <Play className="w-3 h-3 fill-neutral-950" />
-                              )}
-                              <span>{isThisActive && isPlaying ? 'Çalıyor' : 'Play'}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
+                              {coListeningTracks.map((song) => renderSongRow(song))}
+                            </>
+                          )}
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 )}

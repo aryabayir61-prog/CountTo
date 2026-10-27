@@ -1,4 +1,6 @@
 // Background Full-Song Audio Engine (Real Authentic Album Covers, Zero Watermarks, Full Tracks)
+import { recordImplicitSignal } from './musicRecommendationEngine';
+
 export interface SongTrack {
   id: string;
   name: string;
@@ -105,6 +107,7 @@ class HiddenMusicAudioEngine {
     isShuffle: boolean;
     isRepeat: boolean;
   }) => void> = new Set();
+  private onTrackEndedListeners: Set<(track: SongTrack) => void> = new Set();
   
   public currentTrack: SongTrack | null = null;
   public isPlaying: boolean = false;
@@ -117,6 +120,13 @@ class HiddenMusicAudioEngine {
     if (typeof window !== 'undefined') {
       this.initApi();
     }
+  }
+
+  public onTrackCompleted(cb: (track: SongTrack) => void) {
+    this.onTrackEndedListeners.add(cb);
+    return () => {
+      this.onTrackEndedListeners.delete(cb);
+    };
   }
 
   private initApi() {
@@ -191,6 +201,12 @@ class HiddenMusicAudioEngine {
               this.stopProgressTracker();
               this.emit();
             } else if (event.data === 0) {
+              if (this.currentTrack) {
+                recordImplicitSignal(this.currentTrack, 'complete');
+                for (const l of this.onTrackEndedListeners) {
+                  try { l(this.currentTrack); } catch {}
+                }
+              }
               if (this.isRepeat) {
                 this.seek(0);
                 this.resume();
@@ -369,6 +385,10 @@ class HiddenMusicAudioEngine {
   }
 
   public seek(seconds: number) {
+    if (this.currentTrack && seconds < this.currentTime - 4) {
+      // User rewound track: strong positive signal
+      recordImplicitSignal(this.currentTrack, 'rewind');
+    }
     this.currentTime = seconds;
     if (this.player && this.player.seekTo) {
       try {
@@ -381,6 +401,16 @@ class HiddenMusicAudioEngine {
   }
 
   public next() {
+    if (this.currentTrack) {
+      if (this.currentTime < 5) {
+        // Skipped within 5s: strong negative signal
+        recordImplicitSignal(this.currentTrack, 'early_skip');
+      } else if (this.currentTime >= 30) {
+        // Skipped after 30s: weak negative/neutral
+        recordImplicitSignal(this.currentTrack, 'late_skip');
+      }
+    }
+
     const list = PRESET_SONGS;
     if (this.isShuffle) {
       const otherTracks = list.filter((t) => t.id !== this.currentTrack?.id);
@@ -411,6 +441,9 @@ class HiddenMusicAudioEngine {
 
   public toggleRepeat() {
     this.isRepeat = !this.isRepeat;
+    if (this.isRepeat && this.currentTrack) {
+      recordImplicitSignal(this.currentTrack, 'repeat');
+    }
     this.emit();
   }
 
