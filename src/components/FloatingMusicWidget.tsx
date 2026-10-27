@@ -14,12 +14,15 @@ import {
   Loader2,
   Sparkles,
   Users,
+  Compass,
   X
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { 
   generatePersonalized5Recommendations, 
   generateCoListeningRecommendations, 
+  generateDailyCuratedSet,
+  DailyPickTrack,
   recordImplicitSignal,
   getUserTasteMap 
 } from '../utils/musicRecommendationEngine';
@@ -67,6 +70,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     const map = getUserTasteMap();
     return map.lastFinishedTrack || PRESET_SONGS[0];
   });
+  const [dailyPicks, setDailyPicks] = useState<DailyPickTrack[]>([]);
 
   // Animated intro pop-up on first arrival
   const [showIntroTooltip, setShowIntroTooltip] = useState<boolean>(false);
@@ -94,11 +98,17 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initial load of recommendations and co-listening tracks
+  // Initial load of recommendations, co-listening tracks, and daily curated set
   useEffect(() => {
     generatePersonalized5Recommendations().then((tracks) => {
       if (tracks && tracks.length === 5) {
         setPersonalized5(tracks);
+      }
+    });
+
+    generateDailyCuratedSet().then((set) => {
+      if (set && set.length > 0) {
+        setDailyPicks(set);
       }
     });
 
@@ -290,8 +300,8 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
 
-  // Reusable track row renderer preserving the exact UI design
-  const renderSongRow = (song: SongTrack) => {
+  // Reusable track row renderer preserving the exact clean UI design
+  const renderSongRow = (song: SongTrack | DailyPickTrack) => {
     const isThisActive = currentTrack?.id === song.id;
 
     return (
@@ -733,6 +743,20 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                                 </span>
                               </div>
                               {coListeningTracks.map((song) => renderSongRow(song))}
+                            </>
+                          )}
+
+                          {/* 3. Çizgi ve "Bugün Sizin İçin Seçtiklerimiz" Bölümü (Günlük Vitrin Seti) */}
+                          {dailyPicks.length > 0 && (
+                            <>
+                              <div className="my-2 border-t border-white/10 mx-1" />
+                              <div className="flex items-center justify-between px-1 py-0.5">
+                                <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
+                                  <Compass className="w-3 h-3 text-cyan-400" />
+                                  Bugün Sizin İçin Seçtiklerimiz
+                                </span>
+                              </div>
+                              {dailyPicks.map((song) => renderSongRow(song))}
                             </>
                           )}
                         </>

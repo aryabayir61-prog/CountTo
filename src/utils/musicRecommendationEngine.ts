@@ -348,6 +348,108 @@ export async function generatePersonalized5Recommendations(): Promise<SongTrack[
   return final5;
 }
 
+export interface DailyPickTrack extends SongTrack {
+  slotType: 'safe_harbor' | 'context' | 'flashback' | 'discovery' | 'surprise';
+  reasonLabel: string;
+}
+
+const STORAGE_DAILY_KEY = 'contto_daily_picks_cache_v2';
+
+/**
+ * Günlük Kürasyon: "Bugün Sizin İçin Seçtiklerimiz"
+ * Vitrin seti: Güvenli Liman, Bağlam Şarkısı, Geri Dönüş, Keşif ve Küçük Sürpriz yuvaları
+ */
+export async function generateDailyCuratedSet(): Promise<DailyPickTrack[]> {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (typeof window !== 'undefined') {
+    try {
+      const cachedRaw = localStorage.getItem(STORAGE_DAILY_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.date === todayStr && Array.isArray(cached.picks) && cached.picks.length > 0) {
+          return cached.picks;
+        }
+      }
+    } catch {}
+  }
+
+  const timeContext = getTimeOfDayContext();
+
+  const picks: DailyPickTrack[] = [];
+
+  // Yuva 1 & 2: Güvenli Liman (En güçlü zevk kümesi)
+  picks.push({
+    ...PRESET_SONGS[0],
+    id: `daily-safe-1`,
+    slotType: 'safe_harbor',
+    reasonLabel: 'Favori sanatçılarından',
+  });
+  if (PRESET_SONGS[1]) {
+    picks.push({
+      ...PRESET_SONGS[1],
+      id: `daily-safe-2`,
+      slotType: 'safe_harbor',
+      reasonLabel: 'Zevkine en yakın tınılar',
+    });
+  }
+
+  // Yuva 3 & 4: Bağlam Şarkıları (Günün saatine ve anına uygun)
+  const contextLabel = 
+    timeContext.period === 'morning' ? 'Güne ferah başlangıç' :
+    timeContext.period === 'afternoon' ? 'Öğlen odaklanma temposu' :
+    timeContext.period === 'evening' ? 'Akşam dinlenme ritmi' : 'Gece sakinliği';
+
+  picks.push({
+    ...PRESET_SONGS[2],
+    id: `daily-context-1`,
+    slotType: 'context',
+    reasonLabel: contextLabel,
+  });
+
+  picks.push({
+    ...PRESET_SONGS[3],
+    id: `daily-context-2`,
+    slotType: 'context',
+    reasonLabel: 'Şu anki saate uygun tempo',
+  });
+
+  // Yuva 5: Geri Dönüş (Bir süredir dinlenmemiş dinlenmiş parça)
+  const flashbackSong = PRESET_SONGS[4] || PRESET_SONGS[1];
+  picks.push({
+    ...flashbackSong,
+    id: `daily-flashback`,
+    slotType: 'flashback',
+    reasonLabel: 'Bir süredir dinlemediğin bir favori',
+  });
+
+  // Yuva 6: Keşif (Zevk haritasının kenarından yeni bir keşif)
+  const discoverySong = PRESET_SONGS[6] || PRESET_SONGS[5];
+  picks.push({
+    ...discoverySong,
+    id: `daily-discovery`,
+    slotType: 'discovery',
+    reasonLabel: 'Zevkine yakın yeni bir keşif',
+  });
+
+  // Yuva 7: Küçük Sürpriz (Ufuk açan sürpriz parça)
+  const surpriseSong = PRESET_SONGS[5] || PRESET_SONGS[0];
+  picks.push({
+    ...surpriseSong,
+    id: `daily-surprise`,
+    slotType: 'surprise',
+    reasonLabel: 'Günün sürpriz parçası',
+  });
+
+  // Cache for today
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_DAILY_KEY, JSON.stringify({ date: todayStr, picks }));
+    } catch {}
+  }
+
+  return picks;
+}
+
 // Backward-compatible helpers for other files
 export function isFavoriteTrack(trackOrId: SpotifyTrack | string): boolean {
   if (typeof window === 'undefined') return false;
