@@ -367,8 +367,14 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             }}
             className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-50 select-none origin-bottom"
           >
-            {/* Frosted Glass Slab */}
-            <div className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-hidden">
+            {/* Frosted Glass Slab: Animated layout transition smoothly resizes card between Search and Player modes */}
+            <motion.div
+              layout
+              transition={{
+                layout: { type: 'spring', stiffness: 360, damping: 32 },
+              }}
+              className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-hidden"
+            >
               
               {/* Dynamic Color Mixing Ambient Glow Canvas */}
               <div 
@@ -383,244 +389,298 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
               {/* Specular Liquid Top Rim Light */}
               <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
 
-              {viewMode === 'player' ? (
-                /* ================= PLAYER MODE ================= */
-                <div className="relative z-10 flex flex-col gap-3.5">
-                  {/* Top: Album Art + Song Title & Artist + Quick Switch Button */}
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Real Official Album Artwork */}
-                      <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-white/20 shrink-0 bg-neutral-900">
-                        <img
-                          src={activeTrack.albumCover}
-                          alt={activeTrack.name}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                        />
+              <AnimatePresence mode="wait" initial={false}>
+                {viewMode === 'player' ? (
+                  /* ================= PLAYER MODE ================= */
+                  <motion.div
+                    key="player-view"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="relative z-10 flex flex-col gap-3.5"
+                  >
+                    {/* Top: Album Art + Song Title & Artist + Quick Switch Button */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Real Official Album Artwork */}
+                        <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-white/20 shrink-0 bg-neutral-900">
+                          <img
+                            src={activeTrack.albumCover}
+                            alt={activeTrack.name}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        </div>
+
+                        {/* Title & Artist with smooth transition */}
+                        <div className="flex flex-col min-w-0">
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={activeTrack.id + activeTrack.name}
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex flex-col min-w-0"
+                            >
+                              <h4 className="text-white text-[15px] font-bold tracking-tight truncate leading-tight drop-shadow-sm">
+                                {activeTrack.name}
+                              </h4>
+                              <p className="text-white/70 text-xs font-medium truncate mt-0.5">
+                                {activeTrack.artist}
+                              </p>
+                            </motion.div>
+                          </AnimatePresence>
+                        </div>
                       </div>
 
-                      {/* Title & Artist */}
-                      <div className="flex flex-col min-w-0">
-                        <h4 className="text-white text-[15px] font-bold tracking-tight truncate leading-tight drop-shadow-sm">
-                          {activeTrack.name}
-                        </h4>
-                        <p className="text-white/70 text-xs font-medium truncate mt-0.5">
-                          {activeTrack.artist}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Right: Switch to Search / Track List */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewMode('search');
-                        clearTimer();
-                      }}
-                      title="Şarkı Listesi / Arama"
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
-                    >
-                      <ListMusic className="w-3.5 h-3.5 text-white/90" />
-                      <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
-                    </button>
-                  </div>
-
-                  {/* Middle: Timeline Slider with Timestamps */}
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-white/70 select-none">
-                      <span>{formatMinutes(currentTime)}</span>
-                      <span>-{formatMinutes(remainingSeconds)}</span>
-                    </div>
-
-                    {/* Frosted Liquid Glass Seekbar Track */}
-                    <div
-                      onClick={handleSeekClick}
-                      className="relative h-2 w-full bg-white/20 rounded-full cursor-pointer flex items-center group overflow-hidden border border-white/10"
-                      title="İlerlet"
-                    >
-                      <div
-                        className="h-full bg-gradient-to-r from-white/80 to-white rounded-full transition-all duration-100 relative"
-                        style={{ width: `${progressPercent}%` }}
+                      {/* Right: Switch to Search / Track List */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewMode('search');
+                          clearTimer();
+                        }}
+                        title="Şarkı Listesi / Arama"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
                       >
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.9)]" />
+                        <ListMusic className="w-3.5 h-3.5 text-white/90" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
+                      </button>
+                    </div>
+
+                    {/* Middle: Timeline Slider with Timestamps (image_ee5a9565.png) */}
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-white/70 select-none">
+                        <span>{formatMinutes(currentTime)}</span>
+                        <span>-{formatMinutes(remainingSeconds)}</span>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Bottom: Modern Liquid Glass Controls */}
-                  <div className="flex items-center justify-between px-1 pt-1">
-                    {/* Shuffle */}
-                    <button
-                      type="button"
-                      onClick={handleToggleShuffle}
-                      title={isShuffle ? 'Karışık Çalma Açık' : 'Karışık Çal'}
-                      className={`p-2 rounded-xl transition-all active:scale-90 cursor-pointer ${
-                        isShuffle ? 'text-lime-400 scale-110 drop-shadow-[0_0_8px_rgba(163,230,53,0.7)]' : 'text-white/60 hover:text-white'
-                      }`}
-                    >
-                      <Shuffle className="w-4 h-4 stroke-[2.2]" />
-                    </button>
-
-                    {/* Previous Track */}
-                    <button
-                      type="button"
-                      onClick={handlePrevious}
-                      title="Önceki Şarkı"
-                      className="p-2 rounded-xl text-white hover:text-white/80 active:scale-90 transition-all cursor-pointer"
-                    >
-                      <SkipBack className="w-5 h-5 fill-white stroke-white" />
-                    </button>
-
-                    {/* Play / Pause Glass Squircle Button */}
-                    <button
-                      type="button"
-                      onClick={handleTogglePlayPause}
-                      title={isPlaying ? 'Durdur' : 'Oynat'}
-                      className="w-12 h-12 rounded-2xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/30 backdrop-blur-xl flex items-center justify-center text-white transition-all cursor-pointer shadow-lg group"
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-6 h-6 fill-white group-hover:scale-105 transition-transform" />
-                      ) : (
-                        <Play className="w-6 h-6 fill-white ml-0.5 group-hover:scale-105 transition-transform" />
-                      )}
-                    </button>
-
-                    {/* Next Track */}
-                    <button
-                      type="button"
-                      onClick={handleNext}
-                      title="Sonraki Şarkı"
-                      className="p-2 rounded-xl text-white hover:text-white/80 active:scale-90 transition-all cursor-pointer"
-                    >
-                      <SkipForward className="w-5 h-5 fill-white stroke-white" />
-                    </button>
-
-                    {/* Repeat Track */}
-                    <button
-                      type="button"
-                      onClick={handleToggleRepeat}
-                      title={isRepeat ? 'Tekrar Modu Açık' : 'Tekrar Çal'}
-                      className={`p-2 rounded-xl transition-all active:scale-90 cursor-pointer ${
-                        isRepeat ? 'text-lime-400 scale-110 drop-shadow-[0_0_8px_rgba(163,230,53,0.7)]' : 'text-white/60 hover:text-white'
-                      }`}
-                    >
-                      <Repeat className="w-4 h-4 stroke-[2.2]" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* ================= SELECTION & LIVE SEARCH MODE ================= */
-                <div className="relative z-10 flex flex-col gap-3">
-                  {/* Top Search Input + Back to Player button */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <div className="flex items-center px-3.5 py-2 rounded-2xl bg-black/50 border border-white/20 text-white shadow-inner backdrop-blur-md">
-                        {isSearchingOnline ? (
-                          <Loader2 className="w-4 h-4 text-cyan-400 animate-spin mr-2 shrink-0" />
-                        ) : (
-                          <Search className="w-4 h-4 text-white/50 mr-2 shrink-0 stroke-[2.2]" />
-                        )}
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onFocus={clearTimer}
-                          placeholder="Şarkı veya sanatçı arayın..."
-                          className="bg-transparent text-white placeholder-white/45 focus:outline-none w-full text-xs font-medium"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewMode('player');
-                        clearTimer();
-                      }}
-                      title="Çalara Dön"
-                      className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer shrink-0"
-                    >
-                      Çalar
-                    </button>
-                  </div>
-
-                  {/* Header Subtitle showing Zevkine Göre Öneriler */}
-                  {!searchQuery.trim() && (
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-cyan-400" />
-                        Zevkine Göre Öneriler
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Real Song List with Authentic Official Covers */}
-                  <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-0.5 custom-sticky-scrollbar">
-                    {displayTracks.map((song) => {
-                      const isThisActive = currentTrack?.id === song.id;
-
-                      return (
+                      {/* Frosted Liquid Glass Seekbar Track matching image_ee5a9565.png */}
+                      <div
+                        onClick={handleSeekClick}
+                        className="relative h-2.5 w-full bg-white/15 hover:bg-white/20 rounded-full cursor-pointer flex items-center group overflow-hidden border border-white/10 transition-all duration-200 hover:h-3"
+                        title="İlerlet"
+                      >
                         <div
-                          key={song.id}
-                          onMouseEnter={() => setHoveredTrack(song)}
-                          onMouseLeave={() => setHoveredTrack(null)}
-                          onClick={() => handleSelectTrack(song)}
-                          className={`flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer group ${
-                            isThisActive
-                              ? 'bg-white/20 border border-white/25 shadow-md backdrop-blur-md'
-                              : 'hover:bg-white/10 border border-transparent'
-                          }`}
+                          className="h-full bg-gradient-to-r from-white/75 via-white/90 to-white rounded-full transition-all duration-100 relative"
+                          style={{ width: `${progressPercent}%` }}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Real Album Artwork */}
-                            <img
-                              src={song.albumCover}
-                              alt={song.name}
-                              className="w-10 h-10 rounded-xl object-cover shrink-0 shadow-sm border border-white/15"
-                              loading="lazy"
-                            />
+                          {/* Glowing capsule head at the front (exact match to image_ee5a9565.png) */}
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)]" />
+                        </div>
+                      </div>
+                    </div>
 
-                            {/* Track Details */}
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-white text-xs font-bold truncate group-hover:text-lime-300 transition-colors">
-                                {song.name}
-                              </span>
-                              <span className="text-white/70 text-[11px] truncate">
-                                Song · {song.artist} · {formatMinutes(song.durationSec)}
-                              </span>
-                            </div>
-                          </div>
+                    {/* Bottom: Modern Liquid Glass Controls Pod (Calm, Elegant Micro-animations) */}
+                    <div className="mt-1 rounded-full bg-black/45 backdrop-blur-xl border border-white/10 px-4 sm:px-6 py-2 flex items-center justify-between shadow-inner">
+                      {/* Shuffle */}
+                      <motion.button
+                        type="button"
+                        onClick={handleToggleShuffle}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        title={isShuffle ? 'Karışık Çalma Açık' : 'Karışık Çal'}
+                        className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                          isShuffle
+                            ? 'text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.8)]'
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                      >
+                        <Shuffle className="w-4 h-4 stroke-[2.2]" />
+                      </motion.button>
 
-                          {/* Play Action Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectTrack(song);
-                            }}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
-                              isThisActive && isPlaying
-                                ? 'bg-lime-400 text-neutral-950 shadow-md'
-                                : 'bg-white text-neutral-950 hover:bg-white/90 active:scale-95'
+                      {/* Previous Track */}
+                      <motion.button
+                        type="button"
+                        onClick={handlePrevious}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        title="Önceki Şarkı"
+                        className="p-1.5 rounded-xl text-white hover:text-white/80 transition-colors cursor-pointer"
+                      >
+                        <SkipBack className="w-5 h-5 fill-white stroke-white" />
+                      </motion.button>
+
+                      {/* Play / Pause Glass Squircle Button with Subtle Spring Morph */}
+                      <motion.button
+                        type="button"
+                        onClick={handleTogglePlayPause}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.94 }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+                        title={isPlaying ? 'Durdur' : 'Oynat'}
+                        className="w-12 h-12 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/35 backdrop-blur-xl flex items-center justify-center text-white transition-all cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.5)] group overflow-hidden"
+                      >
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={isPlaying ? 'pause' : 'play'}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            transition={{ duration: 0.12 }}
+                            className="flex items-center justify-center"
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-6 h-6 fill-white" />
+                            ) : (
+                              <Play className="w-6 h-6 fill-white ml-0.5" />
+                            )}
+                          </motion.div>
+                        </AnimatePresence>
+                      </motion.button>
+
+                      {/* Next Track */}
+                      <motion.button
+                        type="button"
+                        onClick={handleNext}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        title="Sonraki Şarkı"
+                        className="p-1.5 rounded-xl text-white hover:text-white/80 transition-colors cursor-pointer"
+                      >
+                        <SkipForward className="w-5 h-5 fill-white stroke-white" />
+                      </motion.button>
+
+                      {/* Repeat Track */}
+                      <motion.button
+                        type="button"
+                        onClick={handleToggleRepeat}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92 }}
+                        title={isRepeat ? 'Tekrar Modu Açık' : 'Tekrar Çal'}
+                        className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                          isRepeat
+                            ? 'text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.8)]'
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                      >
+                        <Repeat className="w-4 h-4 stroke-[2.2]" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* ================= SELECTION & LIVE SEARCH MODE ================= */
+                  <motion.div
+                    key="search-view"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="relative z-10 flex flex-col gap-3"
+                  >
+                    {/* Top Search Input + Back to Player button */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <div className="flex items-center px-3.5 py-2 rounded-2xl bg-black/50 border border-white/20 text-white shadow-inner backdrop-blur-md">
+                          {isSearchingOnline ? (
+                            <Loader2 className="w-4 h-4 text-cyan-400 animate-spin mr-2 shrink-0" />
+                          ) : (
+                            <Search className="w-4 h-4 text-white/50 mr-2 shrink-0 stroke-[2.2]" />
+                          )}
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={clearTimer}
+                            placeholder="Şarkı veya sanatçı arayın..."
+                            className="bg-transparent text-white placeholder-white/45 focus:outline-none w-full text-xs font-medium"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewMode('player');
+                          clearTimer();
+                        }}
+                        title="Çalara Dön"
+                        className="px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer shrink-0"
+                      >
+                        Çalar
+                      </button>
+                    </div>
+
+                    {/* Header Subtitle showing Zevkine Göre Öneriler */}
+                    {!searchQuery.trim() && (
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-cyan-400" />
+                          Zevkine Göre Öneriler
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Real Song List with Authentic Official Covers */}
+                    <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-0.5 custom-sticky-scrollbar">
+                      {displayTracks.map((song) => {
+                        const isThisActive = currentTrack?.id === song.id;
+
+                        return (
+                          <div
+                            key={song.id}
+                            onMouseEnter={() => setHoveredTrack(song)}
+                            onMouseLeave={() => setHoveredTrack(null)}
+                            onClick={() => handleSelectTrack(song)}
+                            className={`flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer group ${
+                              isThisActive
+                                ? 'bg-white/20 border border-white/25 shadow-md backdrop-blur-md'
+                                : 'hover:bg-white/10 border border-transparent'
                             }`}
                           >
-                            {isThisActive && isPlaying ? (
-                              <Pause className="w-3 h-3 fill-neutral-950" />
-                            ) : (
-                              <Play className="w-3 h-3 fill-neutral-950" />
-                            )}
-                            <span>{isThisActive && isPlaying ? 'Çalıyor' : 'Play'}</span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Real Album Artwork */}
+                              <img
+                                src={song.albumCover}
+                                alt={song.name}
+                                className="w-10 h-10 rounded-xl object-cover shrink-0 shadow-sm border border-white/15"
+                                loading="lazy"
+                              />
+
+                              {/* Track Details */}
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-white text-xs font-bold truncate group-hover:text-lime-300 transition-colors">
+                                  {song.name}
+                                </span>
+                                <span className="text-white/70 text-[11px] truncate">
+                                  Song · {song.artist} · {formatMinutes(song.durationSec)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Play Action Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectTrack(song);
+                              }}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
+                                isThisActive && isPlaying
+                                  ? 'bg-lime-400 text-neutral-950 shadow-md'
+                                  : 'bg-white text-neutral-950 hover:bg-white/90 active:scale-95'
+                              }`}
+                            >
+                              {isThisActive && isPlaying ? (
+                                <Pause className="w-3 h-3 fill-neutral-950" />
+                              ) : (
+                                <Play className="w-3 h-3 fill-neutral-950" />
+                              )}
+                              <span>{isThisActive && isPlaying ? 'Çalıyor' : 'Play'}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

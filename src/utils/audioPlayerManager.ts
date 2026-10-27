@@ -153,7 +153,28 @@ class AudioPlayerManager {
     };
   }
 
+  /**
+   * Crossfade: Smoothly fades volume out before changing track, and fades in after.
+   */
+  private async fadeVolume(from: number, to: number, durationMs = 350): Promise<void> {
+    if (!this.audio) return;
+    const steps = 10;
+    const stepTime = durationMs / steps;
+    const diff = to - from;
+    for (let i = 1; i <= steps; i++) {
+      if (this.audio) {
+        this.audio.volume = Math.max(0, Math.min(1, from + diff * (i / steps)));
+      }
+      await new Promise((r) => setTimeout(r, stepTime));
+    }
+  }
+
   public async playTrack(track: SpotifyTrack) {
+    // Crossfade out previous track if playing
+    if (this.isPlaying && this.audio) {
+      await this.fadeVolume(this.audio.volume, 0, 350);
+    }
+
     this.currentTrack = track;
     this.isBuffering = true;
     this.currentTime = 0;
@@ -173,6 +194,7 @@ class AudioPlayerManager {
           await this.audio.play();
           this.isPlaying = true;
           this.isBuffering = false;
+          this.fadeVolume(0, this.volume, 350);
           this.notify();
           return;
         }

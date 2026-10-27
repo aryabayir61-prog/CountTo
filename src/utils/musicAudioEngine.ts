@@ -246,7 +246,30 @@ class HiddenMusicAudioEngine {
     }
   }
 
+  /**
+   * Crossfade: Smoothly fades volume out before changing track, and fades in after.
+   */
+  private async crossfadeVolume(from: number, to: number, durationMs = 300): Promise<void> {
+    if (!this.player || !this.player.setVolume) return;
+    const steps = 8;
+    const stepTime = durationMs / steps;
+    const diff = to - from;
+    for (let i = 1; i <= steps; i++) {
+      if (this.player && this.player.setVolume) {
+        try {
+          this.player.setVolume(Math.round(from + diff * (i / steps)));
+        } catch {}
+      }
+      await new Promise((r) => setTimeout(r, stepTime));
+    }
+  }
+
   public async play(track: SongTrack) {
+    // Crossfade out previous track smoothly if playing
+    if (this.isPlaying && this.player && this.player.setVolume) {
+      await this.crossfadeVolume(100, 0, 250);
+    }
+
     this.currentTrack = track;
     this.currentTime = 0;
     this.duration = track.durationSec || 180;
@@ -295,6 +318,8 @@ class HiddenMusicAudioEngine {
         startSeconds: 0,
       });
       this.player.playVideo();
+      // Fade volume in smoothly
+      this.crossfadeVolume(0, 100, 350);
     } catch {
       // Fallback
     }
