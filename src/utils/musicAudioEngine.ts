@@ -73,6 +73,15 @@ export const PRESET_SONGS: SongTrack[] = [
     youtubeId: 'i6CSvLvSNZ4',
     durationSec: 232,
   },
+  {
+    id: 'fascist-cerpow',
+    name: 'Fascist',
+    artist: 'Cerpow',
+    albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/1e/02/d3/1e02d334-fa9c-5524-a80b-c1dc28735632/7caac8d3-814e-41ff-833b-189ead2ac233.jpg/600x600bb.jpg',
+    colors: ['#7c2d12', '#ea580c'],
+    youtubeId: 'KR7QDK4saas',
+    durationSec: 162,
+  },
 ];
 
 declare global {
@@ -254,13 +263,24 @@ class HiddenMusicAudioEngine {
         if (data && data.videoId) {
           vid = data.videoId;
           track.youtubeId = vid;
+        } else {
+          // Retry with song name only
+          const retryRes = await fetch(`/api/resolve-track?q=${encodeURIComponent(track.name)}`);
+          const retryData = await retryRes.json();
+          if (retryData && retryData.videoId) {
+            vid = retryData.videoId;
+            track.youtubeId = vid;
+          }
         }
       } catch {
-        vid = '0rW7Fbm4S7g';
+        // Network error
       }
     }
 
-    if (!vid) vid = '0rW7Fbm4S7g';
+    if (!vid) {
+      // If resolution still couldn't find a video, do NOT overwrite with Tralala!
+      return;
+    }
 
     if (!this.player || !this.player.loadVideoById) {
       this.pendingTrack = { ...track, youtubeId: vid };
