@@ -72,28 +72,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   });
   const [dailyPicks, setDailyPicks] = useState<DailyPickTrack[]>([]);
 
-  // Animated intro pop-up on first arrival
-  const [showIntroTooltip, setShowIntroTooltip] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hasSeen = localStorage.getItem('contto_music_intro_seen_v2');
-      if (!hasSeen) {
-        const timer = setTimeout(() => {
-          setShowIntroTooltip(true);
-        }, 1200);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, []);
-
-  const dismissIntroTooltip = () => {
-    setShowIntroTooltip(false);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('contto_music_intro_seen_v2', 'true');
-    }
-  };
-
   const cardRef = useRef<HTMLDivElement | null>(null);
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -368,7 +346,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         id="music-widget-toggle-btn"
         type="button"
         onClick={() => {
-          dismissIntroTooltip();
           setIsOpen((prev) => !prev);
           if (!isOpen && !currentTrack) {
             setViewMode('search');
@@ -388,72 +365,9 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
               : 'text-neutral-400 hover:text-white'
           }`}
         />
-
-        {showIntroTooltip && !isOpen && (
-          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500" />
-          </span>
-        )}
       </button>
 
-      {/* 2. Mini Animated Intro Pop-up Spotlight */}
-      <AnimatePresence>
-        {showIntroTooltip && !isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 14, scale: 0.88 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.9 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 280 }}
-            className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-40 select-none w-64"
-          >
-            <div className="relative p-3.5 rounded-2xl backdrop-blur-3xl bg-[#131318]/95 border border-white/20 shadow-[0_20px_45px_rgba(0,0,0,0.8)] text-white flex flex-col gap-2 overflow-hidden">
-              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full blur-2xl opacity-40 bg-cyan-500 pointer-events-none" />
-
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  <span>Yeni: Müzik Özelliği</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={dismissIntroTooltip}
-                  className="p-1 text-white/50 hover:text-white rounded-lg transition-colors cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <p className="text-[11px] text-white/70 leading-relaxed relative z-10">
-                Geri sayımına eşlik eden müzikler burada! Nota simgesine tıklayarak dilediğin şarkıyı açabilirsin.
-              </p>
-
-              <div className="flex items-center justify-end gap-2 pt-1 relative z-10">
-                <button
-                  type="button"
-                  onClick={dismissIntroTooltip}
-                  className="px-2.5 py-1 rounded-xl text-[11px] font-medium text-white/60 hover:text-white cursor-pointer"
-                >
-                  Tamam
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    dismissIntroTooltip();
-                    setIsOpen(true);
-                    setViewMode('search');
-                  }}
-                  className="px-3 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-[11px] shadow-sm transition-transform active:scale-95 cursor-pointer"
-                >
-                  Keşfet
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 3. Frosted Glass Music Pop-up */}
+      {/* 2. Frosted Glass Music Pop-up */}
       <AnimatePresence>
         {isOpen && (
           <motion.div

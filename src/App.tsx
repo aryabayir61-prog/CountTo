@@ -141,8 +141,8 @@ export default function App() {
   });
 
   const [activeEventId, setActiveEventId] = useState<string>(() => {
-    const newYear = events.find((e) => e.id === 'preset-new-year');
-    return newYear ? newYear.id : (events[0]?.id || 'preset-current-time');
+    const clockPreset = events.find((e) => e.id === 'preset-current-time');
+    return clockPreset ? clockPreset.id : (events[0]?.id || 'preset-current-time');
   });
 
   const [activeView, setActiveView] = useState<'display' | 'list' | 'themes' | 'music'>('display');
