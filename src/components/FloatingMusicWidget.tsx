@@ -226,6 +226,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             albumCover: (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
             colors: ['#1e1b4b', '#4338ca'],
             youtubeId: '',
+            audioUrl: r.previewUrl || '',
             durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
           }));
           setSearchResults(liveTracks);
@@ -454,9 +455,9 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         {isOpen && (
           <motion.div
             ref={cardRef}
-            initial={{ opacity: 0, y: 18, scale: 0.88, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: 12, scale: 0.9, filter: 'blur(4px)' }}
+            initial={{ opacity: 0, y: 16, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.92 }}
             transition={{
               type: 'spring',
               damping: 24,

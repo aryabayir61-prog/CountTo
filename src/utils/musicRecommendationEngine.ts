@@ -56,6 +56,8 @@ export const CO_LISTENING_GRAPH: Record<string, string[]> = {
   'as it was': ['Harry Styles', 'Zayn', 'Niall Horan', 'The 1975', 'Shawn Mendes', 'Bleachers'],
   'askin olayim': ['Simge', 'Derya Uluğ', 'Ece Seçkin', 'İrem Derici', 'Merve Özbey', 'Hande Yener'],
   'toz pembe': ['Nalan', 'Hande Yener', 'Demet Akalın', 'Gülşen', 'Tarkan', 'Burak Kut', 'Aşkın Nur Yengi'],
+  'arada sirada': ['Ajda Pekkan', 'Sezen Aksu', 'Nükhet Duru', 'Nilüfer', 'Tarkan', 'Kenan Doğulu'],
+  'yakar gecerim': ['Ajda Pekkan', 'Tarkan', 'Sertab Erener', 'Hande Yener', 'Gülşen', 'Demet Akalın'],
   'antidepresan': ['Mert Demir', 'Mabel Matiz', 'Melike Şahin', 'KÖFN', 'Madrigal', 'Dolu Kadehi Ters Tut'],
   'fascist': ['Cerpow', 'Mareux', 'Crystal Castles', 'Boy Harsher', 'Pastel Ghost', 'Molchat Doma'],
 };
