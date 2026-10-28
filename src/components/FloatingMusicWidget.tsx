@@ -245,7 +245,10 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     };
   }, [searchQuery]);
 
-  const handleSelectTrack = async (track: SongTrack) => {
+  const handleSelectTrack = async (track: SongTrack, pool?: SongTrack[]) => {
+    if (pool && pool.length > 0) {
+      musicAudioEngine.setActivePool(pool);
+    }
     recordImplicitSignal(track, 'play_select');
     musicAudioEngine.play(track);
     setViewMode('player');
@@ -302,7 +305,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const remainingSeconds = Math.max(0, duration - currentTime);
 
   // Reusable track row renderer preserving the exact clean UI design
-  const renderSongRow = (song: SongTrack | DailyPickTrack) => {
+  const renderSongRow = (song: SongTrack | DailyPickTrack, pool?: SongTrack[]) => {
     const isThisActive = currentTrack?.id === song.id;
 
     return (
@@ -310,7 +313,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         key={song.id}
         onMouseEnter={() => setHoveredTrack(song)}
         onMouseLeave={() => setHoveredTrack(null)}
-        onClick={() => handleSelectTrack(song)}
+        onClick={() => handleSelectTrack(song, pool)}
         className={`flex items-center justify-between p-2 rounded-2xl transition-all cursor-pointer group ${
           isThisActive
             ? 'bg-white/20 border border-white/25 shadow-md backdrop-blur-md'
@@ -339,7 +342,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            handleSelectTrack(song);
+            handleSelectTrack(song, pool);
           }}
           className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
             isThisActive && isPlaying
@@ -718,7 +721,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                       {searchQuery.trim().length > 0 ? (
                         /* Live Search Mode Results */
                         (searchResults.length > 0 ? searchResults : PRESET_SONGS).map((song) =>
-                          renderSongRow(song)
+                          renderSongRow(song, searchResults.length > 0 ? searchResults : PRESET_SONGS)
                         )
                       ) : (
                         /* Algorithmic Mode: Top 5 Personalized + Divider + Co-Listening */
@@ -731,7 +734,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                             </span>
                           </div>
 
-                          {personalized5.map((song) => renderSongRow(song))}
+                          {personalized5.map((song) => renderSongRow(song, personalized5))}
 
                           {/* 2. Çizgi ve "[Şarkı] Dinleyenler Bunları da Dinledi" Bölümü */}
                           {coListeningTracks.length > 0 && lastFinishedTrack && (
@@ -743,7 +746,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                                   {lastFinishedTrack.name} Dinleyenler Bunları da Dinledi
                                 </span>
                               </div>
-                              {coListeningTracks.map((song) => renderSongRow(song))}
+                              {coListeningTracks.map((song) => renderSongRow(song, coListeningTracks))}
                             </>
                           )}
 
@@ -757,7 +760,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                                   Bugün Sizin İçin Seçtiklerimiz
                                 </span>
                               </div>
-                              {dailyPicks.map((song) => renderSongRow(song))}
+                              {dailyPicks.map((song) => renderSongRow(song, dailyPicks))}
                             </>
                           )}
                         </>
