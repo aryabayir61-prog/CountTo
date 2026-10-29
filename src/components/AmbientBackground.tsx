@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ThemeConfig } from '../types/countdown';
+import { musicAudioEngine } from '../utils/musicAudioEngine';
 
 interface AmbientBackgroundProps {
   theme: ThemeConfig;
@@ -7,6 +8,20 @@ interface AmbientBackgroundProps {
 
 export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [musicColors, setMusicColors] = useState<[string, string] | null>(null);
+  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
+
+  useEffect(() => {
+    return musicAudioEngine.subscribe((state) => {
+      setIsMusicPlaying(state.isPlaying);
+      if (state.track && state.track.colors) {
+        setMusicColors(state.track.colors);
+      }
+    });
+  }, []);
+
+  const activePrimary = isMusicPlaying && musicColors ? musicColors[0] : theme.primary;
+  const activeSecondary = isMusicPlaying && musicColors ? musicColors[1] : theme.secondary;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,10 +65,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
       speed: Math.random() * 0.02 + 0.008,
     }));
 
-    let time = 0;
-
     const render = () => {
-      time += 0.015;
       ctx.clearRect(0, 0, width, height);
 
       // Render floating subtle light orbs
@@ -71,7 +83,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = theme.primary;
+        ctx.fillStyle = activePrimary;
         ctx.globalAlpha = currentAlpha;
         ctx.fill();
       });
@@ -86,7 +98,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [theme.primary]);
+  }, [activePrimary]);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 transition-colors duration-1000">
@@ -98,14 +110,20 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
         }}
       />
 
-      {/* Ambient Large Glow Spots */}
+      {/* Ambient Large Glow Spots - Seamlessly transition to album colors when music is playing */}
       <div
-        className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[70vw] h-[70vw] rounded-full blur-[140px] opacity-20 pointer-events-none transition-all duration-1000"
-        style={{ backgroundColor: theme.primary }}
+        className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[75vw] h-[75vw] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ease-out"
+        style={{ 
+          backgroundColor: activePrimary,
+          opacity: isMusicPlaying ? 0.35 : 0.20
+        }}
       />
       <div
-        className="absolute -bottom-[20vw] right-[10vw] w-[50vw] h-[50vw] rounded-full blur-[120px] opacity-15 pointer-events-none transition-all duration-1000"
-        style={{ backgroundColor: theme.secondary }}
+        className="absolute -bottom-[20vw] right-[10vw] w-[55vw] h-[55vw] rounded-full blur-[120px] pointer-events-none transition-all duration-1000 ease-out"
+        style={{ 
+          backgroundColor: activeSecondary,
+          opacity: isMusicPlaying ? 0.30 : 0.15
+        }}
       />
 
       {/* Micro-mesh Grid Pattern for subtle depth */}

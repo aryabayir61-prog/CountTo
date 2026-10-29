@@ -696,12 +696,14 @@ export default function App() {
       )}
 
       {/* Main Content Area with Smooth Horizontal Slide Transition */}
-      <main className={`flex-1 flex flex-col justify-center relative z-10 w-full ${
+      <main className={`flex-1 flex flex-col relative z-10 w-full ${
         isFullscreen 
-          ? 'h-full max-w-none px-2 sm:px-4 py-0' 
+          ? 'h-full max-w-none px-2 sm:px-4 py-0 justify-center overflow-hidden' 
           : isVertical 
-            ? 'max-w-none px-2 sm:px-6 overflow-hidden' 
-            : 'max-w-7xl px-4 mx-auto items-center overflow-hidden'
+            ? 'max-w-none px-2 sm:px-6 justify-center' 
+            : activeView === 'display'
+              ? 'max-w-7xl px-4 mx-auto items-center justify-center overflow-hidden'
+              : 'max-w-7xl px-4 mx-auto items-center justify-start min-h-0'
       }`}>
         <AnimatePresence mode="wait">
           {activeView === 'display' && (

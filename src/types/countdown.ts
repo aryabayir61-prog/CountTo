@@ -25,7 +25,15 @@ export type ThemeId =
   | 'caramel'
   | 'sage'
   | 'cobalt'
-  | 'copper';
+  | 'copper'
+  | 'moonlight'
+  | 'tokyo'
+  | 'matcha'
+  | 'cherry'
+  | 'oasis'
+  | 'amethyst'
+  | 'eucalyptus'
+  | 'sunburst';
 
 export interface ThemeConfig {
   id: ThemeId;

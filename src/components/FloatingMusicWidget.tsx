@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
+import { extractAlbumColors } from '../utils/colorExtractor';
 import { 
   generatePersonalized5Recommendations, 
   generateCoListeningRecommendations, 
@@ -197,16 +198,22 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         );
         const data = await res.json();
         if (data.results && data.results.length > 0) {
-          const liveTracks: SongTrack[] = data.results.map((r: any) => ({
-            id: `online-${r.trackId}`,
-            name: r.trackName,
-            artist: r.artistName,
-            albumCover: (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
-            colors: ['#1e1b4b', '#4338ca'],
-            youtubeId: '',
-            audioUrl: r.previewUrl || '',
-            durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
-          }));
+          const liveTracks: SongTrack[] = await Promise.all(
+            data.results.map(async (r: any) => {
+              const cover = (r.artworkUrl100 || '').replace('100x100bb', '600x600bb');
+              const extracted = await extractAlbumColors(cover, r.trackName);
+              return {
+                id: `online-${r.trackId}`,
+                name: r.trackName,
+                artist: r.artistName,
+                albumCover: cover,
+                colors: extracted,
+                youtubeId: '',
+                audioUrl: r.previewUrl || '',
+                durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
+              };
+            })
+          );
           setSearchResults(liveTracks);
         } else {
           setSearchResults([]);
@@ -278,7 +285,20 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   };
 
   const activeTrack = currentTrack || PRESET_SONGS[0];
-  const activeColors = hoveredTrack?.colors || activeTrack.colors || ['#4a0e4e', '#c026d3'];
+  const [extractedColors, setExtractedColors] = useState<[string, string] | null>(null);
+
+  useEffect(() => {
+    if (activeTrack) {
+      extractAlbumColors(activeTrack.albumCover, activeTrack.name).then((colors) => {
+        setExtractedColors(colors);
+        if (musicAudioEngine.currentTrack && musicAudioEngine.currentTrack.id === activeTrack.id) {
+          musicAudioEngine.currentTrack.colors = colors;
+        }
+      });
+    }
+  }, [activeTrack?.id, activeTrack?.name, activeTrack?.albumCover]);
+
+  const activeColors = hoveredTrack?.colors || extractedColors || activeTrack.colors || ['#dc2626', '#e11d48'];
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
 
@@ -397,17 +417,28 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
               transition={{
                 layout: { type: 'spring', stiffness: 360, damping: 32 },
               }}
-              className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] overflow-hidden"
+              className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
+              style={{
+                boxShadow: `0 24px 60px -10px rgba(0,0,0,0.85), 0 0 40px -6px ${activeColors[0]}55, inset 0 1px 1px rgba(255,255,255,0.2)`
+              }}
             >
               
               {/* Dynamic Color Mixing Ambient Glow Canvas */}
               <div 
-                className="absolute -top-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-25 transition-all duration-700 pointer-events-none"
+                className="absolute -top-14 -left-14 w-56 h-56 rounded-full blur-3xl opacity-35 transition-all duration-1000 ease-out pointer-events-none"
                 style={{ backgroundColor: activeColors[0] }}
               />
               <div 
-                className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-25 transition-all duration-700 pointer-events-none"
+                className="absolute -bottom-14 -right-14 w-56 h-56 rounded-full blur-3xl opacity-45 transition-all duration-1000 ease-out pointer-events-none"
                 style={{ backgroundColor: activeColors[1] }}
+              />
+
+              {/* Dynamic Album Ambient Radial Aura */}
+              <div 
+                className="absolute inset-0 opacity-25 pointer-events-none transition-all duration-1000 ease-out"
+                style={{
+                  background: `radial-gradient(circle at 85% 85%, ${activeColors[1]} 0%, transparent 65%)`
+                }}
               />
 
               {/* Specular Liquid Top Rim Light */}

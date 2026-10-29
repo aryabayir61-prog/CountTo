@@ -388,6 +388,46 @@ export function playThemeSound(theme: ThemeId, volume = 0.28) {
         playCosmicSwell(ctx, now, copperNotes, 2350, 2.4, volume, 1.55);
         break;
       }
+      case 'moonlight': {
+        const moonNotes = [164.81, 261.63, 329.63, 523.25, 659.25, 1046.50];
+        playCosmicSwell(ctx, now, moonNotes, 2800, 2.5, volume, 1.5);
+        break;
+      }
+      case 'tokyo': {
+        const tokyoNotes = [110.00, 164.81, 220.00, 329.63, 440.00, 880.00];
+        playCosmicSwell(ctx, now, tokyoNotes, 2900, 2.8, volume, 1.6);
+        break;
+      }
+      case 'matcha': {
+        const matchaNotes = [130.81, 196.00, 246.94, 293.66, 392.00, 587.33];
+        playCosmicSwell(ctx, now, matchaNotes, 2100, 2.1, volume, 1.45);
+        break;
+      }
+      case 'cherry': {
+        const cherryNotes = [116.54, 174.61, 233.08, 311.13, 466.16, 622.25];
+        playCosmicSwell(ctx, now, cherryNotes, 2400, 2.5, volume, 1.55);
+        break;
+      }
+      case 'oasis': {
+        const oasisNotes = [146.83, 220.00, 293.66, 370.00, 440.00, 739.99];
+        playCosmicSwell(ctx, now, oasisNotes, 2600, 2.4, volume, 1.5);
+        break;
+      }
+      case 'amethyst': {
+        const amethystNotes = [146.83, 220.00, 277.18, 370.00, 554.37, 783.99];
+        playCosmicSwell(ctx, now, amethystNotes, 2750, 2.6, volume, 1.55);
+        break;
+      }
+      case 'eucalyptus': {
+        const eucaNotes = [130.81, 164.81, 220.00, 261.63, 329.63, 523.25];
+        playCosmicSwell(ctx, now, eucaNotes, 2250, 2.2, volume, 1.45);
+        break;
+      }
+      case 'sunburst': {
+        const sunNotes = [164.81, 246.94, 329.63, 392.00, 493.88, 659.25];
+        playCosmicSwell(ctx, now, sunNotes, 2650, 2.5, volume, 1.5);
+        break;
+      }
     }
   } catch {
     // Ignore audio permission errors
@@ -535,6 +575,46 @@ export function playWeatherNotificationSound(themeId: ThemeId, volume = 0.24): v
         filterCutoff: 2550,
         q: 2.3,
       },
+      moonlight: {
+        notes: [261.63, 392.00, 523.25, 659.25, 1046.50], // C pure silvery starlight
+        filterCutoff: 3000,
+        q: 2.5,
+      },
+      tokyo: {
+        notes: [220.00, 329.63, 440.00, 659.25, 880.00], // Electric A neon shimmer
+        filterCutoff: 3200,
+        q: 2.7,
+      },
+      matcha: {
+        notes: [196.00, 293.66, 392.00, 493.88, 587.33], // G garden tea calmness
+        filterCutoff: 2400,
+        q: 2.0,
+      },
+      cherry: {
+        notes: [207.65, 311.13, 415.30, 523.25, 622.25], // Velvet bordeaux depth
+        filterCutoff: 2500,
+        q: 2.4,
+      },
+      oasis: {
+        notes: [246.94, 370.00, 493.88, 587.33, 739.99], // Desert spring turquoise
+        filterCutoff: 2850,
+        q: 2.3,
+      },
+      amethyst: {
+        notes: [220.00, 329.63, 440.00, 523.25, 783.99], // Regal crystal violet
+        filterCutoff: 2950,
+        q: 2.5,
+      },
+      eucalyptus: {
+        notes: [220.00, 277.18, 329.63, 440.00, 554.37], // Cool misty teal breeze
+        filterCutoff: 2450,
+        q: 2.1,
+      },
+      sunburst: {
+        notes: [261.63, 329.63, 392.00, 523.25, 659.25], // Warm radiant golden sunrise
+        filterCutoff: 2900,
+        q: 2.4,
+      },
     };
 
     const config = themeChordMap[themeId] || themeChordMap.aurora;
@@ -625,6 +705,14 @@ export function playWeatherExitSound(themeId: ThemeId, volume = 0.15): void {
       sage: [587.33, 493.88, 392.00],
       cobalt: [880.00, 659.25, 440.00],
       copper: [739.99, 554.37, 440.00],
+      moonlight: [783.99, 659.25, 523.25],
+      tokyo: [880.00, 659.25, 440.00],
+      matcha: [587.33, 493.88, 392.00],
+      cherry: [622.25, 523.25, 415.30],
+      oasis: [739.99, 587.33, 493.88],
+      amethyst: [783.99, 659.25, 440.00],
+      eucalyptus: [659.25, 554.37, 440.00],
+      sunburst: [659.25, 587.33, 523.25],
     };
 
     const pitches = themeExitPitches[themeId] || [659.25, 523.25, 440.00];
@@ -963,6 +1051,94 @@ const THEME_MUSICAL_PROFILES: Record<ThemeId, MusicalThemeProfile> = {
       [43.65, 87.31, 130.81, 174.61, 220.0],
     ],
     filterCutoff: 1120,
+  },
+  moonlight: {
+    bpm: 50,
+    pulseFreq: 54,
+    chords: [
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+      [55.0, 110.0, 164.81, 220.0, 261.63],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+    ],
+    filterCutoff: 1250,
+  },
+  tokyo: {
+    bpm: 62,
+    pulseFreq: 60,
+    chords: [
+      [55.0, 110.0, 164.81, 246.94, 329.63],
+      [43.65, 87.31, 130.81, 196.0, 261.63],
+      [49.0, 98.0, 146.83, 220.0, 293.66],
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+    ],
+    filterCutoff: 1400,
+  },
+  matcha: {
+    bpm: 48,
+    pulseFreq: 48,
+    chords: [
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+      [41.2, 82.41, 123.47, 164.81, 220.0],
+      [65.41, 98.0, 130.81, 196.0, 246.94],
+      [55.0, 82.41, 110.0, 164.81, 220.0],
+    ],
+    filterCutoff: 1000,
+  },
+  cherry: {
+    bpm: 52,
+    pulseFreq: 54,
+    chords: [
+      [51.91, 103.83, 155.56, 207.65, 261.63],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+      [55.0, 110.0, 164.81, 220.0, 261.63],
+      [41.2, 82.41, 123.47, 164.81, 196.0],
+    ],
+    filterCutoff: 1050,
+  },
+  oasis: {
+    bpm: 54,
+    pulseFreq: 58,
+    chords: [
+      [61.74, 123.47, 185.0, 246.94, 329.63],
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+      [55.0, 110.0, 164.81, 220.0, 293.66],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+    ],
+    filterCutoff: 1200,
+  },
+  amethyst: {
+    bpm: 54,
+    pulseFreq: 56,
+    chords: [
+      [55.0, 110.0, 164.81, 220.0, 277.18],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+    ],
+    filterCutoff: 1180,
+  },
+  eucalyptus: {
+    bpm: 50,
+    pulseFreq: 52,
+    chords: [
+      [49.0, 73.42, 98.0, 146.83, 220.0],
+      [41.2, 61.74, 82.41, 123.47, 164.81],
+      [55.0, 82.41, 110.0, 164.81, 220.0],
+      [43.65, 65.41, 87.31, 130.81, 174.61],
+    ],
+    filterCutoff: 1080,
+  },
+  sunburst: {
+    bpm: 58,
+    pulseFreq: 64,
+    chords: [
+      [65.41, 130.81, 196.0, 261.63, 329.63],
+      [55.0, 110.0, 164.81, 220.0, 293.66],
+      [43.65, 87.31, 130.81, 174.61, 220.0],
+      [49.0, 98.0, 146.83, 196.0, 246.94],
+    ],
+    filterCutoff: 1300,
   },
 };
 

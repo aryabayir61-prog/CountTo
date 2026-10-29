@@ -351,4 +351,116 @@ export const THEMES: Record<ThemeId, ThemeConfig> = {
     labelColor: 'text-orange-200/70',
     ringColor: '#f97316',
   },
+  moonlight: {
+    id: 'moonlight',
+    name: 'Ay Işığı (Platinum Moonlight)',
+    primary: '#e2e8f0',      // slate-200
+    secondary: '#94a3b8',    // slate-400
+    glow: 'rgba(226, 232, 240, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(226, 232, 240, 0.12) 0%, rgba(12, 14, 20, 0.98) 70%)',
+    cardBg: 'rgba(22, 26, 36, 0.65)',
+    cardBorder: 'rgba(226, 232, 240, 0.22)',
+    textAccent: 'text-slate-200',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-slate-300/70',
+    ringColor: '#e2e8f0',
+  },
+  tokyo: {
+    id: 'tokyo',
+    name: 'Tokyo Gece (Tokyo Drift Neon)',
+    primary: '#f43f5e',      // rose-500
+    secondary: '#06b6d4',    // cyan-500
+    glow: 'rgba(244, 63, 94, 0.35)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(244, 63, 94, 0.16) 0%, rgba(14, 8, 24, 0.98) 70%)',
+    cardBg: 'rgba(26, 12, 34, 0.65)',
+    cardBorder: 'rgba(244, 63, 94, 0.26)',
+    textAccent: 'text-rose-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-rose-200/70',
+    ringColor: '#f43f5e',
+  },
+  matcha: {
+    id: 'matcha',
+    name: 'Kyoto Yeşili (Kyoto Matcha)',
+    primary: '#4ade80',      // green-400
+    secondary: '#15803d',    // green-700
+    glow: 'rgba(74, 222, 128, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(74, 222, 128, 0.13) 0%, rgba(8, 20, 12, 0.98) 70%)',
+    cardBg: 'rgba(12, 28, 16, 0.65)',
+    cardBorder: 'rgba(74, 222, 128, 0.22)',
+    textAccent: 'text-emerald-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-emerald-200/70',
+    ringColor: '#4ade80',
+  },
+  cherry: {
+    id: 'cherry',
+    name: 'Bordo Kadife (Velvet Cherry)',
+    primary: '#e11d48',      // rose-600
+    secondary: '#881337',    // rose-900
+    glow: 'rgba(225, 29, 72, 0.32)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(225, 29, 72, 0.15) 0%, rgba(22, 6, 14, 0.98) 70%)',
+    cardBg: 'rgba(32, 10, 18, 0.65)',
+    cardBorder: 'rgba(225, 29, 72, 0.25)',
+    textAccent: 'text-rose-400',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-rose-200/70',
+    ringColor: '#e11d48',
+  },
+  oasis: {
+    id: 'oasis',
+    name: 'Çöl Vahası (Mirage Oasis)',
+    primary: '#38bdf8',      // sky-400
+    secondary: '#f59e0b',    // amber-500
+    glow: 'rgba(56, 189, 248, 0.30)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.14) 0%, rgba(12, 18, 26, 0.98) 70%)',
+    cardBg: 'rgba(14, 24, 36, 0.65)',
+    cardBorder: 'rgba(56, 189, 248, 0.24)',
+    textAccent: 'text-sky-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-sky-200/70',
+    ringColor: '#38bdf8',
+  },
+  amethyst: {
+    id: 'amethyst',
+    name: 'Kraliyet Ametist (Royal Amethyst)',
+    primary: '#c084fc',      // purple-400
+    secondary: '#7c3aed',    // violet-600
+    glow: 'rgba(192, 132, 252, 0.32)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(192, 132, 252, 0.15) 0%, rgba(18, 8, 32, 0.98) 70%)',
+    cardBg: 'rgba(26, 14, 44, 0.65)',
+    cardBorder: 'rgba(192, 132, 252, 0.25)',
+    textAccent: 'text-purple-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-purple-200/70',
+    ringColor: '#c084fc',
+  },
+  eucalyptus: {
+    id: 'eucalyptus',
+    name: 'Okaliptüs Sisi (Eucalyptus Mist)',
+    primary: '#5eead4',      // teal-300
+    secondary: '#0f766e',    // teal-700
+    glow: 'rgba(94, 234, 212, 0.28)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(94, 234, 212, 0.12) 0%, rgba(8, 22, 24, 0.98) 70%)',
+    cardBg: 'rgba(12, 28, 30, 0.65)',
+    cardBorder: 'rgba(94, 234, 212, 0.22)',
+    textAccent: 'text-teal-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-teal-200/70',
+    ringColor: '#5eead4',
+  },
+  sunburst: {
+    id: 'sunburst',
+    name: 'Tropik Şafak (Tropic Sunburst)',
+    primary: '#fb923c',      // orange-400
+    secondary: '#facc15',    // yellow-400
+    glow: 'rgba(251, 146, 60, 0.32)',
+    bgGradient: 'radial-gradient(ellipse at 50% 20%, rgba(251, 146, 60, 0.15) 0%, rgba(26, 14, 8, 0.98) 70%)',
+    cardBg: 'rgba(36, 18, 12, 0.65)',
+    cardBorder: 'rgba(251, 146, 60, 0.25)',
+    textAccent: 'text-amber-300',
+    numberColor: 'text-neutral-100',
+    labelColor: 'text-amber-200/70',
+    ringColor: '#fb923c',
+  },
 };

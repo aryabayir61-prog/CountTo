@@ -11,6 +11,15 @@ export interface SongTrack {
 
 export const PRESET_SONGS: SongTrack[] = [
   {
+    id: 'hileli-manifest-ajda',
+    name: 'Hileli',
+    artist: 'manifest & Ajda Pekkan',
+    albumCover: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/79/75/10/79751090-3fc2-2d45-980a-1e9c0b6de57f/cover.jpg/600x600bb.jpg',
+    colors: ['#dc2626', '#991b1b'],
+    youtubeId: 'kXKhNI4DLHM',
+    durationSec: 202,
+  },
+  {
     id: 'ajda-pekkan-arada',
     name: 'Arada Sırada',
     artist: 'Ajda Pekkan',

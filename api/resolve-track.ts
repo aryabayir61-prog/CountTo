@@ -18,6 +18,14 @@ const seedTracks: Record<string, ResolvedTrack> = {
   'hileli manifest ajda pekkan': { videoId: 'kXKhNI4DLHM' },
   'manifest ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
 
+  // Gece Vardiyası
+  'gece vardiyasi': { videoId: 'OcwZmh_6ORU' },
+  'gece vardiyasi rashness': { videoId: 'OcwZmh_6ORU' },
+  'rashness gece vardiyasi': { videoId: 'OcwZmh_6ORU' },
+  'gece vardiyasi mavra': { videoId: '0DK7TRoauLU' },
+  'mavra gece vardiyasi': { videoId: '0DK7TRoauLU' },
+  'gece vardiyasi gelmedin': { videoId: 'J4h4jJ07jPQ' },
+
   // Ajda Pekkan Hits
   'ajda pekkan arada sirada': { videoId: 'g2cT_Kz43m4' },
   'arada sirada ajda pekkan': { videoId: 'g2cT_Kz43m4' },

@@ -5,6 +5,7 @@ import { THEMES } from '../utils/themes';
 import { playThemeSound, playHoverClickSound, playRainThemeSound } from '../utils/audio';
 import { recordThemeSelection } from '../utils/themeRecommendations';
 import { RecommendedThemesSlider } from './RecommendedThemesSlider';
+import { ThemesCollectionsSection } from './ThemesCollectionsSection';
 
 interface ThemesViewProps {
   currentTheme: ThemeId;
@@ -266,11 +267,20 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
         </div>
       )}
 
+      {/* Koleksiyonlar & İlham Blogu (En Altta) */}
+      <ThemesCollectionsSection
+        currentTheme={currentTheme}
+        onSelectTheme={onSelectTheme}
+        onBackToDisplay={onBackToDisplay}
+        isRainThemeActive={isRainThemeActive}
+        onToggleRainTheme={onToggleRainTheme}
+      />
+
       {/* Return Button */}
-      <div className="mt-8 text-center">
+      <div className="mt-12 text-center pb-8">
         <button
           onClick={onBackToDisplay}
-          className="px-6 py-2.5 rounded-full bg-neutral-900 border border-white/10 hover:border-white/25 text-white font-semibold text-xs shadow-xl transition-all hover:scale-105 active:scale-95"
+          className="px-6 py-2.5 rounded-full bg-neutral-900 border border-white/10 hover:border-white/25 text-white font-semibold text-xs shadow-xl transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
           Geri Sayım Ekranına Dön
         </button>

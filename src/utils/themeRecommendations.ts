@@ -9,6 +9,7 @@ export const THEME_CLUSTERS: Record<ThemeId, ThemeCluster> = {
   matrix: 'neon',
   hyperlime: 'neon',
   cobalt: 'neon',
+  tokyo: 'neon',
 
   violet: 'cosmic',
   nebula: 'cosmic',
@@ -16,6 +17,8 @@ export const THEME_CLUSTERS: Record<ThemeId, ThemeCluster> = {
   midnight: 'cosmic',
   lavender: 'cosmic',
   deepocean: 'cosmic',
+  moonlight: 'cosmic',
+  amethyst: 'cosmic',
 
   sunset: 'warm',
   solarpunk: 'warm',
@@ -24,6 +27,9 @@ export const THEME_CLUSTERS: Record<ThemeId, ThemeCluster> = {
   gold: 'warm',
   caramel: 'warm',
   copper: 'warm',
+  cherry: 'warm',
+  oasis: 'warm',
+  sunburst: 'warm',
 
   aquamarine: 'zen',
   emerald: 'zen',
@@ -32,6 +38,8 @@ export const THEME_CLUSTERS: Record<ThemeId, ThemeCluster> = {
   monochrome: 'zen',
   dustypink: 'zen',
   sage: 'zen',
+  matcha: 'zen',
+  eucalyptus: 'zen',
 };
 
 // Natural circadian baseline affinities across 4 diurnal phases
@@ -81,22 +89,22 @@ const SEASONAL_AFFINITIES: Record<number, Record<ThemeCluster, number>> = {
 
 // Specific seasonal hero themes getting natural atmospheric resonance
 const SEASONAL_HERO_THEMES: Record<number, ThemeId[]> = {
-  // Autumn (Sep, Oct, Nov): Copper, Caramel, Solarpunk, Dusty Rose
-  8:  ['copper', 'caramel', 'solarpunk', 'dustypink', 'sunset'],
-  9:  ['copper', 'caramel', 'volcano', 'crimson', 'dustypink'],
-  10: ['copper', 'caramel', 'solarpunk', 'gold', 'lavender'],
-  // Winter: Nordic, Aurora, Cobalt, Deep Ocean, Midnight
-  11: ['nordic', 'aurora', 'cobalt', 'deepocean', 'midnight'],
-  0:  ['nordic', 'cobalt', 'aurora', 'monochrome', 'lavender'],
-  1:  ['nordic', 'cobalt', 'deepocean', 'aurora', 'matrix'],
-  // Spring: Sakura, Dusty Rose, Lavender, Sage, Emerald
-  2:  ['sakura', 'dustypink', 'lavender', 'sage', 'emerald'],
-  3:  ['sakura', 'dustypink', 'sage', 'lavender', 'aquamarine'],
-  4:  ['dustypink', 'sage', 'emerald', 'lavender', 'hyperlime'],
-  // Summer: Aquamarine, Deep Ocean, Hyperlime, Cyber, Synthwave
-  5:  ['aquamarine', 'deepocean', 'hyperlime', 'cyber', 'sunset'],
-  6:  ['aquamarine', 'deepocean', 'solarpunk', 'hyperlime', 'synthwave'],
-  7:  ['deepocean', 'aquamarine', 'sunset', 'cyber', 'gold'],
+  // Autumn (Sep, Oct, Nov): Copper, Caramel, Cherry, Amethyst, Eucalyptus
+  8:  ['copper', 'caramel', 'cherry', 'eucalyptus', 'sunset'],
+  9:  ['copper', 'caramel', 'cherry', 'amethyst', 'volcano'],
+  10: ['copper', 'caramel', 'amethyst', 'cherry', 'moonlight'],
+  // Winter: Nordic, Aurora, Moonlight, Cobalt, Deep Ocean
+  11: ['nordic', 'moonlight', 'aurora', 'cobalt', 'deepocean'],
+  0:  ['moonlight', 'nordic', 'cobalt', 'aurora', 'monochrome'],
+  1:  ['nordic', 'moonlight', 'deepocean', 'aurora', 'matrix'],
+  // Spring: Matcha, Eucalyptus, Sakura, Dusty Rose, Lavender
+  2:  ['matcha', 'sakura', 'eucalyptus', 'dustypink', 'lavender'],
+  3:  ['matcha', 'sakura', 'eucalyptus', 'sage', 'aquamarine'],
+  4:  ['matcha', 'eucalyptus', 'sage', 'emerald', 'hyperlime'],
+  // Summer: Tokyo, Sunburst, Oasis, Aquamarine, Deep Ocean
+  5:  ['tokyo', 'sunburst', 'oasis', 'aquamarine', 'deepocean'],
+  6:  ['tokyo', 'sunburst', 'oasis', 'solarpunk', 'synthwave'],
+  7:  ['sunburst', 'tokyo', 'oasis', 'deepocean', 'gold'],
 };
 
 export interface ThemeSelectionLog {
