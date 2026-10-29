@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ThemeConfig } from '../types/countdown';
-import { musicAudioEngine } from '../utils/musicAudioEngine';
 
 interface AmbientBackgroundProps {
   theme: ThemeConfig;
@@ -8,20 +7,6 @@ interface AmbientBackgroundProps {
 
 export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [musicColors, setMusicColors] = useState<[string, string] | null>(null);
-  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
-
-  useEffect(() => {
-    return musicAudioEngine.subscribe((state) => {
-      setIsMusicPlaying(state.isPlaying);
-      if (state.track && state.track.colors) {
-        setMusicColors(state.track.colors);
-      }
-    });
-  }, []);
-
-  const activePrimary = isMusicPlaying && musicColors ? musicColors[0] : theme.primary;
-  const activeSecondary = isMusicPlaying && musicColors ? musicColors[1] : theme.secondary;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -68,7 +53,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Render floating subtle light orbs
+      // Render floating subtle light orbs with exact theme primary color
       particles.forEach((p) => {
         p.x += p.vx;
         p.y += p.vy;
@@ -83,7 +68,7 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = activePrimary;
+        ctx.fillStyle = theme.primary;
         ctx.globalAlpha = currentAlpha;
         ctx.fill();
       });
@@ -98,11 +83,11 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [activePrimary]);
+  }, [theme.primary]);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 transition-colors duration-1000">
-      {/* Background Radial Tint */}
+      {/* Background Radial Tint strictly following chosen theme */}
       <div
         className="absolute inset-0 transition-all duration-1000 opacity-90"
         style={{
@@ -110,19 +95,19 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
         }}
       />
 
-      {/* Ambient Large Glow Spots - Seamlessly transition to album colors when music is playing */}
+      {/* Ambient Large Glow Spots - Strictly adhering to chosen theme colors */}
       <div
         className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[75vw] h-[75vw] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ease-out"
         style={{ 
-          backgroundColor: activePrimary,
-          opacity: isMusicPlaying ? 0.35 : 0.20
+          backgroundColor: theme.primary,
+          opacity: 0.22,
         }}
       />
       <div
         className="absolute -bottom-[20vw] right-[10vw] w-[55vw] h-[55vw] rounded-full blur-[120px] pointer-events-none transition-all duration-1000 ease-out"
         style={{ 
-          backgroundColor: activeSecondary,
-          opacity: isMusicPlaying ? 0.30 : 0.15
+          backgroundColor: theme.secondary,
+          opacity: 0.16,
         }}
       />
 
