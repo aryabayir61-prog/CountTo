@@ -7,13 +7,22 @@ export { PRESET_SONGS };
 
 // In-browser instant dictionary for popular artists & hits (0ms lookup)
 const CLIENT_TRACK_CATALOG: Record<string, string> = {
+  // Hileli - Manifest & Ajda Pekkan
+  'hileli': 'kXKhNI4DLHM',
+  'hileli manifest': 'kXKhNI4DLHM',
+  'manifest hileli': 'kXKhNI4DLHM',
+  'hileli ajda pekkan': 'kXKhNI4DLHM',
+  'ajda pekkan hileli': 'kXKhNI4DLHM',
+  'hileli manifest ajda pekkan': 'kXKhNI4DLHM',
+  'manifest ajda pekkan hileli': 'kXKhNI4DLHM',
+
+  // Ajda Pekkan
   'ajda pekkan arada sirada': 'g2cT_Kz43m4',
   'arada sirada ajda pekkan': 'g2cT_Kz43m4',
   'arada sirada': 'g2cT_Kz43m4',
   'ajda pekkan yakar gecerim': '9vU6B9qE1fA',
   'yakar gecerim ajda pekkan': '9vU6B9qE1fA',
   'yakar gecerim': '9vU6B9qE1fA',
-  'ajda pekkan': 'g2cT_Kz43m4',
   'ajda pekkan o benim dunyam': 'c1oH1tHn8fI',
   'ajda pekkan resim': '2bI3C5L8M5k',
   'manifest tralala': '0rW7Fbm4S7g',
@@ -29,10 +38,9 @@ const CLIENT_TRACK_CATALOG: Record<string, string> = {
   'antidepresan': 'i6CSvLvSNZ4',
   'atese dustum mert demir': 'xP89mCq741U',
   'sezen aksu vazgectim': 'a_4_O-823qE',
-  'sezen aksu': 'a_4_O-823qE',
+  'vazgectim sezen aksu': 'a_4_O-823qE',
   'tarkan kuzu kuzu': '1f32qfJgqQY',
   'tarkan simarik': 'yDq1nB5y2G4',
-  'tarkan': '1f32qfJgqQY',
   'ezhel geceler': 'U2hF6y1V0nE',
   'birds of a feather billie eilish': 'V9PVRfjEBTI',
   'billie eilish birds of a feather': 'V9PVRfjEBTI',
@@ -225,6 +233,12 @@ class HiddenMusicAudioEngine {
               this.duration = this.player?.getDuration() || this.currentTrack?.durationSec || 180;
               this.startProgressTracker();
               this.emit();
+            } else if (event.data === 3) {
+              // Buffering: Video is loading full track, do not abort
+              if (this.safetyTimer) {
+                clearTimeout(this.safetyTimer);
+                this.safetyTimer = null;
+              }
             } else if (event.data === 2) {
               // Paused
               if (this.activeEngine === 'youtube') {
@@ -382,20 +396,16 @@ class HiddenMusicAudioEngine {
     if (!vid) {
       const cleanKey = `${track.name} ${track.artist}`.toLowerCase().trim();
       const songKey = track.name.toLowerCase().trim();
+      const normKey = cleanKey.replace(/[&/\\#,+()$~%.'":*?<>{}]/g, ' ').replace(/\s+/g, ' ').trim();
       if (CLIENT_TRACK_CATALOG[cleanKey]) {
         vid = CLIENT_TRACK_CATALOG[cleanKey];
         track.youtubeId = vid;
       } else if (CLIENT_TRACK_CATALOG[songKey]) {
         vid = CLIENT_TRACK_CATALOG[songKey];
         track.youtubeId = vid;
-      } else {
-        for (const [k, v] of Object.entries(CLIENT_TRACK_CATALOG)) {
-          if (cleanKey.includes(k) || k.includes(cleanKey)) {
-            vid = v;
-            track.youtubeId = vid;
-            break;
-          }
-        }
+      } else if (CLIENT_TRACK_CATALOG[normKey]) {
+        vid = CLIENT_TRACK_CATALOG[normKey];
+        track.youtubeId = vid;
       }
     }
 
@@ -462,15 +472,16 @@ class HiddenMusicAudioEngine {
       this.fallbackToHtml5Audio(track);
     }
 
-    // Safety fallback: If YouTube doesn't start playing within 3 seconds, fire HTML5 audio!
+    // Safety fallback: only if player completely froze after 8 seconds and not buffering
     this.safetyTimer = window.setTimeout(() => {
       if (this.currentTrack?.id === track.id && this.currentTime === 0 && this.activeEngine === 'youtube') {
         const state = this.player?.getPlayerState ? this.player.getPlayerState() : -1;
-        if (state !== 1) { // 1 = playing
+        // 1 = playing, 3 = buffering, 5 = cued -> video is loading / playing
+        if (state !== 1 && state !== 3 && state !== 5) {
           this.fallbackToHtml5Audio(track);
         }
       }
-    }, 3200);
+    }, 8000);
 
     this.startProgressTracker();
     this.emit();

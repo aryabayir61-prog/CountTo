@@ -9,15 +9,23 @@ app.use(express.json());
 
 const cache = new Map<string, string>();
 
-// Instant 0ms cache for popular Turkish & Global tracks
 const seedTracks: Record<string, { videoId: string | null; audioUrl?: string | null }> = {
+  // Hileli - Manifest & Ajda Pekkan
+  'hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli manifest': { videoId: 'kXKhNI4DLHM' },
+  'manifest hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli ajda pekkan': { videoId: 'kXKhNI4DLHM' },
+  'ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli manifest ajda pekkan': { videoId: 'kXKhNI4DLHM' },
+  'manifest ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
+
+  // Ajda Pekkan
   'ajda pekkan arada sirada': { videoId: 'g2cT_Kz43m4' },
   'arada sirada ajda pekkan': { videoId: 'g2cT_Kz43m4' },
   'arada sirada': { videoId: 'g2cT_Kz43m4' },
   'ajda pekkan yakar gecerim': { videoId: '9vU6B9qE1fA' },
   'yakar gecerim ajda pekkan': { videoId: '9vU6B9qE1fA' },
   'yakar gecerim': { videoId: '9vU6B9qE1fA' },
-  'ajda pekkan': { videoId: 'g2cT_Kz43m4' },
   'ajda pekkan o benim dunyam': { videoId: 'c1oH1tHn8fI' },
   'manifest tralala': { videoId: '0rW7Fbm4S7g' },
   'tralala manifest': { videoId: '0rW7Fbm4S7g' },
@@ -116,8 +124,12 @@ function fetchItunesAudio(query: string): Promise<string | null> {
 
 const memoryCache = new Map<string, { videoId: string | null; audioUrl?: string | null }>();
 
+function normalizeQuery(q: string): string {
+  return q.toLowerCase().replace(/[&/\\#,+()$~%.'":*?<>{}]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 async function resolveYouTubeId(query: string): Promise<{ videoId: string | null; audioUrl?: string | null }> {
-  const cleanQ = query.trim().toLowerCase();
+  const cleanQ = normalizeQuery(query);
   if (memoryCache.has(cleanQ)) {
     return memoryCache.get(cleanQ)!;
   }
@@ -126,17 +138,13 @@ async function resolveYouTubeId(query: string): Promise<{ videoId: string | null
     return seedTracks[cleanQ];
   }
 
-  for (const [k, v] of Object.entries(seedTracks)) {
-    if (cleanQ.includes(k) || k.includes(cleanQ)) {
-      memoryCache.set(cleanQ, v);
-      return v;
-    }
-  }
-
   // 1. Search YouTube
   let videoId = await searchYouTubeQuery(query);
   if (!videoId) {
-    videoId = await searchYouTubeQuery(`${query} audio`);
+    videoId = await searchYouTubeQuery(`${query} official audio`);
+  }
+  if (!videoId) {
+    videoId = await searchYouTubeQuery(`${query} music video`);
   }
 
   // 2. Fetch iTunes audio fallback

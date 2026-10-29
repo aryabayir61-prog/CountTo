@@ -7,22 +7,31 @@ interface ResolvedTrack {
 
 const cache = new Map<string, ResolvedTrack>();
 
-// Instant 0ms cache for popular Turkish & Global tracks
+// Curated verified full-song IDs (artist + song title specific only, never bare artist names)
 const seedTracks: Record<string, ResolvedTrack> = {
-  // Ajda Pekkan
+  // Hileli - Manifest & Ajda Pekkan
+  'hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli manifest': { videoId: 'kXKhNI4DLHM' },
+  'manifest hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli ajda pekkan': { videoId: 'kXKhNI4DLHM' },
+  'ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
+  'hileli manifest ajda pekkan': { videoId: 'kXKhNI4DLHM' },
+  'manifest ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
+
+  // Ajda Pekkan Hits
   'ajda pekkan arada sirada': { videoId: 'g2cT_Kz43m4' },
   'arada sirada ajda pekkan': { videoId: 'g2cT_Kz43m4' },
   'arada sirada': { videoId: 'g2cT_Kz43m4' },
   'ajda pekkan yakar gecerim': { videoId: '9vU6B9qE1fA' },
   'yakar gecerim ajda pekkan': { videoId: '9vU6B9qE1fA' },
   'yakar gecerim': { videoId: '9vU6B9qE1fA' },
-  'ajda pekkan': { videoId: 'g2cT_Kz43m4' },
   'ajda pekkan o benim dunyam': { videoId: 'c1oH1tHn8fI' },
   'ajda pekkan resim': { videoId: '2bI3C5L8M5k' },
 
   // Turkish Hits
   'manifest tralala': { videoId: '0rW7Fbm4S7g' },
   'tralala manifest': { videoId: '0rW7Fbm4S7g' },
+  'tralala': { videoId: '0rW7Fbm4S7g' },
   'toz pembe nalan': { videoId: '0pg0raFMNIU' },
   'toz pembe manifest': { videoId: '0pg0raFMNIU' },
   'toz pembe': { videoId: '0pg0raFMNIU' },
@@ -35,15 +44,11 @@ const seedTracks: Record<string, ResolvedTrack> = {
   'atese dustum mert demir': { videoId: 'xP89mCq741U' },
   'mert demir atese dustum': { videoId: 'xP89mCq741U' },
   'sezen aksu vazgectim': { videoId: 'a_4_O-823qE' },
-  'sezen aksu': { videoId: 'a_4_O-823qE' },
   'vazgectim sezen aksu': { videoId: 'a_4_O-823qE' },
   'tarkan kuzu kuzu': { videoId: '1f32qfJgqQY' },
   'tarkan simarik': { videoId: 'yDq1nB5y2G4' },
-  'tarkan': { videoId: '1f32qfJgqQY' },
   'ezhel geceler': { videoId: 'U2hF6y1V0nE' },
-  'lvbel c5': { videoId: 'o2j8k1m3l5n' },
   'blok3 aklimi tutamam': { videoId: 'Jg7R6h-Q9i0' },
-  'semih': { videoId: 'KR7QDK4saas' },
 
   // Global Hits
   'birds of a feather billie eilish': { videoId: 'V9PVRfjEBTI' },
@@ -71,10 +76,19 @@ for (const [key, val] of Object.entries(seedTracks)) {
   cache.set(key.toLowerCase().trim(), val);
 }
 
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[&/\\#,+()$~%.'":*?<>{}]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function searchYouTube(query: string): Promise<string | null> {
+  const cleanQ = normalizeText(query);
   return new Promise((resolve) => {
     const req = https.get(
-      `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+      `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQ)}`,
       {
         headers: {
           'User-Agent':
@@ -106,7 +120,7 @@ function searchYouTube(query: string): Promise<string | null> {
     );
 
     req.on('error', () => resolve(null));
-    req.setTimeout(4000, () => {
+    req.setTimeout(4500, () => {
       req.destroy();
       resolve(null);
     });
@@ -141,35 +155,30 @@ function fetchItunesAudio(query: string): Promise<string | null> {
 }
 
 async function resolveTrack(query: string): Promise<ResolvedTrack> {
-  const cleanQ = query.trim().toLowerCase();
+  const cleanQ = normalizeText(query);
 
-  // 1. Direct memory seed match
+  // 1. Direct memory seed match (exact key)
   if (cache.has(cleanQ)) {
     return cache.get(cleanQ)!;
   }
 
-  // Check partial key match
-  for (const [key, val] of cache.entries()) {
-    if (cleanQ.includes(key) || key.includes(cleanQ)) {
-      cache.set(cleanQ, val);
-      return val;
-    }
-  }
-
-  // 2. Search YouTube
+  // 2. Real-time YouTube search for full video
   let videoId = await searchYouTube(query);
   if (!videoId) {
     videoId = await searchYouTube(`${query} official audio`);
   }
+  if (!videoId) {
+    videoId = await searchYouTube(`${query} music video`);
+  }
 
-  // 3. Search iTunes preview for infallible audio
+  // 3. Fallback audio
   let audioUrl: string | null = null;
   try {
     audioUrl = await fetchItunesAudio(query);
   } catch {}
 
   const result: ResolvedTrack = { videoId: videoId || null, audioUrl: audioUrl || null };
-  if (videoId || audioUrl) {
+  if (videoId) {
     cache.set(cleanQ, result);
   }
 
