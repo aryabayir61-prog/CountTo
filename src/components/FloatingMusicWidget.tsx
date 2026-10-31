@@ -15,7 +15,12 @@ import {
   Sparkles,
   Users,
   Compass,
-  X
+  X,
+  VolumeX,
+  ShieldAlert,
+  GraduationCap,
+  MapPin,
+  RotateCw
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { extractAlbumColors } from '../utils/colorExtractor';
@@ -39,10 +44,30 @@ function formatMinutes(seconds: number): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+export function checkSchoolLocationDetected(): boolean {
+  try {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('countto_school_detected');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('meb') || host.includes('k12') || host.includes('edu') || host.includes('okul')) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   themePrimary,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isSchoolBlocked, setIsSchoolBlocked] = useState<boolean>(() => {
+    return checkSchoolLocationDetected();
+  });
+  const [detectedLocationName, setDetectedLocationName] = useState<string>('Okul / Kampüs Alanı');
   const [viewMode, setViewMode] = useState<'player' | 'search'>('player');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SongTrack[]>([]);
@@ -55,6 +80,52 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+
+  // Global 'G' Key Listener: Instantly pauses audio and shows the black school restriction pop-up inside widget
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        // Instantly kill/pause music so not a single decibel leaks!
+        musicAudioEngine.pause();
+        setIsSchoolBlocked(true);
+        setIsOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleRecheckLocation = () => {
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          localStorage.setItem('countto_school_detected', 'false');
+          setIsSchoolBlocked(false);
+          setDetectedLocationName('Serbest Konum (Okul Dışı)');
+        },
+        () => {
+          localStorage.setItem('countto_school_detected', 'false');
+          setIsSchoolBlocked(false);
+        },
+        { timeout: 4000 }
+      );
+    } else {
+      localStorage.setItem('countto_school_detected', 'false');
+      setIsSchoolBlocked(false);
+    }
+  };
   
   // Algorithmic State: Exactly 5 personalized recommendations + Co-listening section
   const [personalized5, setPersonalized5] = useState<SongTrack[]>(() => {
@@ -143,7 +214,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
 
   const startAutoHideTimer = () => {
     clearTimer();
-    if (isOpen && viewMode === 'player' && !isHovered) {
+    if (isOpen && viewMode === 'player' && !isHovered && !isSchoolBlocked) {
       autoHideTimerRef.current = setTimeout(() => {
         setIsOpen(false);
       }, 2000);
@@ -151,13 +222,13 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   };
 
   useEffect(() => {
-    if (isOpen && viewMode === 'player' && !isHovered) {
+    if (isOpen && viewMode === 'player' && !isHovered && !isSchoolBlocked) {
       startAutoHideTimer();
     } else {
       clearTimer();
     }
     return () => clearTimer();
-  }, [isOpen, viewMode, isHovered]);
+  }, [isOpen, viewMode, isHovered, isSchoolBlocked]);
 
   // Click outside listener
   useEffect(() => {
@@ -366,12 +437,20 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
         id="music-widget-toggle-btn"
         type="button"
         onClick={() => {
+          if (checkSchoolLocationDetected()) {
+            setIsSchoolBlocked(true);
+            setIsOpen((prev) => !prev);
+            return;
+          }
+          if (isSchoolBlocked) {
+            setIsSchoolBlocked(false);
+          }
           setIsOpen((prev) => !prev);
           if (!isOpen && !currentTrack) {
             setViewMode('search');
           }
         }}
-        title={isPlaying ? 'Müzik Çalıyor' : 'Müzik'}
+        title={isSchoolBlocked ? 'Konumunuz Okulda Gözüküyor (Kısayol: G)' : isPlaying ? 'Müzik Çalıyor' : 'Müzik (Kısayol: G)'}
         className={`relative p-1.5 px-2.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center justify-center select-none cursor-pointer border ${
           isPlaying
             ? 'bg-blue-500/15 border-blue-500/30 text-blue-400 shadow-[0_0_14px_rgba(59,130,246,0.35)]'
@@ -411,17 +490,94 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             }}
             className="absolute bottom-11 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-50 select-none origin-bottom"
           >
-            {/* Frosted Glass Slab: Animated layout transition smoothly resizes card between Search and Player modes */}
-            <motion.div
-              layout
-              transition={{
-                layout: { type: 'spring', stiffness: 360, damping: 32 },
-              }}
-              className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
-              style={{
-                boxShadow: `0 24px 60px -10px rgba(0,0,0,0.85), 0 0 40px -6px ${activeColors[0]}55, inset 0 1px 1px rgba(255,255,255,0.2)`
-              }}
-            >
+            {isSchoolBlocked ? (
+              /* ================= PURE BLACK LOCATION SCHOOL RESTRICTION VIEW ================= */
+              <motion.div
+                layout
+                transition={{
+                  layout: { type: 'spring', stiffness: 360, damping: 32 },
+                }}
+                className="relative w-[335px] sm:w-[355px] rounded-3xl p-5 bg-black text-white border border-neutral-800 shadow-[0_25px_60px_rgba(0,0,0,0.98)] overflow-hidden flex flex-col justify-between select-none"
+              >
+                {/* Header: Title + Close */}
+                <div className="flex items-center justify-between pb-3 border-b border-neutral-800/80">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                      Konum Koruması
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="p-1 rounded-lg text-neutral-500 hover:text-white hover:bg-neutral-900 transition-colors cursor-pointer"
+                    title="Kapat"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Core Warning Content */}
+                <div className="my-5 flex flex-col items-center text-center px-2">
+                  <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-3.5 shadow-inner">
+                    <MapPin className="w-7 h-7 text-rose-500 stroke-[2.2]" />
+                  </div>
+
+                  <h3 className="text-lg sm:text-xl font-bold tracking-tight text-white">
+                    Konumunuz Okulda Gözüküyor
+                  </h3>
+
+                  <p className="text-xs text-neutral-400 mt-2 leading-relaxed max-w-[280px]">
+                    Cihazınızın GPS ve ağ konumu bir eğitim kurumunda (okul/kampüs) bulunduğunuzu tespit etti. Okul kuralları ve ders disiplini gereğince bu alanda müzik çalma özelliği devre dışı bırakılmıştır.
+                  </p>
+
+                  <div className="mt-4 w-full p-2.5 rounded-xl bg-neutral-950 border border-neutral-800/80 flex items-center justify-between text-[11px] text-neutral-300">
+                    <span className="flex items-center gap-1.5 text-neutral-400">
+                      <GraduationCap className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Tespit Edilen Alan</span>
+                    </span>
+                    <span className="font-semibold text-neutral-200">{detectedLocationName}</span>
+                  </div>
+
+                  <div className="mt-2 text-[10px] text-neutral-500 font-mono">
+                    Kısayol: 'G' tuşu ile hızlı gizleme
+                  </div>
+                </div>
+
+                {/* Bottom Actions */}
+                <div className="flex flex-col gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-white font-semibold text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>Tamam, Derse Dön</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRecheckLocation}
+                    className="w-full py-1.5 px-3 rounded-lg text-neutral-500 hover:text-neutral-300 text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    title="Okul dışındaysanız konumu yeniden doğrular"
+                  >
+                    <RotateCw className="w-3 h-3 text-neutral-500" />
+                    <span>Okul Dışındayım (Konumu Doğrula)</span>
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              /* Frosted Glass Slab: Animated layout transition smoothly resizes card between Search and Player modes */
+              <motion.div
+                layout
+                transition={{
+                  layout: { type: 'spring', stiffness: 360, damping: 32 },
+                }}
+                className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
+                style={{
+                  boxShadow: `0 24px 60px -10px rgba(0,0,0,0.85), 0 0 40px -6px ${activeColors[0]}55, inset 0 1px 1px rgba(255,255,255,0.2)`
+                }}
+              >
               
               {/* Dynamic Color Mixing Ambient Glow Canvas */}
               <div 
@@ -715,9 +871,10 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                 )}
               </AnimatePresence>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
     </div>
   );
 };
