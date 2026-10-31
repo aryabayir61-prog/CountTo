@@ -326,6 +326,296 @@ export const STICKERS: StickerDefinition[] = [
       </div>
     ),
   },
+  {
+    id: 'floating_balloon',
+    name: 'Kalp Balon',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-balloon"
+        >
+          {/* White die cut */}
+          <path
+            d="M24 33 C24 33 11 23 11 13 A7.5 7.5 0 0 1 24 9 A7.5 7.5 0 0 1 37 13 C37 23 24 33 24 33 Z"
+            fill="#ffffff"
+            stroke="#ffffff"
+            strokeWidth="4"
+            strokeLinejoin="round"
+          />
+          <path d="M24 34 L22 37 H26 Z" fill="#ffffff" stroke="#ffffff" strokeWidth="2" />
+          <path d="M24 37 Q28 42 22 46" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+
+          {/* Balloon body gradient */}
+          <defs>
+            <linearGradient id="balloonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f472b6" />
+              <stop offset="60%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#db2777" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M24 32 C24 32 12 22.5 12 13.5 A6.8 6.8 0 0 1 24 9.8 A6.8 6.8 0 0 1 36 13.5 C36 22.5 24 32 24 32 Z"
+            fill="url(#balloonGrad)"
+          />
+          {/* Knot */}
+          <polygon points="22,33 26,33 24,36" fill="#be185d" />
+          {/* String */}
+          <path d="M24 36 Q28 41 22 45" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
+          {/* Gloss sheen */}
+          <ellipse cx="17" cy="14" rx="2.5" ry="4" transform="rotate(-30 17 14)" fill="#ffffff" opacity="0.65" />
+          <circle cx="21" cy="20" r="1" fill="#ffffff" opacity="0.5" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'bouncing_frog',
+    name: 'Sevimli Kurbağa',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-frog"
+        >
+          {/* White sticker border */}
+          <path
+            d="M13 14 A6 6 0 0 1 23 15 M25 15 A6 6 0 0 1 35 14"
+            stroke="#ffffff"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+          <ellipse cx="24" cy="27" rx="17" ry="13" fill="#ffffff" stroke="#ffffff" strokeWidth="4" />
+          
+          {/* Eyeballs */}
+          <circle cx="16" cy="15" r="6" fill="#86efac" />
+          <circle cx="32" cy="15" r="6" fill="#86efac" />
+          <circle cx="16" cy="15" r="3.2" fill="#14532d" />
+          <circle cx="32" cy="15" r="3.2" fill="#14532d" />
+          <circle cx="15" cy="13.5" r="1.2" fill="#ffffff" />
+          <circle cx="31" cy="13.5" r="1.2" fill="#ffffff" />
+
+          {/* Frog Face */}
+          <ellipse cx="24" cy="27" rx="16" ry="12" fill="#4ade80" />
+          {/* Cheeks */}
+          <ellipse cx="13" cy="29" rx="3" ry="1.8" fill="#f43f5e" opacity="0.5" />
+          <ellipse cx="35" cy="29" rx="3" ry="1.8" fill="#f43f5e" opacity="0.5" />
+          {/* Big happy mouth */}
+          <path d="M18 27 Q24 34 30 27" fill="none" stroke="#166534" strokeWidth="2.2" strokeLinecap="round" />
+          {/* Nostrils */}
+          <circle cx="22" cy="24" r="0.8" fill="#166534" />
+          <circle cx="26" cy="24" r="0.8" fill="#166534" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'fluttering_butterfly',
+    name: 'Kelebek Kanadı',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-flutter"
+        >
+          {/* Die-cut backing */}
+          <ellipse cx="24" cy="24" rx="19" ry="17" fill="#ffffff" />
+          <defs>
+            <linearGradient id="bfWingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="50%" stopColor="#c084fc" />
+              <stop offset="100%" stopColor="#f472b6" />
+            </linearGradient>
+          </defs>
+          {/* Wings */}
+          {/* Top Left Wing */}
+          <path d="M23 23 C18 10 7 12 9 21 C10 25 18 24 23 23 Z" fill="url(#bfWingGrad)" />
+          {/* Top Right Wing */}
+          <path d="M25 23 C30 10 41 12 39 21 C38 25 30 24 25 23 Z" fill="url(#bfWingGrad)" />
+          {/* Bottom Left Wing */}
+          <path d="M23 24 C17 26 12 32 15 37 C18 40 22 32 23 24 Z" fill="url(#bfWingGrad)" />
+          {/* Bottom Right Wing */}
+          <path d="M25 24 C31 26 36 32 33 37 C30 40 26 32 25 24 Z" fill="url(#bfWingGrad)" />
+          {/* Wing dots */}
+          <circle cx="15" cy="18" r="1.5" fill="#ffffff" opacity="0.9" />
+          <circle cx="33" cy="18" r="1.5" fill="#ffffff" opacity="0.9" />
+          <circle cx="18" cy="32" r="1" fill="#ffffff" opacity="0.8" />
+          <circle cx="30" cy="32" r="1" fill="#ffffff" opacity="0.8" />
+          {/* Butterfly Body */}
+          <ellipse cx="24" cy="24" rx="2" ry="8" fill="#3b0764" />
+          <circle cx="24" cy="15" r="2.2" fill="#3b0764" />
+          {/* Antennae */}
+          <path d="M23 14 Q20 9 17 10 M25 14 Q28 9 31 10" fill="none" stroke="#3b0764" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'magic_potion',
+    name: 'Sihirli İksir',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-potion"
+        >
+          {/* Die-cut white border */}
+          <path
+            d="M20 7 H28 V13 L36 32 C38 36 35 41 30 41 H18 C13 41 10 36 12 32 L20 13 Z"
+            fill="#ffffff"
+            stroke="#ffffff"
+            strokeWidth="4"
+            strokeLinejoin="round"
+          />
+          {/* Cork */}
+          <rect x="21" y="4" width="6" height="5" rx="1.5" fill="#d97706" />
+          {/* Glass body */}
+          <defs>
+            <linearGradient id="potionGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#c084fc" />
+              <stop offset="100%" stopColor="#7e22ce" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M21 14 H27 V14 L34 31 C36 35 33 39 29 39 H19 C15 39 12 35 14 31 Z"
+            fill="#38bdf8"
+            opacity="0.25"
+          />
+          {/* Liquid content */}
+          <path
+            d="M17 25 Q24 22 31 25 L34 31 C35.5 34.5 33 38.5 29 38.5 H19 C15 38.5 12.5 34.5 14 31 Z"
+            fill="url(#potionGrad)"
+          />
+          {/* Liquid surface wave & bubbles */}
+          <path d="M17 25 Q21 23 24 25 T31 25" fill="none" stroke="#f3e8ff" strokeWidth="1.5" />
+          <circle cx="21" cy="30" r="1.5" fill="#ffffff" opacity="0.8" />
+          <circle cx="27" cy="33" r="1.2" fill="#ffffff" opacity="0.7" />
+          <circle cx="24" cy="27" r="0.8" fill="#ffffff" opacity="0.9" />
+          {/* Star sparkle on bottle */}
+          <polygon points="17,18 18,20 20,20.5 18,21 17,23 16,21 14,20.5 16,20" fill="#fde047" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'sleeping_cat',
+    name: 'Uyuyan Kedi',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-cat"
+        >
+          {/* White outline */}
+          <ellipse cx="24" cy="28" rx="18" ry="14" fill="#ffffff" stroke="#ffffff" strokeWidth="3" />
+          {/* Curled cat body */}
+          <ellipse cx="24" cy="28" rx="16" ry="12" fill="#fb923c" />
+          {/* Cat stripes */}
+          <path d="M18 20 Q24 23 30 20 M16 25 Q24 28 32 25" fill="none" stroke="#ea580c" strokeWidth="1.6" strokeLinecap="round" />
+          {/* Ears */}
+          <polygon points="12,18 16,22 11,24" fill="#fb923c" stroke="#ffffff" strokeWidth="1.5" />
+          <polygon points="13,20 15,22 12,23" fill="#f472b6" />
+          <polygon points="36,18 32,22 37,24" fill="#fb923c" stroke="#ffffff" strokeWidth="1.5" />
+          <polygon points="35,20 33,22 36,23" fill="#f472b6" />
+          {/* Sleeping happy eye slits */}
+          <path d="M17 29 Q20 32 23 29" fill="none" stroke="#7c2d12" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M25 29 Q28 32 31 29" fill="none" stroke="#7c2d12" strokeWidth="1.8" strokeLinecap="round" />
+          {/* Nose & paws */}
+          <polygon points="23.5,31 24.5,31 24,32" fill="#f43f5e" />
+          <ellipse cx="24" cy="36" rx="4" ry="2" fill="#ffedd5" />
+          {/* Zzz sleeping letters */}
+          <text x="34" y="16" fill="#38bdf8" fontSize="10" fontWeight="900" fontFamily="sans-serif">
+            z
+          </text>
+          <text x="39" y="10" fill="#818cf8" fontSize="8" fontWeight="bold" fontFamily="sans-serif">
+            Z
+          </text>
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'glowing_planet',
+    name: 'Kozmik Gezegen',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-planet"
+        >
+          {/* Die-cut white backing */}
+          <ellipse cx="24" cy="24" rx="20" ry="16" fill="#ffffff" />
+          {/* Behind ring */}
+          <path d="M7 26 Q24 37 41 22" fill="none" stroke="#facc15" strokeWidth="3" opacity="0.7" />
+          {/* Planet sphere */}
+          <defs>
+            <linearGradient id="planetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="50%" stopColor="#6366f1" />
+              <stop offset="100%" stopColor="#4338ca" />
+            </linearGradient>
+          </defs>
+          <circle cx="24" cy="24" r="14" fill="url(#planetGrad)" />
+          {/* Cloud band swirls */}
+          <path d="M12 21 Q24 28 36 21" fill="none" stroke="#a5f3fc" strokeWidth="1.8" opacity="0.6" />
+          <path d="M14 26 Q24 32 34 27" fill="none" stroke="#c7d2fe" strokeWidth="1.5" opacity="0.5" />
+          {/* Front ring */}
+          <path d="M7 23 Q24 35 41 21" fill="none" stroke="#fef08a" strokeWidth="3.2" strokeLinecap="round" />
+          <path d="M10 24 Q24 34 38 22" fill="none" stroke="#f59e0b" strokeWidth="1" strokeLinecap="round" />
+          {/* Tiny glitter stars */}
+          <circle cx="16" cy="16" r="1.5" fill="#ffffff" />
+          <circle cx="33" cy="30" r="1" fill="#ffffff" />
+        </svg>
+      </div>
+    ),
+  },
+  {
+    id: 'rocket_boost',
+    name: 'Uzay Roketi',
+    category: 'animated',
+    isAnimated: true,
+    render: ({ className = '' } = {}) => (
+      <div className={`relative inline-flex items-center justify-center p-1 ${className}`}>
+        <svg
+          viewBox="0 0 48 48"
+          className="w-10 h-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] animate-sticker-rocket"
+        >
+          {/* White border */}
+          <g transform="rotate(45 24 24)">
+            <ellipse cx="24" cy="20" rx="9" ry="16" fill="#ffffff" stroke="#ffffff" strokeWidth="3" />
+            {/* Fins */}
+            <polygon points="15,24 8,32 15,30" fill="#ffffff" stroke="#ffffff" strokeWidth="2" />
+            <polygon points="33,24 40,32 33,30" fill="#ffffff" stroke="#ffffff" strokeWidth="2" />
+            {/* Thruster exhaust flame */}
+            <polygon points="21,34 24,44 27,34" fill="#facc15" stroke="#ffffff" strokeWidth="1.5" />
+            <polygon points="22,34 24,40 26,34" fill="#ef4444" />
+            {/* Rocket fuselage */}
+            <ellipse cx="24" cy="20" rx="8" ry="14" fill="#f1f5f9" />
+            {/* Nosecone */}
+            <path d="M16 16 C16 9 24 6 24 6 C24 6 32 9 32 16 Z" fill="#ef4444" />
+            {/* Window */}
+            <circle cx="24" cy="18" r="4" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.2" />
+            <circle cx="23" cy="17" r="1" fill="#ffffff" />
+            {/* Wings */}
+            <polygon points="16,24 9,31 16,29" fill="#dc2626" />
+            <polygon points="32,24 39,31 32,29" fill="#dc2626" />
+          </g>
+        </svg>
+      </div>
+    ),
+  },
 
   // ==================== 2. STUDY & FOCUS STICKERS ====================
   {
@@ -594,8 +884,8 @@ export const STICKERS: StickerDefinition[] = [
     isAnimated: false,
     render: ({ className = '' } = {}) => (
       <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-extrabold text-[11px] tracking-wider uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
-          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-[11px] tracking-wider uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
           <span>ÖNEMLİ!</span>
         </div>
       </div>
@@ -608,7 +898,7 @@ export const STICKERS: StickerDefinition[] = [
     isAnimated: false,
     render: ({ className = '' } = {}) => (
       <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-950 font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-amber-950 font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
           <span>📝</span>
           <span>SINAV</span>
         </div>
@@ -622,7 +912,7 @@ export const STICKERS: StickerDefinition[] = [
     isAnimated: false,
     render: ({ className = '' } = {}) => (
       <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-[11px] tracking-wide border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
           <span>🎯</span>
           <span>BUGÜN</span>
         </div>
@@ -636,7 +926,7 @@ export const STICKERS: StickerDefinition[] = [
     isAnimated: false,
     render: ({ className = '' } = {}) => (
       <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-[11px] tracking-wide border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
           <span className="font-extrabold text-[12px]">✓</span>
           <span>YAPILDI</span>
         </div>
@@ -650,11 +940,54 @@ export const STICKERS: StickerDefinition[] = [
     isAnimated: false,
     render: ({ className = '' } = {}) => (
       <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold text-[11px] tracking-wide border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
           <span>☕</span>
           <span>MOLA</span>
         </div>
       </div>
     ),
   },
+  {
+    id: 'badge_homework',
+    name: 'Ödev & Görev',
+    category: 'badge',
+    isAnimated: false,
+    render: ({ className = '' } = {}) => (
+      <div className={`inline-flex items-center justify-center ${className}`}>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-600 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+          <span>📚</span>
+          <span>ÖDEV</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'badge_goal',
+    name: 'Büyük Hedef',
+    category: 'badge',
+    isAnimated: false,
+    render: ({ className = '' } = {}) => (
+      <div className={`inline-flex items-center justify-center ${className}`}>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+          <span>⭐</span>
+          <span>HEDEF</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'badge_reminder',
+    name: 'Unutma!',
+    category: 'badge',
+    isAnimated: false,
+    render: ({ className = '' } = {}) => (
+      <div className={`inline-flex items-center justify-center ${className}`}>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-500 to-red-500 text-white font-black text-[11px] tracking-wide uppercase border-2 border-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] select-none">
+          <span>⏰</span>
+          <span>UNUTMA!</span>
+        </div>
+      </div>
+    ),
+  },
 ];
+

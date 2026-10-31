@@ -551,7 +551,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
       {showStickerPicker && !readOnly && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-11 left-2 right-2 z-40 bg-[#16161d]/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.65)] p-2.5 flex flex-col gap-2 max-h-[210px] animate-in fade-in zoom-in-95 duration-150"
+          className="absolute bottom-11 left-2 right-2 z-40 bg-[#16161d]/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.65)] p-2.5 flex flex-col gap-2 max-h-[230px] animate-in fade-in zoom-in-95 duration-150"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-1 border-b border-white/10">
@@ -589,28 +589,49 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
             })}
           </div>
 
-          {/* Sticker Grid */}
-          <div className="grid grid-cols-4 gap-1.5 overflow-y-auto max-h-[125px] p-0.5">
-            {STICKERS.filter((s) => s.category === selectedStickerCat).map((stk) => (
-              <button
-                key={stk.id}
-                type="button"
-                onClick={() => handleAddSticker(stk)}
-                title={`${stk.name}${stk.isAnimated ? ' (Animasyonlu)' : ''}`}
-                className="relative group/btn flex items-center justify-center p-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/5 hover:border-white/20 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
-              >
-                {stk.render({ className: 'pointer-events-none' })}
-                {stk.isAnimated && (
-                  <span
-                    className="absolute top-0.5 right-0.5 text-[8px] leading-none"
-                    title="Animasyonlu"
-                  >
-                    ✨
+          {/* Sticker Content: Vertical list for badges so they are never clipped or overlapping; grid for other categories */}
+          {selectedStickerCat === 'badge' ? (
+            <div className="flex flex-col gap-1.5 overflow-y-auto max-h-[145px] p-0.5 pr-1">
+              {STICKERS.filter((s) => s.category === 'badge').map((stk) => (
+                <button
+                  key={stk.id}
+                  type="button"
+                  onClick={() => handleAddSticker(stk)}
+                  title={`${stk.name} rozetini ekle`}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/5 hover:border-white/20 transition-all duration-150 hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
+                >
+                  <span className="text-[11px] font-medium text-neutral-300 group-hover:text-white transition-colors">
+                    {stk.name}
                   </span>
-                )}
-              </button>
-            ))}
-          </div>
+                  <div className="shrink-0 scale-95 group-hover:scale-100 transition-transform">
+                    {stk.render({ className: 'pointer-events-none' })}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-1.5 overflow-y-auto max-h-[140px] p-0.5">
+              {STICKERS.filter((s) => s.category === selectedStickerCat).map((stk) => (
+                <button
+                  key={stk.id}
+                  type="button"
+                  onClick={() => handleAddSticker(stk)}
+                  title={`${stk.name}${stk.isAnimated ? ' (Animasyonlu)' : ''}`}
+                  className="relative group/btn flex items-center justify-center p-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/5 hover:border-white/20 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+                >
+                  {stk.render({ className: 'pointer-events-none' })}
+                  {stk.isAnimated && (
+                    <span
+                      className="absolute top-0.5 right-0.5 text-[8px] leading-none"
+                      title="Animasyonlu"
+                    >
+                      ✨
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
