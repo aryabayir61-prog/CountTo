@@ -47,3 +47,137 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.4);
 }
+
+/* Micro-animations for Sticky Note Stickers */
+@keyframes sticker-twinkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 2px rgba(250, 204, 21, 0.35));
+  }
+  50% {
+    transform: scale(1.08) rotate(5deg);
+    filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.8));
+  }
+}
+
+@keyframes sticker-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.12);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.07);
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sticker-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+}
+
+@keyframes sticker-flame {
+  0%, 100% {
+    transform: scale(1) skewX(0deg);
+    filter: drop-shadow(0 0 3px rgba(249, 115, 22, 0.4));
+  }
+  33% {
+    transform: scale(1.04, 1.06) skewX(-2deg);
+    filter: drop-shadow(0 0 7px rgba(249, 115, 22, 0.75));
+  }
+  66% {
+    transform: scale(0.97, 1.02) skewX(2deg);
+    filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.6));
+  }
+}
+
+@keyframes sticker-wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3.5deg);
+  }
+  75% {
+    transform: rotate(3.5deg);
+  }
+}
+
+@keyframes sticker-spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sticker-steam {
+  0% {
+    opacity: 0.25;
+    transform: translateY(0px) scaleX(0.9);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-3px) scaleX(1.1);
+  }
+  100% {
+    opacity: 0.25;
+    transform: translateY(-6px) scaleX(1.2);
+  }
+}
+
+@keyframes sticker-shimmer {
+  0%, 100% {
+    opacity: 0.92;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
+  }
+}
+
+.animate-sticker-twinkle {
+  animation: sticker-twinkle 2.4s ease-in-out infinite;
+}
+
+.animate-sticker-heartbeat {
+  animation: sticker-heartbeat 1.8s ease-in-out infinite;
+}
+
+.animate-sticker-float {
+  animation: sticker-float 3s ease-in-out infinite;
+}
+
+.animate-sticker-flame {
+  animation: sticker-flame 1.5s ease-in-out infinite;
+}
+
+.animate-sticker-wiggle {
+  animation: sticker-wiggle 2s ease-in-out infinite;
+}
+
+.animate-sticker-spin-slow {
+  animation: sticker-spin-slow 16s linear infinite;
+}
+
+.animate-sticker-steam {
+  animation: sticker-steam 2s ease-in-out infinite;
+}
+
+.animate-sticker-shimmer {
+  animation: sticker-shimmer 2.2s ease-in-out infinite;
+}
+

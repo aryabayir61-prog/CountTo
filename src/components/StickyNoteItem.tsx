@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MoreHorizontal, X, Bold, Italic, Underline, Palette, Check } from 'lucide-react';
-import { StickyNote } from '../types/stickyNote';
+import { Plus, MoreHorizontal, X, Bold, Italic, Underline, Palette, Check, Sticker, Sparkles } from 'lucide-react';
+import { StickyNote, NoteSticker } from '../types/stickyNote';
 import { ThemeConfig } from '../types/countdown';
-import { playPaperTearSound } from '../utils/audio';
+import { playPaperTearSound, playHoverClickSound } from '../utils/audio';
+import { STICKERS, STICKER_CATEGORIES, StickerDefinition } from '../data/stickers';
 
 interface StickyNoteItemProps {
   note: StickyNote;
@@ -36,6 +37,10 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
 }) => {
   const [isTearing, setIsTearing] = useState<boolean>(false);
   const [showColorMenu, setShowColorMenu] = useState<boolean>(false);
+  const [showStickerPicker, setShowStickerPicker] = useState<boolean>(false);
+  const [selectedStickerCat, setSelectedStickerCat] = useState<string>('animated');
+  const [draggedStickerId, setDraggedStickerId] = useState<string | null>(null);
+
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [isEditorFocused, setIsEditorFocused] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -63,7 +68,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
 
   // In focus mode, controls are smoothly hidden unless the user hovers over the note or focuses it to edit
   const isControlsHidden = Boolean(
-    isGlobalFocusMode && !isHovered && !isEditorFocused && !showColorMenu && !isDragging
+    isGlobalFocusMode && !isHovered && !isEditorFocused && !showColorMenu && !showStickerPicker && !isDragging
   );
 
   // Auto-grow height downwards when note content gets longer (smoothly, without premature scrollbar)
@@ -76,7 +81,6 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
     const textH = contentRef.current.scrollHeight || 140;
 
     const minH = isControlsHidden ? 160 : 255;
-    // "çok da değil" - cap sensibly up to 480px or screen boundary
     const maxAvailable = typeof window !== 'undefined'
       ? Math.max(minH, window.innerHeight - note.y - 32)
       : 480;
@@ -92,7 +96,6 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
       if (contentRef.current.innerHTML !== note.content) {
         contentRef.current.innerHTML = note.content;
       }
-      // If note was created within the last 1.5 seconds and has empty content, focus it
       if (Date.now() - note.createdAt < 1500 && !note.content) {
         contentRef.current.focus();
       }
@@ -119,12 +122,10 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
 
   // Dragging logic via pointer events on header
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only drag with primary mouse button or touch
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-    // Prevent dragging if clicked on interactive buttons inside header
     const target = e.target as HTMLElement;
-    if (target.closest('button, [role="button"], input')) {
+    if (target.closest('button, [role="button"], input, .sticker-element')) {
       return;
     }
 
@@ -143,7 +144,6 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
       const dx = moveEvent.clientX - dragStartRef.current.mouseX;
       const dy = moveEvent.clientY - dragStartRef.current.mouseY;
 
-      // Constrain position within window boundaries
       const noteWidth = note.width || 270;
       const maxX = Math.max(0, window.innerWidth - noteWidth);
       const maxY = Math.max(0, window.innerHeight - dynamicHeight);
@@ -173,7 +173,6 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
     setIsTearing(true);
     playPaperTearSound(0.35);
 
-    // Give time for paper tearing animation before unmounting
     setTimeout(() => {
       onDelete(note.id);
     }, 420);
@@ -195,16 +194,81 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
     }
   };
 
+  // ==================== STICKER MANAGEMENT ====================
+  const handleAddSticker = (stickerDef: StickerDefinition) => {
+    playHoverClickSound(0.08);
+
+    // Default placement in the upper-right or middle area of note
+    const noteWidth = note.width || 270;
+    const maxX = Math.max(20, noteWidth - 65);
+    const maxY = Math.max(30, dynamicHeight - 90);
+
+    const newSticker: NoteSticker = {
+      id: `stk-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      stickerId: stickerDef.id,
+      x: Math.min(maxX, Math.max(20, 45 + Math.floor(Math.random() * 80))),
+      y: Math.min(maxY, Math.max(25, 35 + Math.floor(Math.random() * 60))),
+      rotation: Math.floor(Math.random() * 14 - 7),
+      scale: 1,
+    };
+
+    const nextStickers = [...(note.stickers || []), newSticker];
+    onUpdate(note.id, { stickers: nextStickers });
+  };
+
+  const handleDeleteSticker = (stickerId: string) => {
+    playHoverClickSound(0.06);
+    const nextStickers = (note.stickers || []).filter((s) => s.id !== stickerId);
+    onUpdate(note.id, { stickers: nextStickers });
+  };
+
+  const handleStickerPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>,
+    sticker: NoteSticker
+  ) => {
+    e.stopPropagation();
+    onBringToFront(note.id);
+    setDraggedStickerId(sticker.id);
+
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const startStickerX = sticker.x;
+    const startStickerY = sticker.y;
+
+    const handlePointerMove = (moveEvt: PointerEvent) => {
+      const dx = moveEvt.clientX - startMouseX;
+      const dy = moveEvt.clientY - startMouseY;
+
+      const noteWidth = note.width || 270;
+      const nextX = Math.max(0, Math.min(noteWidth - 44, startStickerX + dx));
+      const nextY = Math.max(0, Math.min(dynamicHeight - 56, startStickerY + dy));
+
+      const updated = (note.stickers || []).map((s) =>
+        s.id === sticker.id ? { ...s, x: nextX, y: nextY } : s
+      );
+      onUpdate(note.id, { stickers: updated });
+    };
+
+    const handlePointerUp = () => {
+      setDraggedStickerId(null);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
   // Jagged rip paper clip-paths for torn halves
   const ripPathLeft =
     'polygon(0% 0%, 53% 0%, 48% 12%, 54% 24%, 47% 38%, 53% 52%, 46% 67%, 54% 82%, 48% 100%, 0% 100%)';
   const ripPathRight =
     'polygon(53% 0%, 100% 0%, 100% 100%, 48% 100%, 54% 82%, 46% 67%, 53% 52%, 47% 38%, 54% 24%, 48% 12%)';
 
-  // Render note interior (used both for normal rendering and for the split halves during tearing)
+  // Render note interior
   const renderNoteContent = (readOnly = false) => (
-    <div className="flex flex-col h-full bg-[#1e1e24] text-neutral-100 select-text overflow-hidden rounded-xl shadow-2xl border border-white/10 transition-colors duration-300">
-      {/* Top Header Bar: Collapses smoothly into a clean slim accent stripe in Focus Mode */}
+    <div className="flex flex-col h-full bg-[#1e1e24] text-neutral-100 select-text overflow-hidden rounded-xl shadow-2xl border border-white/10 transition-colors duration-300 relative">
+      {/* Top Header Bar */}
       <div
         className={`flex items-center justify-between px-2 select-none overflow-hidden transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isControlsHidden && !readOnly ? 'h-2 py-0' : 'h-9 py-1.5'
@@ -251,6 +315,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               setShowColorMenu((prev) => !prev);
+              setShowStickerPicker(false);
             }}
             disabled={readOnly || isControlsHidden}
             title="Not Rengi"
@@ -272,25 +337,77 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
         </div>
       </div>
 
-      {/* Note Body: Only the written text remains in focus mode; expands smoothly downwards */}
-      <div className="relative flex-1 p-3.5 overflow-y-auto cursor-text text-[13.5px] leading-relaxed tracking-wide min-h-[140px] focus:outline-none transition-all duration-300">
-        <div
-          ref={contentRef}
-          contentEditable={!readOnly}
-          suppressContentEditableWarning
-          onInput={handleInput}
-          onFocus={() => {
-            setIsEditorFocused(true);
-            onBringToFront(note.id);
-          }}
-          onBlur={() => setIsEditorFocused(false)}
-          className={`w-full min-h-[140px] focus:outline-none whitespace-pre-wrap break-words ${
-            isControlsHidden ? 'empty:before:hidden' : "empty:before:content-['Not_alın...'] empty:before:text-neutral-500 empty:before:pointer-events-none"
-          }`}
-        />
+      {/* Note Body: Editable text area + Placed Stickers Layer */}
+      <div className="relative flex-1 p-3.5 overflow-hidden text-[13.5px] leading-relaxed tracking-wide min-h-[140px] focus:outline-none transition-all duration-300">
+        {/* Text Area */}
+        <div className="relative z-10 w-full h-full overflow-y-auto pr-1">
+          <div
+            ref={contentRef}
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onInput={handleInput}
+            onFocus={() => {
+              setIsEditorFocused(true);
+              onBringToFront(note.id);
+            }}
+            onBlur={() => setIsEditorFocused(false)}
+            className={`w-full min-h-[140px] focus:outline-none whitespace-pre-wrap break-words cursor-text ${
+              isControlsHidden
+                ? 'empty:before:hidden'
+                : "empty:before:content-['Not_alın...'] empty:before:text-neutral-500 empty:before:pointer-events-none"
+            }`}
+          />
+        </div>
+
+        {/* Placed Stickers Layer (Free Drag & Hover Delete inside note) */}
+        {note.stickers && note.stickers.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+            {note.stickers.map((stk) => {
+              const def = STICKERS.find((s) => s.id === stk.stickerId);
+              if (!def) return null;
+              const isCurrentlyDragged = draggedStickerId === stk.id;
+
+              return (
+                <div
+                  key={stk.id}
+                  onPointerDown={(e) => handleStickerPointerDown(e, stk)}
+                  style={{
+                    left: `${stk.x}px`,
+                    top: `${stk.y}px`,
+                    transform: `rotate(${stk.rotation || 0}deg) scale(${stk.scale || 1})`,
+                    zIndex: isCurrentlyDragged ? 40 : 25,
+                  }}
+                  className={`sticker-element absolute pointer-events-auto cursor-grab active:cursor-grabbing select-none group touch-none transition-shadow ${
+                    isCurrentlyDragged ? 'scale-110 drop-shadow-2xl' : ''
+                  }`}
+                  title={`${def.name} (Taşımak için sürükle)`}
+                >
+                  <div className="relative transition-transform duration-150 group-hover:scale-105">
+                    {def.render({ className: isCurrentlyDragged ? 'opacity-90' : '' })}
+
+                    {/* Quick remove button on hover */}
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        title="Stickerı Sil"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSticker(stk.id);
+                        }}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-neutral-900/90 text-white hover:bg-rose-600 border border-white/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-md z-30"
+                      >
+                        <X size={10} strokeWidth={3} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Bottom Text Formatting Toolbar: Smoothly collapses down and disappears in Focus Mode */}
+      {/* Bottom Text Formatting Toolbar */}
       <div
         className={`flex items-center justify-between px-2.5 bg-[#17171c] select-none text-neutral-400 overflow-hidden transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isControlsHidden && !readOnly
@@ -347,6 +464,25 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
           >
             ab
           </button>
+
+          {/* STICKER BUTTON DIRECTLY NEXT TO ab */}
+          <button
+            type="button"
+            title="Sticker Ekle"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowStickerPicker((prev) => !prev);
+              setShowColorMenu(false);
+            }}
+            disabled={readOnly || isControlsHidden}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-all cursor-pointer ${
+              showStickerPicker
+                ? 'bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40'
+                : 'hover:bg-white/10 hover:text-neutral-200'
+            }`}
+          >
+            <Sticker size={13} strokeWidth={2.4} />
+          </button>
         </div>
 
         {/* Color Palette Button */}
@@ -355,6 +491,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
           onClick={(e) => {
             e.stopPropagation();
             setShowColorMenu((prev) => !prev);
+            setShowStickerPicker(false);
           }}
           disabled={readOnly || isControlsHidden}
           title="Renk Paleti"
@@ -372,7 +509,7 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
       {showColorMenu && !readOnly && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-10 right-3 z-30 p-2.5 bg-[#25252d] border border-white/15 rounded-lg shadow-2xl flex flex-col gap-1.5 backdrop-blur-md min-w-[150px]"
+          className="absolute top-10 right-3 z-40 p-2.5 bg-[#25252d] border border-white/15 rounded-lg shadow-2xl flex flex-col gap-1.5 backdrop-blur-md min-w-[150px]"
         >
           <div className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider mb-1 px-1">
             Not Rengi
@@ -406,6 +543,73 @@ export const StickyNoteItem: React.FC<StickyNoteItemProps> = ({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Sticker Picker Popover */}
+      {showStickerPicker && !readOnly && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-11 left-2 right-2 z-40 bg-[#16161d]/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-[0_12px_36px_rgba(0,0,0,0.65)] p-2.5 flex flex-col gap-2 max-h-[210px] animate-in fade-in zoom-in-95 duration-150"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-1 border-b border-white/10">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-200">
+              <Sparkles size={12} className="text-amber-400" />
+              <span>Sticker Ekle</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowStickerPicker(false)}
+              className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+            {STICKER_CATEGORIES.map((cat) => {
+              const isActive = selectedStickerCat === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedStickerCat(cat.id)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-amber-400/25 text-amber-300 ring-1 ring-amber-400/30'
+                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                  }`}
+                >
+                  {cat.shortName}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sticker Grid */}
+          <div className="grid grid-cols-4 gap-1.5 overflow-y-auto max-h-[125px] p-0.5">
+            {STICKERS.filter((s) => s.category === selectedStickerCat).map((stk) => (
+              <button
+                key={stk.id}
+                type="button"
+                onClick={() => handleAddSticker(stk)}
+                title={`${stk.name}${stk.isAnimated ? ' (Animasyonlu)' : ''}`}
+                className="relative group/btn flex items-center justify-center p-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/5 hover:border-white/20 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+              >
+                {stk.render({ className: 'pointer-events-none' })}
+                {stk.isAnimated && (
+                  <span
+                    className="absolute top-0.5 right-0.5 text-[8px] leading-none"
+                    title="Animasyonlu"
+                  >
+                    ✨
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       )}
