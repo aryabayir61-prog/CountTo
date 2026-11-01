@@ -561,7 +561,7 @@ export const CountToAdVideoView: React.FC<CountToAdVideoViewProps> = ({ onReturn
                 <Clock className="w-3.5 h-3.5 text-current animate-spin" style={{ animationDuration: '9s' }} />
                 <span>
                   {currentTime >= 40 && currentTime < 46
-                    ? 'Türkiye Yerel Saati (UTC+3) · Canlı'
+                    ? 'CountTo · Canlı Saat'
                     : 'CountTo · Geleceğe Geri Sayım'}
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse ml-0.5" />

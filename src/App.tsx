@@ -27,14 +27,8 @@ import { WeatherDevBlogView } from './components/WeatherDevBlogView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
 import { StickyNotesLayer } from './components/StickyNotesLayer';
-import { RainEffectCanvas } from './components/RainEffectCanvas';
-import { MusicView } from './components/MusicView';
-import { SpotifyPlayerBar } from './components/SpotifyPlayerBar';
-import { SpotifyTrack } from './types/music';
-import { SPOTIFY_TRACKS } from './utils/spotifyCatalog';
-import { isFavoriteTrack, toggleFavoriteTrack } from './utils/musicRecommendationEngine';
+import { LiveRainBackground } from './components/LiveRainBackground';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
-import { audioPlayer } from './utils/audioPlayerManager';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
 const SOUND_KEY = 'contto_sound_enabled';
@@ -145,10 +139,7 @@ export default function App() {
     return clockPreset ? clockPreset.id : (events[0]?.id || 'preset-current-time');
   });
 
-  const [activeView, setActiveView] = useState<'display' | 'list' | 'themes' | 'music'>('display');
-  const [activeSpotifyTrack, setActiveSpotifyTrack] = useState<SpotifyTrack | null>(null);
-  const [isSpotifyPlaying, setIsSpotifyPlaying] = useState<boolean>(false);
-  const [favMusicVersion, setFavMusicVersion] = useState<number>(0);
+  const [activeView, setActiveView] = useState<'display' | 'list' | 'themes'>('display');
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(SOUND_KEY) === 'true';
@@ -462,58 +453,6 @@ export default function App() {
     playCelebrationChime(0.25);
   };
 
-  useEffect(() => {
-    const unsubscribe = audioPlayer.subscribe((state) => {
-      setIsSpotifyPlaying(state.isPlaying);
-      if (state.track) {
-        setActiveSpotifyTrack(state.track);
-      }
-    });
-
-    audioPlayer.setOnTrackEnded(() => {
-      handleNextSpotifyTrack();
-    });
-
-    return unsubscribe;
-  }, [activeSpotifyTrack]);
-
-  const handlePlaySpotifyTrack = (track: SpotifyTrack) => {
-    setActiveSpotifyTrack(track);
-    setIsSpotifyPlaying(true);
-    audioPlayer.playTrack(track);
-    if (ambientEnabled) {
-      setAmbientEnabled(false);
-    }
-  };
-
-  const handleToggleSpotifyPlay = () => {
-    audioPlayer.togglePlay();
-  };
-
-  const handleNextSpotifyTrack = () => {
-    if (!activeSpotifyTrack) {
-      handlePlaySpotifyTrack(SPOTIFY_TRACKS[0]);
-      return;
-    }
-    const idx = SPOTIFY_TRACKS.findIndex((t) => t.id === activeSpotifyTrack.id);
-    const nextIdx = (idx + 1) % SPOTIFY_TRACKS.length;
-    handlePlaySpotifyTrack(SPOTIFY_TRACKS[nextIdx]);
-  };
-
-  const handlePreviousSpotifyTrack = () => {
-    if (!activeSpotifyTrack) {
-      handlePlaySpotifyTrack(SPOTIFY_TRACKS[0]);
-      return;
-    }
-    const idx = SPOTIFY_TRACKS.findIndex((t) => t.id === activeSpotifyTrack.id);
-    const prevIdx = (idx - 1 + SPOTIFY_TRACKS.length) % SPOTIFY_TRACKS.length;
-    handlePlaySpotifyTrack(SPOTIFY_TRACKS[prevIdx]);
-  };
-
-  const handleToggleSpotifyFavorite = (track: SpotifyTrack) => {
-    toggleFavoriteTrack(track);
-    setFavMusicVersion((prev) => prev + 1);
-  };
 
   // Global Keyboard Shortcuts Listener
   useEffect(() => {
@@ -626,12 +565,6 @@ export default function App() {
         return;
       }
 
-      // 9. Music page shortcut ('u')
-      if (key === 'u') {
-        e.preventDefault();
-        setActiveView((v) => (v === 'music' ? 'display' : 'music'));
-        return;
-      }
 
       // 9. Quick animation style change ('1' - '5')
       if (['1', '2', '3', '4', '5'].includes(e.key)) {
@@ -677,10 +610,10 @@ export default function App() {
   return (
     <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}>
       {/* Dynamic Animated Ambient Canvas & Mesh */}
-      <AmbientBackground theme={currentTheme} />
+      <AmbientBackground theme={currentTheme} isRainThemeActive={isRainThemeActive} />
 
-      {/* Realistic Physical Rain Theme Canvas with Collision & Splashing */}
-      {isRainThemeActive && <RainEffectCanvas />}
+      {/* Living Scenic Balcony Rainy City Ambient Background (with rain audio) */}
+      <LiveRainBackground isActive={isRainThemeActive} />
 
       {/* Top Bar Contract (hidden in fullscreen cinema mode for ultimate immersion) */}
       {!isFullscreen && (
@@ -792,23 +725,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {activeView === 'music' && (
-            <motion.div
-              key="music"
-              initial={{ opacity: 0, x: 32, filter: 'blur(3px)' }}
-              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, x: -32, filter: 'blur(3px)' }}
-              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full flex justify-center"
-            >
-              <MusicView
-                activeTrack={activeSpotifyTrack}
-                isPlaying={isSpotifyPlaying}
-                onPlayTrack={handlePlaySpotifyTrack}
-                onTogglePlay={handleToggleSpotifyPlay}
-              />
-            </motion.div>
-          )}
+
         </AnimatePresence>
       </main>
 
@@ -881,23 +798,7 @@ export default function App() {
         isFocusMode={isFocusMode}
       />
 
-      {/* Rectangular Mini Player Bar */}
-      <SpotifyPlayerBar
-        track={activeSpotifyTrack}
-        isPlaying={isSpotifyPlaying}
-        onTogglePlay={handleToggleSpotifyPlay}
-        onNext={handleNextSpotifyTrack}
-        onPrevious={handlePreviousSpotifyTrack}
-        onToggleFavorite={handleToggleSpotifyFavorite}
-        isFavorite={Boolean(activeSpotifyTrack && isFavoriteTrack(activeSpotifyTrack.id))}
-        isFullscreen={isFullscreen}
-        isFocusMode={isFocusMode}
-        onClose={() => {
-          audioPlayer.stop();
-          setIsSpotifyPlaying(false);
-          setActiveSpotifyTrack(null);
-        }}
-      />
+
     </div>
   );
 }

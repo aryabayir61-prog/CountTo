@@ -249,7 +249,7 @@ export const CollectionArticleModal: React.FC<CollectionArticleModalProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5">
-                      {article.id === 'yagmurlu-sonbahar-aksamlari' && onToggleRainTheme && (
+                      {(article.id === 'yagmurlu-pencere-derin-rahatlama' || article.coverStyle.illustrationType === 'raincity') && onToggleRainTheme && (
                         <button
                           type="button"
                           onClick={onToggleRainTheme}

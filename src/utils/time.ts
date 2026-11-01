@@ -121,7 +121,7 @@ export function getDefaultPresets(): CountdownEvent[] {
       createdAt: now.toISOString(),
       style: 'countTo',
       theme: 'aurora',
-      notes: 'Canlı Türkiye Yerel Saati (Europe/Istanbul · UTC+3).',
+      notes: undefined,
       category: 'genel',
       showMilliseconds: false,
     },

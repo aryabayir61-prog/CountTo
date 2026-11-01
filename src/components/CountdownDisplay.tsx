@@ -21,7 +21,6 @@ import { OrbitalRingsView } from './styles/OrbitalRingsView';
 import { KineticRollView } from './styles/KineticRollView';
 import { MonolithView } from './styles/MonolithView';
 import { CountToRollView } from './styles/CountToRollView';
-import { FloatingMusicWidget } from './FloatingMusicWidget';
 import { formatLocaleDate, getTurkeyTime, TurkeyCurrentTime } from '../utils/time';
 
 interface CountdownDisplayProps {
@@ -205,34 +204,19 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         {/* Event Header Information */}
         <div className="text-center mb-8 sm:mb-12 max-w-2xl px-2 transition-all duration-300">
           {/* Category & Status Line */}
-          <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-neutral-400 mb-3 tracking-wide flex-wrap">
-            {isFinished ? (
-              <button
-                type="button"
-                onClick={onTestChime}
-                title="Saat başı çanı & saniye sesi aktif · Tıklayarak saat başı çanını dinleyin"
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-semibold text-xs shadow-sm hover:bg-cyan-500/20 transition-all cursor-pointer group select-none"
-              >
-                <Clock className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-                <span>Türkiye Yerel Saati (UTC+3)</span>
-                {soundEnabled && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse ml-0.5" title="Ses Açık" />
-                )}
-              </button>
-            ) : (
-              <>
-                <span className="flex items-center gap-1.5 font-medium text-neutral-300">
-                  <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-                  {formatLocaleDate(event.targetDate)}
-                </span>
-                <span aria-hidden="true" className="text-neutral-600">·</span>
-                <span className="flex items-center gap-1 text-neutral-300">
-                  <Clock className="w-3.5 h-3.5 text-neutral-400" />
-                  Geri Sayım Aktif
-                </span>
-              </>
-            )}
-          </div>
+          {!isFinished && (
+            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm text-neutral-400 mb-3 tracking-wide flex-wrap">
+              <span className="flex items-center gap-1.5 font-medium text-neutral-300">
+                <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                {formatLocaleDate(event.targetDate)}
+              </span>
+              <span aria-hidden="true" className="text-neutral-600">·</span>
+              <span className="flex items-center gap-1 text-neutral-300">
+                <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                Geri Sayım Aktif
+              </span>
+            </div>
+          )}
 
           {/* Primary Event Title */}
           <h1 
@@ -466,9 +450,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Düzenle</span>
               </button>
-
-              {/* Music Widget Button (Immediately next to Düzenle) */}
-              <FloatingMusicWidget themePrimary={theme.primary} />
 
               {/* Fullscreen Button */}
               <button

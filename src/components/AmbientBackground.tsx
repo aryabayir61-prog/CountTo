@@ -3,9 +3,13 @@ import { ThemeConfig } from '../types/countdown';
 
 interface AmbientBackgroundProps {
   theme: ThemeConfig;
+  isRainThemeActive?: boolean;
 }
 
-export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) => {
+export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ 
+  theme, 
+  isRainThemeActive = false 
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -86,7 +90,9 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
   }, [theme.primary]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 transition-colors duration-1000">
+    <div className={`fixed inset-0 pointer-events-none overflow-hidden z-0 transition-opacity duration-1000 ${
+      isRainThemeActive ? 'opacity-35' : 'opacity-100'
+    }`}>
       {/* Background Radial Tint strictly following chosen theme */}
       <div
         className="absolute inset-0 transition-all duration-1000 opacity-90"
@@ -95,29 +101,37 @@ export const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ theme }) =
         }}
       />
 
-      {/* Ambient Large Glow Spots - Strictly adhering to chosen theme colors */}
-      <div
-        className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[75vw] h-[75vw] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ease-out"
-        style={{ 
-          backgroundColor: theme.primary,
-          opacity: 0.22,
-        }}
-      />
-      <div
-        className="absolute -bottom-[20vw] right-[10vw] w-[55vw] h-[55vw] rounded-full blur-[120px] pointer-events-none transition-all duration-1000 ease-out"
-        style={{ 
-          backgroundColor: theme.secondary,
-          opacity: 0.16,
-        }}
-      />
+      {/* Ambient Large Glow Spots */}
+      {!isRainThemeActive && (
+        <>
+          <div
+            className="absolute -top-[25vw] left-1/2 -translate-x-1/2 w-[75vw] h-[75vw] rounded-full blur-[140px] pointer-events-none transition-all duration-1000 ease-out"
+            style={{ 
+              backgroundColor: theme.primary,
+              opacity: 0.22,
+            }}
+          />
+          <div
+            className="absolute -bottom-[20vw] right-[10vw] w-[55vw] h-[55vw] rounded-full blur-[120px] pointer-events-none transition-all duration-1000 ease-out"
+            style={{ 
+              backgroundColor: theme.secondary,
+              opacity: 0.16,
+            }}
+          />
+        </>
+      )}
 
       {/* Micro-mesh Grid Pattern for subtle depth */}
-      <div 
-        className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]" 
-      />
+      {!isRainThemeActive && (
+        <div 
+          className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]" 
+        />
+      )}
 
       {/* Interactive Stardust Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      {!isRainThemeActive && (
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+      )}
     </div>
   );
 };
