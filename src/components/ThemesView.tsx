@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Sparkles, Volume2, VolumeX, CloudRain } from 'lucide-react';
+import { Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
 import { playThemeSound, playHoverClickSound, playRainThemeSound } from '../utils/audio';
@@ -81,31 +81,26 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
         >
           {/* Preview Box with Living Scenic Balcony Artwork */}
           <div className="relative h-32 sm:h-36 w-full rounded-2xl overflow-hidden mb-5 border border-cyan-500/25 flex items-center justify-center bg-slate-950">
-            {/* Scenic Rainy City Balcony Artwork */}
+            {/* Scenic Rainy City Balcony Artwork from video */}
             <img
-              src="/assets/aistudio/image_ac81fec4.png"
+              src="/assets/rain_video_clean_frame.jpg"
               alt="Huzurlu Yağmurlu Şehir"
-              className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500"
+              className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
             />
             
             {/* Atmospheric Tint Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-neutral-950/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-neutral-950/15 to-transparent" />
             <div className="absolute inset-0 bg-cyan-950/20" />
 
-            {/* Sample numbers preview */}
-            <div className="relative z-10 font-mono-numbers text-2xl sm:text-3xl font-black text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] whitespace-nowrap tracking-wide flex items-center justify-center gap-2 select-none">
-              <span className="text-white drop-shadow-md">21</span>
-              <span className="text-cyan-300/60 font-light text-xl sm:text-2xl pb-0.5">:</span>
-              <span className="text-white drop-shadow-md">17</span>
-              <span className="text-cyan-300/60 font-light text-xl sm:text-2xl pb-0.5">:</span>
-              <span className="text-white drop-shadow-md">00</span>
-            </div>
-
-            {/* Living Ambient Sound Badge */}
-            <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/40 text-[10px] font-semibold text-cyan-300 flex items-center gap-1.5 shadow-lg backdrop-blur-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <CloudRain className="w-3 h-3 text-cyan-300" />
-              <span>Canlı Ambiyans</span>
+            {/* Mini CountTo Clock Preview Card */}
+            <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950/65 border border-cyan-400/30 backdrop-blur-md shadow-2xl select-none">
+              <div className="flex items-center gap-1 font-mono-numbers text-xl sm:text-2xl font-black text-white">
+                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">21</span>
+                <span className="text-cyan-400 font-bold pb-0.5">:</span>
+                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">39</span>
+                <span className="text-cyan-400 font-bold pb-0.5">:</span>
+                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">30</span>
+              </div>
             </div>
           </div>
 
