@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ThemeId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
-import { playThemeSound, playHoverClickSound, playRainThemeSound } from '../utils/audio';
+import { playThemeSound, playHoverClickSound } from '../utils/audio';
 import { recordThemeSelection } from '../utils/themeRecommendations';
 import { RecommendedThemesSlider } from './RecommendedThemesSlider';
 import { ThemesCollectionsSection } from './ThemesCollectionsSection';
@@ -13,8 +13,6 @@ interface ThemesViewProps {
   onBackToDisplay: () => void;
   ambientEnabled?: boolean;
   onToggleAmbient?: () => void;
-  isRainThemeActive?: boolean;
-  onToggleRainTheme?: () => void;
 }
 
 export const ThemesView: React.FC<ThemesViewProps> = ({
@@ -23,8 +21,6 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
   onBackToDisplay,
   ambientEnabled = false,
   onToggleAmbient,
-  isRainThemeActive = false,
-  onToggleRainTheme,
 }) => {
   const themeIds = Object.keys(THEMES) as ThemeId[];
   const activeThemeConfig = THEMES[currentTheme];
@@ -33,11 +29,6 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
     recordThemeSelection(tid);
     onSelectTheme(tid);
     playThemeSound(tid);
-  };
-
-  const handleRainThemeClick = () => {
-    onToggleRainTheme?.();
-    playRainThemeSound(0.24);
   };
 
   return (
@@ -60,74 +51,12 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
           </p>
         </div>
         <span className="text-xs font-semibold text-neutral-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-          {themeIds.length + 1} Tema
+          {themeIds.length} Tema
         </span>
       </div>
 
       {/* Grid of Themes - Expansive 3 Columns with Generous Width */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-        {/* Özel Yağmur Teması Kartı (Canlı Ambiyans · Huzurlu Şehir Manzarası) */}
-        <div
-          onClick={handleRainThemeClick}
-          onMouseEnter={() => playHoverClickSound()}
-          className={`group cursor-pointer rounded-3xl border p-6 transition-all duration-300 relative overflow-hidden backdrop-blur-xl ${
-            isRainThemeActive
-              ? 'border-cyan-400/80 bg-neutral-900/90 ring-2 ring-cyan-400/30 shadow-2xl scale-[1.01]'
-              : 'border-white/10 bg-neutral-900/40 hover:border-cyan-400/40 hover:bg-neutral-900/60'
-          }`}
-          style={{
-            boxShadow: isRainThemeActive ? '0 15px 35px -10px rgba(6, 182, 212, 0.4)' : undefined,
-          }}
-        >
-          {/* Preview Box with Living Scenic Balcony Artwork */}
-          <div className="relative h-32 sm:h-36 w-full rounded-2xl overflow-hidden mb-5 border border-cyan-500/25 flex items-center justify-center bg-slate-950">
-            {/* Scenic Rainy City Balcony Artwork from video */}
-            <img
-              src="/assets/rain_video_clean_frame.jpg"
-              alt="Huzurlu Yağmurlu Şehir"
-              className="absolute inset-0 w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-500"
-            />
-            
-            {/* Atmospheric Tint Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/80 via-neutral-950/15 to-transparent" />
-            <div className="absolute inset-0 bg-cyan-950/20" />
-
-            {/* Mini CountTo Clock Preview Card */}
-            <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950/65 border border-cyan-400/30 backdrop-blur-md shadow-2xl select-none">
-              <div className="flex items-center gap-1 font-mono-numbers text-xl sm:text-2xl font-black text-white">
-                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">21</span>
-                <span className="text-cyan-400 font-bold pb-0.5">:</span>
-                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">39</span>
-                <span className="text-cyan-400 font-bold pb-0.5">:</span>
-                <span className="px-1.5 py-0.5 rounded-md bg-neutral-900/80 border border-white/10 shadow-xs">30</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Title & Selection */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-bold text-base sm:text-lg text-white truncate tracking-tight flex items-center gap-2">
-                <span>Huzurlu Yağmurlu Şehir</span>
-              </h3>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0 bg-cyan-400 shadow-xs" />
-                <span className="w-3.5 h-3.5 rounded-full inline-block border border-white/20 shrink-0 bg-emerald-500 shadow-xs" />
-                <span className="text-xs text-cyan-300/90 font-medium">Balkon Manzarası & Doğal Yağmur Sesi</span>
-              </div>
-            </div>
-
-            {isRainThemeActive ? (
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-950 font-bold shadow-md bg-cyan-400 shrink-0">
-                <Check className="w-4 h-4 stroke-[3]" />
-              </div>
-            ) : (
-              <span className="text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white/5 group-hover:bg-cyan-500/20 text-neutral-400 group-hover:text-cyan-300 border border-white/5 transition-all shrink-0">
-                Seç
-              </span>
-            )}
-          </div>
-        </div>
         {themeIds.map((tid) => {
           const t = THEMES[tid];
           const isSelected = tid === currentTheme;
@@ -268,8 +197,6 @@ export const ThemesView: React.FC<ThemesViewProps> = ({
         currentTheme={currentTheme}
         onSelectTheme={onSelectTheme}
         onBackToDisplay={onBackToDisplay}
-        isRainThemeActive={isRainThemeActive}
-        onToggleRainTheme={onToggleRainTheme}
       />
 
       {/* Return Button */}

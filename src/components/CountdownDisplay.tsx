@@ -13,7 +13,8 @@ import {
   Zap, 
   Activity,
   CheckCircle2,
-  Keyboard
+  Keyboard,
+  PictureInPicture2
 } from 'lucide-react';
 import { CountdownEvent, CountdownStyle, ThemeConfig, TimeRemaining } from '../types/countdown';
 import { FlipCardView } from './styles/FlipCardView';
@@ -41,6 +42,8 @@ interface CountdownDisplayProps {
   onToggleVertical?: () => void;
   onTestChime?: () => void;
   onFocusModeChange?: (isFocusMode: boolean) => void;
+  onTogglePiP?: () => void;
+  isPiPActive?: boolean;
 }
 
 export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
@@ -61,6 +64,8 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   onToggleVertical,
   onTestChime,
   onFocusModeChange,
+  onTogglePiP,
+  isPiPActive = false,
 }) => {
   const styles: { id: CountdownStyle; name: string }[] = [
     { id: 'countTo', name: 'CountTo (Aşağı Kayma)' },
@@ -451,11 +456,27 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                 <span>Düzenle</span>
               </button>
 
+              {/* Picture-in-Picture / Floating Mode Button */}
+              {onTogglePiP && (
+                <button
+                  onClick={onTogglePiP}
+                  title={isPiPActive ? 'Yüzen Pencereyi Kapat (Kısayol: P)' : 'Yüzen Pencere Modu (PiP - Kısayol: P)'}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5 select-none cursor-pointer ${
+                    isPiPActive
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 shadow-xs'
+                      : 'text-neutral-400 hover:text-white border-transparent hover:bg-white/5'
+                  }`}
+                >
+                  <PictureInPicture2 className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">Yüzen Pencere</span>
+                </button>
+              )}
+
               {/* Fullscreen Button */}
               <button
                 onClick={onToggleFullscreen}
                 title={isFullscreen ? 'Tam Ekrandan Çık (Kısayol: F veya Esc)' : 'Tam Ekran Modu (Kısayol: F)'}
-                className="p-1.5 px-2.5 rounded-full text-neutral-400 hover:text-white border border-transparent hover:bg-white/5 transition-all text-xs font-medium flex items-center select-none"
+                className="p-1.5 px-2.5 rounded-full text-neutral-400 hover:text-white border border-transparent hover:bg-white/5 transition-all text-xs font-medium flex items-center select-none cursor-pointer"
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
               </button>

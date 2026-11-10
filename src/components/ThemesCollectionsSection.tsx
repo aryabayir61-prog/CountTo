@@ -10,16 +10,12 @@ interface ThemesCollectionsSectionProps {
   currentTheme: ThemeId;
   onSelectTheme: (themeId: ThemeId) => void;
   onBackToDisplay: () => void;
-  isRainThemeActive?: boolean;
-  onToggleRainTheme?: () => void;
 }
 
 export const ThemesCollectionsSection: React.FC<ThemesCollectionsSectionProps> = ({
   currentTheme,
   onSelectTheme,
   onBackToDisplay,
-  isRainThemeActive = false,
-  onToggleRainTheme,
 }) => {
   const [activeArticle, setActiveArticle] = useState<CollectionArticle | null>(null);
 
@@ -88,8 +84,6 @@ export const ThemesCollectionsSection: React.FC<ThemesCollectionsSectionProps> =
         onApplyTheme={onSelectTheme}
         onBackToDisplay={onBackToDisplay}
         currentTheme={currentTheme}
-        isRainThemeActive={isRainThemeActive}
-        onToggleRainTheme={onToggleRainTheme}
       />
     </section>
   );

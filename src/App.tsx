@@ -27,7 +27,7 @@ import { WeatherDevBlogView } from './components/WeatherDevBlogView';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
 import { StickyNotesLayer } from './components/StickyNotesLayer';
-import { LiveRainBackground } from './components/LiveRainBackground';
+import { IntroducingCountToView } from './components/IntroducingCountToView';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
@@ -68,6 +68,15 @@ export default function App() {
   // Check if user is navigating to special routes
   const [isBestExperience, setIsBestExperience] = useState<boolean>(isBestExperiencePage);
   const [isWeatherDevBlog, setIsWeatherDevBlog] = useState<boolean>(isWeatherDevBlogPage);
+  const [isIntroducingOpen, setIsIntroducingOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.style.overflow = isIntroducingOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isIntroducingOpen]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -161,20 +170,6 @@ export default function App() {
     return false;
   });
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
-  const [isRainThemeActive, setIsRainThemeActive] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('contto_rain_theme_enabled') === 'true';
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('contto_rain_theme_enabled', String(isRainThemeActive));
-    } catch {
-      // Ignore
-    }
-  }, [isRainThemeActive]);
 
   // Request real location permission on application startup
   useEffect(() => {
@@ -478,6 +473,10 @@ export default function App() {
 
       // 1. Modal close / escape priority
       if (e.key === 'Escape') {
+        if (isIntroducingOpen) {
+          setIsIntroducingOpen(false);
+          return;
+        }
         if (isShortcutsOpen) {
           setIsShortcutsOpen(false);
           return;
@@ -502,8 +501,8 @@ export default function App() {
         return;
       }
 
-      // Do not trigger other actions if a modal is open
-      if (isModalOpen || Boolean(sharingEvent)) {
+      // Do not trigger other actions if a modal or showcase is open
+      if (isIntroducingOpen || isModalOpen || Boolean(sharingEvent)) {
         return;
       }
 
@@ -594,6 +593,7 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    isIntroducingOpen,
     isShortcutsOpen,
     isModalOpen,
     sharingEvent,
@@ -610,10 +610,7 @@ export default function App() {
   return (
     <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}>
       {/* Dynamic Animated Ambient Canvas & Mesh */}
-      <AmbientBackground theme={currentTheme} isRainThemeActive={isRainThemeActive} />
-
-      {/* Living Scenic Balcony Rainy City Ambient Background (with rain audio) */}
-      <LiveRainBackground isActive={isRainThemeActive} />
+      <AmbientBackground theme={currentTheme} />
 
       {/* Top Bar Contract (hidden in fullscreen cinema mode for ultimate immersion) */}
       {!isFullscreen && (
@@ -719,8 +716,6 @@ export default function App() {
                 onBackToDisplay={() => setActiveView('display')}
                 ambientEnabled={ambientEnabled}
                 onToggleAmbient={() => setAmbientEnabled((prev) => !prev)}
-                isRainThemeActive={isRainThemeActive}
-                onToggleRainTheme={() => setIsRainThemeActive((prev) => !prev)}
               />
             </motion.div>
           )}
@@ -739,17 +734,13 @@ export default function App() {
               <span>Dinamik & Minimalist Zaman Sayacı</span>
             </div>
             <div className="flex items-center gap-4 text-[11px] text-neutral-500">
-              <a
-                href="/weathernotifications"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.history.pushState({}, '', '/weathernotifications');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }}
+              <button
+                type="button"
+                onClick={() => setIsIntroducingOpen(true)}
                 className="hover:text-cyan-400 transition-colors cursor-pointer"
               >
-                Hava Durumu DevBlog →
-              </a>
+                Karşınızda CountTo
+              </button>
               <span aria-hidden="true">·</span>
               <span>{events.length} Kayıtlı Geri Sayım</span>
               <span aria-hidden="true">·</span>
@@ -798,7 +789,29 @@ export default function App() {
         isFocusMode={isFocusMode}
       />
 
-
+      {/* Karşınızda CountTo Fullscreen Apple-Style Product Showcase */}
+      <AnimatePresence>
+        {isIntroducingOpen && (
+          <IntroducingCountToView
+            events={events}
+            activeEvent={activeEvent}
+            onClose={() => setIsIntroducingOpen(false)}
+            onApplyThemeAndStyle={(targetId, newTheme, newStyle) => {
+              setEvents((prev) =>
+                prev.map((e) =>
+                  e.id === targetId ? { ...e, theme: newTheme, style: newStyle } : e
+                )
+              );
+              setActiveEventId(targetId);
+              setActiveView('display');
+            }}
+            onOpenCreateModal={() => {
+              setEditingEvent(null);
+              setIsModalOpen(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -28,6 +28,7 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
     { key: 'E', description: 'Aktif Geri Sayımı Düzenle', category: 'Kontrol' },
     { key: 'S', description: 'Saat Sesi & Tik-Tak Sesini Aç / Kapat', category: 'Kontrol' },
     { key: 'M', description: 'Saliseyi (Milisaniye) Aç / Kapat', category: 'Kontrol' },
+    { key: 'P', description: 'Yüzen Pencere Modunu Aç / Kapat (PiP)', category: 'Görünüm' },
     { key: '1 - 5', description: 'Animasyon Stilini Değiştir (CountTo, Flip, Halkalar...)', category: 'Görünüm' },
     { key: 'Çift Tık', description: 'Tıkladığınız yerde Widget (Not / Hava Durumu) menüsünü açar', category: 'Kontrol' },
     { key: 'Esc', description: 'Pencereleri Kapat / Geri Sayıma Dön', category: 'Genel' },

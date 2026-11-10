@@ -1501,79 +1501,7 @@ export function playPaperTearSound(volume = 0.35): void {
   }
 }
 
-/**
- * Atmospheric soft rain sound with gentle acoustic droplet tings.
- * Plays when "Yağmur Teması" is selected.
- */
-export function playRainThemeSound(volume = 0.24): void {
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
 
-    const now = ctx.currentTime;
-    const duration = 1.6;
-    const sampleRate = ctx.sampleRate;
-    const bufferSize = Math.floor(sampleRate * duration);
-    const buffer = ctx.createBuffer(1, bufferSize, sampleRate);
-    const data = buffer.getChannelData(0);
-
-    // Soft rain noise buffer with natural fluctuation
-    for (let i = 0; i < bufferSize; i++) {
-      const t = i / bufferSize;
-      const wave = Math.sin(t * 15) * 0.2 + 0.8;
-      data[i] = (Math.random() * 2 - 1) * wave;
-    }
-
-    const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = buffer;
-
-    // Lowpass filter for warm, relaxing rain patter
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1200, now);
-    filter.frequency.exponentialRampToValueAtTime(700, now + duration);
-
-    const gainNode = ctx.createGain();
-    gainNode.gain.setValueAtTime(0.0001, now);
-    gainNode.gain.linearRampToValueAtTime(volume * 0.7, now + 0.15);
-    gainNode.gain.linearRampToValueAtTime(volume * 0.5, now + 0.8);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    noiseSource.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    noiseSource.start(now);
-    noiseSource.stop(now + duration);
-
-    // A few gentle water droplet tings
-    const dropPitches = [880, 1174, 1318, 987];
-    dropPitches.forEach((freq, idx) => {
-      const dropTime = now + 0.08 + idx * 0.16 + Math.random() * 0.05;
-      const osc = ctx.createOscillator();
-      const dropGain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, dropTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.6, dropTime + 0.08);
-
-      dropGain.gain.setValueAtTime(0.0001, dropTime);
-      dropGain.gain.linearRampToValueAtTime(volume * 0.35, dropTime + 0.01);
-      dropGain.gain.exponentialRampToValueAtTime(0.0001, dropTime + 0.09);
-
-      osc.connect(dropGain);
-      dropGain.connect(ctx.destination);
-
-      osc.start(dropTime);
-      osc.stop(dropTime + 0.1);
-    });
-  } catch {
-    // Ignore audio playback errors
-  }
-}
 
 /**
  * Resonant liquid frosted glass bubble pop sound.

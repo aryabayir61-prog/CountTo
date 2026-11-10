@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ArrowLeft, Sparkles, Check, Clock, Calendar, Bookmark, CloudRain, ChevronDown } from 'lucide-react';
+import { X, ArrowLeft, Sparkles, Check, Clock, Calendar, Bookmark, ChevronDown } from 'lucide-react';
 import { CollectionArticle } from '../data/collectionsBlog';
 import { CollectionCoverArt } from './CollectionCoverArt';
 import { ThemeId } from '../types/countdown';
@@ -14,8 +14,6 @@ interface CollectionArticleModalProps {
   onApplyTheme: (themeId: ThemeId) => void;
   onBackToDisplay: () => void;
   currentTheme: ThemeId;
-  isRainThemeActive?: boolean;
-  onToggleRainTheme?: () => void;
 }
 
 export const CollectionArticleModal: React.FC<CollectionArticleModalProps> = ({
@@ -24,8 +22,6 @@ export const CollectionArticleModal: React.FC<CollectionArticleModalProps> = ({
   onApplyTheme,
   onBackToDisplay,
   currentTheme,
-  isRainThemeActive = false,
-  onToggleRainTheme,
 }) => {
   const [mounted, setMounted] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -249,22 +245,6 @@ export const CollectionArticleModal: React.FC<CollectionArticleModalProps> = ({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5">
-                      {(article.id === 'yagmurlu-pencere-derin-rahatlama' || article.coverStyle.illustrationType === 'raincity') && onToggleRainTheme && (
-                        <button
-                          type="button"
-                          onClick={onToggleRainTheme}
-                          onMouseEnter={() => playHoverClickSound()}
-                          className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                            isRainThemeActive
-                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
-                              : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
-                          }`}
-                        >
-                          <CloudRain className="w-4 h-4" />
-                          <span>{isRainThemeActive ? 'Yağmur Aktif' : 'Yağmur Efektini Aç'}</span>
-                        </button>
-                      )}
-
                       <button
                         type="button"
                         onClick={handleApplyAndGo}
