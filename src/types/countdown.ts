@@ -35,6 +35,15 @@ export type ThemeId =
   | 'eucalyptus'
   | 'sunburst';
 
+export type CompletionSoundId = 
+  | 'celestial_chime'
+  | 'zen_bowl'
+  | 'grand_fanfare'
+  | 'deep_gong'
+  | 'crystal_sparkle'
+  | 'harpsichord_shimmer'
+  | 'soft_bell';
+
 export interface ThemeConfig {
   id: ThemeId;
   name: string;
@@ -57,6 +66,7 @@ export interface CountdownEvent {
   createdAt: string;  // ISO 8601 string
   style: CountdownStyle;
   theme: ThemeId;
+  completionSound?: CompletionSoundId;
   notes?: string;
   category?: 'genel' | 'ozel' | 'is' | 'tatil' | 'eglence' | 'kutlama';
   showMilliseconds?: boolean;
@@ -71,4 +81,52 @@ export interface TimeRemaining {
   totalMs: number;
   isPast: boolean;
   progressPercent: number; // 0 to 100 based on createdAt -> targetDate
+}
+
+export type StageReactionType = 'clap' | 'confetti' | 'sparkle' | 'heart' | 'fire';
+
+export interface StageReactionEvent {
+  reactionId: string;
+  type: StageReactionType;
+  senderId: string;
+  senderName: string;
+  viaClap: boolean;
+  timestamp: number;
+}
+
+export interface StageParticipant {
+  id: string;
+  name: string;
+  isHost: boolean;
+  clapActive: boolean;
+  joinedAt: number;
+}
+
+export interface StageEventSnapshot {
+  id?: string;
+  title: string;
+  targetDate: string;
+  createdAt: string;
+  style: CountdownStyle;
+  theme: ThemeId;
+  completionSound?: CompletionSoundId;
+  notes?: string;
+  category?: 'genel' | 'ozel' | 'is' | 'tatil' | 'eglence' | 'kutlama';
+  showMilliseconds?: boolean;
+  isPaused?: boolean;
+  pausedRemainingMs?: number;
+}
+
+export interface SharedStageRoomState {
+  roomCode: string;
+  hostId: string;
+  hostName: string;
+  event: StageEventSnapshot;
+  isPaused: boolean;
+  pausedRemainingMs?: number;
+  participants: StageParticipant[];
+  participantCount: number;
+  totalClaps: number;
+  totalReactions: number;
+  createdAt: number;
 }

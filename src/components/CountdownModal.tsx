@@ -13,11 +13,19 @@ import {
   ArrowLeft,
   Zap,
   CalendarDays,
-  Tag
+  Tag,
+  Volume2,
+  Play,
+  Flame,
+  Trophy,
+  Wand2,
+  Music,
+  Bell,
+  Moon
 } from 'lucide-react';
-import { CountdownEvent, CountdownStyle, ThemeId } from '../types/countdown';
+import { CountdownEvent, CountdownStyle, ThemeId, CompletionSoundId } from '../types/countdown';
 import { THEMES } from '../utils/themes';
-import { playHoverClickSound } from '../utils/audio';
+import { playHoverClickSound, COMPLETION_SOUNDS, playCompletionSound } from '../utils/audio';
 
 interface CountdownModalProps {
   isOpen: boolean;
@@ -39,6 +47,8 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
   const [targetDate, setTargetDate] = useState('');
   const [style, setStyle] = useState<CountdownStyle>('countTo');
   const [theme, setTheme] = useState<ThemeId>('aurora');
+  const [completionSound, setCompletionSound] = useState<CompletionSoundId>('celestial_chime');
+  const [playingPreviewSound, setPlayingPreviewSound] = useState<CompletionSoundId | null>(null);
   const [notes, setNotes] = useState('');
   const [category, setCategory] = useState<CountdownEvent['category']>('genel');
   const [showMilliseconds, setShowMilliseconds] = useState(false);
@@ -61,6 +71,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
       setTargetDate(toLocalInputString(new Date(initialEvent.targetDate)));
       setStyle(initialEvent.style);
       setTheme(initialEvent.theme);
+      setCompletionSound(initialEvent.completionSound || 'celestial_chime');
       setNotes(initialEvent.notes || '');
       setCategory(initialEvent.category || 'genel');
       setShowMilliseconds(Boolean(initialEvent.showMilliseconds));
@@ -74,6 +85,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
       setTargetDate(toLocalInputString(defaultDate));
       setStyle('countTo');
       setTheme('aurora');
+      setCompletionSound('celestial_chime');
       setNotes('');
       setCategory('genel');
       setShowMilliseconds(false);
@@ -168,6 +180,7 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
       targetDate: parsedDate.toISOString(),
       style,
       theme,
+      completionSound,
       notes: notes.trim() || undefined,
       category,
       showMilliseconds,
@@ -523,6 +536,108 @@ export const CountdownModal: React.FC<CountdownModalProps> = ({
                           />
                           <span className="text-xs truncate font-medium">{t.name.split(' ')[0]}</span>
                         </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Completion Celebration Sound Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Sayaç Bitişi Kutlama Sesi</span>
+                    </label>
+                    <span className="text-[11px] text-neutral-400">
+                      Tıklayıp dinleyebilirsiniz 🎧
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                    {COMPLETION_SOUNDS.map((snd) => {
+                      const isSelected = completionSound === snd.id;
+                      const isPlaying = playingPreviewSound === snd.id;
+
+                      const renderSoundIcon = () => {
+                        switch (snd.id) {
+                          case 'zen_bowl':
+                            return <Moon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />;
+                          case 'grand_fanfare':
+                            return <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />;
+                          case 'deep_gong':
+                            return <Flame className="w-3.5 h-3.5 text-orange-400 shrink-0" />;
+                          case 'crystal_sparkle':
+                            return <Wand2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />;
+                          case 'harpsichord_shimmer':
+                            return <Music className="w-3.5 h-3.5 text-pink-400 shrink-0" />;
+                          case 'soft_bell':
+                            return <Bell className="w-3.5 h-3.5 text-emerald-400 shrink-0" />;
+                          case 'celestial_chime':
+                          default:
+                            return <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />;
+                        }
+                      };
+
+                      const handleTestPlay = (e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setPlayingPreviewSound(snd.id);
+                        playCompletionSound(snd.id, 0.28);
+                        setTimeout(() => {
+                          setPlayingPreviewSound((curr) => (curr === snd.id ? null : curr));
+                        }, 2200);
+                      };
+
+                      return (
+                        <div
+                          key={snd.id}
+                          onClick={() => {
+                            setCompletionSound(snd.id);
+                            playHoverClickSound();
+                          }}
+                          className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between relative group ${
+                            isSelected
+                              ? 'border-cyan-400/80 bg-cyan-500/15 text-white shadow-md'
+                              : 'border-white/10 bg-black/30 text-neutral-400 hover:border-white/20 hover:bg-black/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-1.5 mb-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {renderSoundIcon()}
+                              <span className="text-xs font-semibold text-white truncate">
+                                {snd.name}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleTestPlay}
+                              title={`${snd.name} sesini dinle`}
+                              className={`p-1.5 rounded-full transition-all shrink-0 flex items-center justify-center ${
+                                isPlaying
+                                  ? 'bg-cyan-400 text-neutral-950 scale-105 shadow-md'
+                                  : 'bg-white/10 hover:bg-white/20 text-neutral-200 hover:text-white'
+                              }`}
+                            >
+                              <Volume2 className={`w-3.5 h-3.5 ${isPlaying ? 'animate-pulse' : ''}`} />
+                            </button>
+                          </div>
+
+                          <p className="text-[10px] text-neutral-400 line-clamp-1 pr-6">
+                            {snd.subtitle}
+                          </p>
+
+                          <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/5">
+                            <span className="text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-white/5 text-neutral-300">
+                              {snd.tag}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-bold text-cyan-300 flex items-center gap-1">
+                                <Check className="w-3 h-3 text-cyan-400" />
+                                Seçildi
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

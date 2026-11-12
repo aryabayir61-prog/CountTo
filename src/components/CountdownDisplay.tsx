@@ -22,6 +22,7 @@ import { OrbitalRingsView } from './styles/OrbitalRingsView';
 import { KineticRollView } from './styles/KineticRollView';
 import { MonolithView } from './styles/MonolithView';
 import { CountToRollView } from './styles/CountToRollView';
+import { FloatingMusicWidget } from './FloatingMusicWidget';
 import { formatLocaleDate, getTurkeyTime, TurkeyCurrentTime } from '../utils/time';
 
 interface CountdownDisplayProps {
@@ -455,6 +456,9 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 <span>Düzenle</span>
               </button>
+
+              {/* Floating Music Widget Button & Pop-up */}
+              <FloatingMusicWidget themePrimary={theme.primary} />
 
               {/* Picture-in-Picture / Floating Mode Button */}
               {onTogglePiP && (

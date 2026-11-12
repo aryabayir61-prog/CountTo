@@ -1,5 +1,5 @@
 // Web Audio API based studio-grade sound design for CountTo
-import { ThemeId } from '../types/countdown';
+import { ThemeId, CompletionSoundId } from '../types/countdown';
 
 let audioCtx: AudioContext | null = null;
 
@@ -192,6 +192,302 @@ export function playCelebrationChime(volume = 0.15) {
     });
   } catch {
     // Ignore audio permission errors
+  }
+}
+
+export interface CompletionSoundOption {
+  id: CompletionSoundId;
+  name: string;
+  subtitle: string;
+  tag: string;
+}
+
+export const COMPLETION_SOUNDS: CompletionSoundOption[] = [
+  {
+    id: 'celestial_chime',
+    name: 'Göksel Melodi',
+    subtitle: 'Işıltılı pentatonik akor dizilimi ve rüya tınıları',
+    tag: 'Popüler',
+  },
+  {
+    id: 'zen_bowl',
+    name: 'Tibet Kasesi',
+    subtitle: 'Derin meditasyon tınısı ve rezonanslı armonikler',
+    tag: 'Meditasyon',
+  },
+  {
+    id: 'grand_fanfare',
+    name: 'Büyük Fanfar',
+    subtitle: 'Görkemli zafer kutlaması ve pirinç üflemeli akorları',
+    tag: 'Epik',
+  },
+  {
+    id: 'deep_gong',
+    name: 'Derin Gong',
+    subtitle: 'Tapınak gongu titreşimi ve alt frekans dalgaları',
+    tag: 'Derin',
+  },
+  {
+    id: 'crystal_sparkle',
+    name: 'Kristal Parıltı',
+    subtitle: 'Hızlı parıltılı kristal çanlar ve neşeli basamaklar',
+    tag: 'Büyüleyici',
+  },
+  {
+    id: 'harpsichord_shimmer',
+    name: 'Barok Tınısı',
+    subtitle: 'Zarif lavta ve klavsen tınılı klasik arpej',
+    tag: 'Klasik',
+  },
+  {
+    id: 'soft_bell',
+    name: 'Yumuşak Çan',
+    subtitle: 'Huzurlu manastır çanı ve pürüzsüz sönümleme',
+    tag: 'Dingin',
+  },
+];
+
+/**
+ * Plays the chosen completion celebration sound effect
+ */
+export function playCompletionSound(soundId: CompletionSoundId = 'celestial_chime', volume = 0.25): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+
+    switch (soundId) {
+      case 'zen_bowl': {
+        // Tibetan Singing Bowl synthesis: resonant fundamental + inharmonic partials
+        const fundamental = 261.63; // C4
+        const partials = [
+          { mult: 1.0, gain: 0.85, decay: 2.6 },
+          { mult: 2.71, gain: 0.45, decay: 2.2 },
+          { mult: 5.43, gain: 0.25, decay: 1.6 },
+          { mult: 8.12, gain: 0.12, decay: 1.1 }
+        ];
+
+        // LFO for warm rotary shimmer
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.setValueAtTime(2.4, now);
+        lfoGain.gain.setValueAtTime(3.5, now);
+        lfo.connect(lfoGain);
+
+        partials.forEach((p) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(fundamental * p.mult, now);
+          lfoGain.connect(osc.frequency);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(volume * p.gain, now + 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + p.decay);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + p.decay + 0.1);
+        });
+
+        lfo.start(now);
+        lfo.stop(now + 2.7);
+        break;
+      }
+
+      case 'grand_fanfare': {
+        // Brass Fanfare Arpeggio + Final Chord
+        const notes = [
+          { freq: 261.63, time: 0.00, dur: 0.14 }, // C4
+          { freq: 329.63, time: 0.13, dur: 0.14 }, // E4
+          { freq: 392.00, time: 0.26, dur: 0.15 }, // G4
+          { freq: 523.25, time: 0.40, dur: 0.22 }, // C5
+        ];
+
+        const chordNotes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 chord
+        const chordTime = 0.62;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1400, now);
+        filter.frequency.exponentialRampToValueAtTime(3800, now + 0.65);
+        filter.frequency.exponentialRampToValueAtTime(800, now + 2.1);
+        filter.connect(ctx.destination);
+
+        // Pre-chords
+        notes.forEach((n) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(n.freq, now + n.time);
+
+          gain.gain.setValueAtTime(0.0001, now + n.time);
+          gain.gain.linearRampToValueAtTime(volume * 0.7, now + n.time + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
+
+          osc.connect(gain);
+          gain.connect(filter);
+          osc.start(now + n.time);
+          osc.stop(now + n.time + n.dur + 0.05);
+        });
+
+        // Final celebratory chord
+        chordNotes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+          osc.frequency.setValueAtTime(freq, now + chordTime);
+
+          gain.gain.setValueAtTime(0.0001, now + chordTime);
+          gain.gain.linearRampToValueAtTime(volume * 0.6, now + chordTime + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + chordTime + 1.5);
+
+          osc.connect(gain);
+          gain.connect(filter);
+          osc.start(now + chordTime);
+          osc.stop(now + chordTime + 1.6);
+        });
+        break;
+      }
+
+      case 'deep_gong': {
+        // Deep Temple Gong with rich sub-bass & metallic harmonics
+        const gongFrequencies = [
+          { f: 110.0, g: 0.9, decay: 2.8 },  // A2
+          { f: 164.8, g: 0.6, decay: 2.4 },  // E3
+          { f: 220.0, g: 0.5, decay: 2.2 },  // A3
+          { f: 330.0, g: 0.35, decay: 1.8 }, // E4
+          { f: 512.0, g: 0.22, decay: 1.3 }, // inharmonic shimmer
+          { f: 830.0, g: 0.12, decay: 0.9 }, // strike metal transient
+        ];
+
+        gongFrequencies.forEach((item) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = item.f < 200 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(item.f, now);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(volume * item.g, now + 0.025);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + item.decay);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + item.decay + 0.1);
+        });
+        break;
+      }
+
+      case 'crystal_sparkle': {
+        // Magical shimmering crystal stairs
+        const sparkPitches = [1046.50, 1174.66, 1318.51, 1567.98, 1760.00, 2093.00, 2349.32, 2637.02]; // C6..E7
+        sparkPitches.forEach((freq, idx) => {
+          const startTime = now + idx * 0.045;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0.0001, startTime);
+          gain.gain.linearRampToValueAtTime(volume * 0.5, startTime + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.85);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + 0.9);
+        });
+        break;
+      }
+
+      case 'harpsichord_shimmer': {
+        // Baroque Harpsichord / Lute flourish
+        const harpChords = [293.66, 369.99, 440.00, 587.33, 739.99, 880.00, 1174.66]; // D maj flourish
+        harpChords.forEach((freq, idx) => {
+          const startTime = now + idx * 0.055;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, startTime);
+
+          gain.gain.setValueAtTime(0.0001, startTime);
+          gain.gain.linearRampToValueAtTime(volume * 0.6, startTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 1.1);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(startTime);
+          osc.stop(startTime + 1.2);
+        });
+        break;
+      }
+
+      case 'soft_bell': {
+        // Pure gentle monastery bell
+        const bellPitches = [
+          { f: 440.0, g: 0.8, decay: 2.2 },
+          { f: 880.0, g: 0.45, decay: 1.8 },
+          { f: 1320.0, g: 0.22, decay: 1.2 },
+        ];
+
+        bellPitches.forEach((p) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(p.f, now);
+
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(volume * p.g, now + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + p.decay);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now);
+          osc.stop(now + p.decay + 0.1);
+        });
+        break;
+      }
+
+      case 'celestial_chime':
+      default: {
+        // Celestial shimmer arpeggio
+        const frequencies = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+        frequencies.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.075);
+
+          gain.gain.setValueAtTime(0.0001, now + idx * 0.075);
+          gain.gain.linearRampToValueAtTime(volume * 0.75, now + idx * 0.075 + 0.035);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.075 + 1.35);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(now + idx * 0.075);
+          osc.stop(now + idx * 0.075 + 1.45);
+        });
+        break;
+      }
+    }
+  } catch {
+    // Ignore audio playback errors
   }
 }
 
@@ -1556,6 +1852,8 @@ export function playLiquidPopSound(volume = 0.22): void {
     // Ignore audio permission errors
   }
 }
+
+
 
 
 

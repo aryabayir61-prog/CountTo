@@ -6,6 +6,7 @@ import { calculateTimeRemaining, getDefaultPresets, getTurkeyTime } from './util
 import { 
   playTickSound, 
   playCelebrationChime, 
+  playCompletionSound,
   playThemeSound,
   playHoverClickSound,
   startAmbientMusic,
@@ -349,7 +350,11 @@ export default function App() {
           hasCelebratedRef.current = true;
           fireCelebrationConfetti();
           if (soundEnabled) {
-            playCelebrationChime(0.2);
+            if (activeEvent.completionSound) {
+              playCompletionSound(activeEvent.completionSound, 0.25);
+            } else {
+              playCelebrationChime(0.2);
+            }
           }
         }
       }
@@ -445,7 +450,11 @@ export default function App() {
 
   const handleCelebrateAgain = () => {
     fireCelebrationConfetti();
-    playCelebrationChime(0.25);
+    if (activeEvent.completionSound) {
+      playCompletionSound(activeEvent.completionSound, 0.25);
+    } else {
+      playCelebrationChime(0.25);
+    }
   };
 
 
@@ -812,6 +821,7 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
     </div>
   );
 }

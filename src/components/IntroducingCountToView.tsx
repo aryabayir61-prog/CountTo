@@ -67,31 +67,31 @@ const STYLE_OPTIONS: {
   {
     id: 'countTo',
     name: 'CountTo Roll',
-    tagline: 'Bölme çizgisi olmadan ipek gibi dikey rakam akışı',
+    tagline: 'Maskeli dikey optik akış ve bulanıklıktan netliğe geçiş',
     keyHint: '1',
   },
   {
     id: 'flip',
     name: '3D Mekanik Flip',
-    tagline: 'Üstten katlanan klasik mekanik saat zarafeti',
+    tagline: 'Üstten katlanan gerçek zamanlı split-flap mekaniği',
     keyHint: '2',
   },
   {
     id: 'orbital',
     name: 'Yörünge Halkaları',
-    tagline: 'Her zaman dilimi için ışıklı yörünge halkaları',
+    tagline: 'Her zaman birimi için SVG yay ilerlemesi ve ışıklı hale',
     keyHint: '3',
   },
   {
     id: 'kinetic',
     name: 'Buzlu Cam Kinetik',
-    tagline: 'Derinlik hissi veren zarif buzlu cam kartlar',
+    tagline: 'Derin cam paneller içinde ölçeklenen tipografi',
     keyHint: '4',
   },
   {
     id: 'monolith',
     name: 'Saf Monolit',
-    tagline: 'Akıllı tahtalardan geniş masalara kadar kristal netlik',
+    tagline: 'Akıllı tahtalar ve uzak mesafe okunabilirliği için devasa dizilim',
     keyHint: '5',
   },
 ];
@@ -324,7 +324,7 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
         setRealWeather(weather);
         playWeatherNotificationSound(previewThemeId, 0.2);
       } else {
-        setWeatherError('Hava durumu bilgisine şu an ulaşılamadı.');
+        setWeatherError('Open-Meteo hava servisine şu an ulaşılamadı.');
       }
     } catch {
       setWeatherError('Konum veya ağ izni alınamadı.');
@@ -550,7 +550,7 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
             transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
             className="mt-5 text-sm sm:text-base text-neutral-400 font-medium"
           >
-            {STYLE_OPTIONS.length} Özel Saat Stili · {themeList.length} Atmosfer Teması · {STICKERS.length} Sticker · Akıllı Hava Uyarısı
+            {STYLE_OPTIONS.length} Zaman Motoru · {themeList.length} Atmosfer Teması · {STICKERS.length} Sticker · Gerçek Open-Meteo Zekası
           </motion.p>
 
           <motion.div
@@ -752,7 +752,7 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
           </div>
 
           <p className="mt-6 text-sm sm:text-base font-semibold text-neutral-300">
-            GPU Hızlandırmalı Zaman Sahnesi
+            Optik Zaman Mimarisi
           </p>
 
           <h2
@@ -763,9 +763,10 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
           </h2>
 
           <p className="mt-6 max-w-3xl mx-auto text-base sm:text-xl text-neutral-400 leading-relaxed font-normal">
-            CountTo, GPU hızlandırmalı akıcı saati ile her anı size özel kılmayı başarıyor.
-            Göz yormayan akıcı rakam geçişleri, 3B yaprak katlanmaları, ışıklı yörünge halkaları ve
-            dikkat dağıtan tüm öğeleri gizleyen odak moduyla zamanı bambaşka bir netlikte yaşatır.
+            CountTo, milimetrik zaman hesaplama çekirdeğini GPU hızlandırmalı tipografi fiziğiyle
+            birleştiriyor. Her rakam değişiminde bölme çizgisi olmayan dikey maskeleme, 3D split-flap
+            kartlar, orbital ilerleme yayları ve sıfır dikkat dağıtan tam ekran odak moduyla zamanı
+            gözlerinizle hissettiren bir sahne sunar.
           </p>
 
           <div className="mt-8">
@@ -774,7 +775,7 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
               onClick={() => scrollToSection(architectureSectionRef)}
               className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-[#2997ff] hover:underline cursor-pointer"
             >
-              <span>CountTo&apos;nun katmanlarını canlı inceleyin</span>
+              <span>Katmanlı rendering mimarisini inceleyin</span>
               <ArrowDown className="w-4 h-4" />
             </button>
           </div>
@@ -1125,12 +1126,12 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                         Etkileşimli Notlar & {STICKERS.length} Sticker
                       </p>
                       <h3 className="text-2xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                        Sayacınızın üzerine yapışkan notlar ekleyin ve stickerlarla süsleyin.
+                        Gerçek yapışkan not bileşeni. Sürükleyin, biçimlendirin ve süsleyin.
                       </h3>
                       <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
                         Kalın, italik, altı çizili ve fosforlu metin biçimlendirme; 7 ayrı not
-                        rengi, gerçekçi kağıt yırtma efekti ve 15&apos;i hareketli tam{' '}
-                        {STICKERS.length} özgün sticker ile çalışma alanınızı kişiselleştirin.
+                        rengi, kağıt yırtma animasyonu ve 15&apos;i hareketli tam {STICKERS.length} özel SVG
+                        sticker doğrudan sayacınızın üzerinde yaşar.
                       </p>
 
                       {/* Live Sample of Real Animated Stickers */}
@@ -1227,15 +1228,15 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                   >
                     <div className="lg:col-span-6 space-y-5">
                       <p className="text-xs font-semibold uppercase tracking-widest text-[#2997ff]">
-                        Akıllı Hava Durumu Asistanı
+                        Proaktif Open-Meteo Tahmin Motoru
                       </p>
                       <h3 className="text-2xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                        Yağmur başlamadan 15 dakika önce sizi nazikçe uyarır.
+                        Yağmur başlamadan 15 dakika önce gelen gerçek atmosferik uyarılar.
                       </h3>
                       <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
-                        Bulunduğunuz şehre özel canlı hava koşullarını otomatik takip eder. Hava
-                        kapandığında, rüzgâr arttığında veya yağış yaklaştığında tam ekran zarif
-                        bildirim kartıyla önceden haber verir.
+                        Tarayıcı GPS ve çift IP konum doğrulamasıyla Open-Meteo uydularından canlı
+                        veri alır. Saatlik ve anlık değişimleri analiz ederek bulutlanma, rüzgar ve
+                        yağış geçişlerini önceden bildirir.
                       </p>
 
                       <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1248,8 +1249,8 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                           <MapPin className="w-4 h-4" />
                           <span>
                             {weatherLoading
-                              ? 'Şehrinizin Havası Alınıyor...'
-                              : 'Konumumdan Canlı Havayı Gör'}
+                              ? 'Open-Meteo Verisi Alınıyor...'
+                              : 'Konumumdan Canlı Hava Verisi Çek'}
                           </span>
                         </button>
 
@@ -1305,11 +1306,11 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                           <div className="text-center space-y-3 py-6">
                             <CloudSun className="w-10 h-10 text-[#2997ff] mx-auto" />
                             <p className="text-base font-semibold text-white">
-                              Anlık Hava Zekâsı Hazır
+                              Gerçek Zamanlı Hava Durumu Hazır
                             </p>
                             <p className="text-xs sm:text-sm text-neutral-400 max-w-md mx-auto">
-                              Sol taraftaki düğmeye tıklayarak bulunduğunuz konumun anlık sıcaklığını
-                              ve yaklaşan hava değişimlerini görebilirsiniz.
+                              Sol taraftaki düğmeye tıklayarak bulunduğu koordinat için Open-Meteo
+                              uydu verisini canlı çekebilirsiniz.
                             </p>
                             {weatherError && (
                               <p className="text-xs text-rose-400 pt-1">{weatherError}</p>
@@ -1321,7 +1322,7 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                   </motion.div>
                 )}
 
-                {/* ---------- SLIDE 3: KRİSTAL SES & AKOR STÜDYOSU ---------- */}
+                {/* ---------- SLIDE 3: WEB AUDIO API SENTEZ STÜDYOSU ---------- */}
                 {activeSlide === 3 && (
                   <motion.div
                     key="slide-3"
@@ -1333,53 +1334,53 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                   >
                     <div className="lg:col-span-5 space-y-5">
                       <p className="text-xs font-semibold uppercase tracking-widest text-[#2997ff]">
-                        Kristal Akustik Deneyim
+                        Web Audio API Akustik Sentez
                       </p>
                       <h3 className="text-2xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                        Her saniyeye ruh katan canlı ve berrak ses dokunuşları.
+                        Sıfır MP3. Tamamen matematiksel harmoniklerle anında üretilen ses.
                       </h3>
                       <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
-                        İster çalışırken sakin bir kristal tik sesi, ister her saat başında çalan
-                        zarif bir saat gongu... CountTo tüm sesleri anında ve tertemiz bir doğallıkla
-                        üretir.
+                        CountTo hiç harici ses dosyası indirmez. Tarayıcınızın kendi AudioContext
+                        osilatörleri ve filtreleriyle kristal saniye tikleri, saat başı çanları,
+                        hava durumu akorları ve temaya özel armóniler üretir.
                       </p>
                       {lastPlayedAudio && (
                         <p className="text-xs font-semibold text-emerald-400">
-                          Şimdi Dinlenen: {lastPlayedAudio}
+                          Sentezlenen Akor: {lastPlayedAudio}
                         </p>
                       )}
                     </div>
 
-                    <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {[
                         {
-                          title: 'Saat Başı Gong ve Çan',
-                          desc: 'Her tam saatte çalan sıcak ve asil saat gongu',
+                          title: '7 Özel Sayaç Bitişi Sesi',
+                          desc: 'Kutlama, Zen kasesi, Zafer fanfarı, Kadim gong, Arp...',
+                          play: () => playCelebrationChime(0.24),
+                        },
+                        {
+                          title: 'Saat Başı Gong & Çan',
+                          desc: 'Westminster motifi + 4 harmonikli akustik çan',
                           play: () => playHourlyChimeSound(12, previewThemeId, 0.24),
                         },
                         {
-                          title: 'Temaya Özel Akor',
-                          desc: `${previewTheme.name.split(' (')[0]} atmosferine özel melodi`,
+                          title: 'Kozmik Tema Akoru',
+                          desc: `${previewTheme.name.split(' (')[0]} temasına özel spektrum`,
                           play: () => playThemeSound(previewThemeId, 0.28),
                         },
                         {
-                          title: 'Hava Durumu Kristal Sesi',
-                          desc: 'Hava değişimi bildirimine eşlik eden yumuşak akor',
+                          title: 'Hava Durumu Kristal Çanı',
+                          desc: 'Bulut & yağış uyarısı polifonik akoru',
                           play: () => playWeatherNotificationSound(previewThemeId, 0.25),
                         },
                         {
-                          title: 'Kutlama Fanfarı',
-                          desc: 'Geri sayım tamamlandığında çalan coşkulu zil',
-                          play: () => playCelebrationChime(0.22),
-                        },
-                        {
-                          title: 'Kağıt & Not Sesi',
-                          desc: 'Yapışkan notları açarken duyulan gerçekçi kağıt dokusu',
+                          title: 'Kağıt & Not Mekaniği',
+                          desc: 'Yapışkan not açılma ve etkileşim dokusu',
                           play: () => playPaperPageSound(0.3),
                         },
                         {
-                          title: 'Hassas Saniye Tiki',
-                          desc: 'Odaklanmanızı destekleyen yumuşak saniye ritmi',
+                          title: 'Hassas Kristal Tik',
+                          desc: 'Her saniye başı çalışan ultra kısa sinüs vuruşu',
                           play: () => playTickSound(0.14),
                         },
                       ].map((soundItem) => (
@@ -1488,14 +1489,14 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
                   >
                     <div className="lg:col-span-6 space-y-5">
                       <p className="text-xs font-semibold uppercase tracking-widest text-[#2997ff]">
-                        Tek Tıkla Paylaşım ve Tam Gizlilik
+                        Parametrik Bağlantı & Tam Gizlilik
                       </p>
                       <h3 className="text-2xl sm:text-4xl font-bold tracking-tight text-white leading-tight">
-                        Üyelik yok, kurulum yok. Tek bağlantıyla sevdiklerinize gönderin.
+                        Üyelik yok, sunucu yükü yok. Tek bağlantıyla birebir sahne paylaşımı.
                       </h3>
                       <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
-                        Sayacınızın başlığı, hedef saati, animasyon stili ve teması doğrudan
-                        paylaşım bağlantısına işlenir. Bağlantıyı açan herkes hiçbir ayar yapmadan
+                        Sayacınızın başlığını, hedef zamanını, animasyon stilini ve temasını doğrudan
+                        URL parametrelerine kodlar. Bağlantıyı açan herkes hiçbir kurulum yapmadan
                         aynı canlı geri sayımı görür.
                       </p>
 
@@ -1700,27 +1701,27 @@ export const IntroducingCountToView: React.FC<IntroducingCountToViewProps> = ({
             {[
               {
                 stat: '60 FPS',
-                desc: 'GPU hızlandırmalı saat akışı sayesinde pürüzsüz ve göz alıcı saniye geçişleri.',
+                desc: 'GPU hızlandırmalı rakam akışı ve akıcı sayfa geçişleri.',
               },
               {
                 stat: `${themeList.length} Tema`,
-                desc: 'CountTo’nun birbirinden eşsiz temaları sayesinde her anı size özel kılar.',
+                desc: 'Her atmosfere ve ışığa göre tasarlanmış görsel ve akustik palet.',
               },
               {
                 stat: `${STYLE_OPTIONS.length} Stil`,
-                desc: 'CountTo Roll, 3D Flip, Yörünge Halkaları, Kinetik ve Saf Monolit saat görünümleri.',
+                desc: 'CountTo Roll, 3D Flip, Halkalar, Kinetik ve Saf Monolit motorları.',
               },
               {
                 stat: `${STICKERS.length} Sticker`,
-                desc: '15 hareketli özgün çıkartma ile ders notlarınıza ve hedeflerinize enerji katın.',
+                desc: '15 CSS animasyonlu özgün vektör illüstrasyon ile zenginleşen notlar.',
               },
               {
                 stat: '15 Dakika',
-                desc: 'Bulunduğunuz şehre özel canlı tahminle hava değişimlerini 15 dakika önceden bildirme.',
+                desc: 'Open-Meteo uydu verisiyle yaklaşan hava değişimlerini önceden bildirme.',
               },
               {
                 stat: `${events.length} Sayaç`,
-                desc: 'Şu an tarayıcınızda anında çalışmaya hazır kayıtlı ve dinamik geri sayım.',
+                desc: 'Şu an tarayıcınızda anında çalışmaya hazır kayıtlı ve dinamik etkinlik.',
               },
             ].map((item, idx) => (
               <motion.div

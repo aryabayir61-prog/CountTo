@@ -19,6 +19,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, event }
   url.searchParams.set('target', event.targetDate);
   url.searchParams.set('style', event.style);
   url.searchParams.set('theme', event.theme);
+  if (event.completionSound) {
+    url.searchParams.set('sound', event.completionSound);
+  }
   if (event.notes) {
     url.searchParams.set('notes', event.notes);
   }
