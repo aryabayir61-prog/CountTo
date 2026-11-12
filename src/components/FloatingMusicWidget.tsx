@@ -20,10 +20,8 @@ import {
   ShieldAlert,
   GraduationCap,
   MapPin,
-  RotateCw,
-  Disc3
+  RotateCw
 } from 'lucide-react';
-import { CassetteTape } from './CassetteTape';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { extractAlbumColors } from '../utils/colorExtractor';
 import { 
@@ -82,34 +80,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
-
-  // Player Skin State: 'cassette' (default) or 'classic' (frosted album glass)
-  const [playerSkin, setPlayerSkin] = useState<'cassette' | 'classic'>(() => {
-    if (typeof window === 'undefined') return 'cassette';
-    const saved = localStorage.getItem('countto_player_skin');
-    return saved === 'classic' ? 'classic' : 'cassette';
-  });
-
-  // CountTo Developers Announcement banner state
-  const [showDevAnnouncement, setShowDevAnnouncement] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('countto_cassette_dev_dismissed') !== 'true';
-  });
-
-  const handleSelectSkin = (skin: 'cassette' | 'classic') => {
-    setPlayerSkin(skin);
-    try {
-      localStorage.setItem('countto_player_skin', skin);
-    } catch {}
-  };
-
-  const handleDismissDevAnnouncement = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setShowDevAnnouncement(false);
-    try {
-      localStorage.setItem('countto_cassette_dev_dismissed', 'true');
-    } catch {}
-  };
 
   // Global 'G' Key Listener: Instantly pauses audio and shows the black school restriction pop-up inside widget
   useEffect(() => {
@@ -346,8 +316,8 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     });
   };
 
-  const handleTogglePlayPause = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
+  const handleTogglePlayPause = (e: React.MouseEvent) => {
+    e.stopPropagation();
     clearTimer();
     musicAudioEngine.togglePlayPause();
   };
@@ -603,7 +573,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                 transition={{
                   layout: { type: 'spring', stiffness: 360, damping: 32 },
                 }}
-                className="relative w-[340px] sm:w-[365px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/94 text-white border border-white/15 overflow-hidden transition-all duration-700 ease-out"
+                className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
                 style={{
                   boxShadow: `0 24px 60px -10px rgba(0,0,0,0.85), 0 0 40px -6px ${activeColors[0]}55, inset 0 1px 1px rgba(255,255,255,0.2)`
                 }}
@@ -639,147 +609,11 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.16 }}
-                    className="relative z-10 flex flex-col gap-3"
+                    className="relative z-10 flex flex-col gap-3.5"
                   >
-                    {/* Developer Announcement Banner (Dismissible, stored in localStorage) */}
-                    <AnimatePresence>
-                      {showDevAnnouncement && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -6, height: 0 }}
-                          animate={{ opacity: 1, y: 0, height: 'auto' }}
-                          exit={{ opacity: 0, y: -6, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/20 via-neutral-900/95 to-amber-950/30 border border-amber-500/35 shadow-lg text-white mb-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2.5">
-                                <div className="w-7 h-7 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center shrink-0 text-amber-300 shadow-inner">
-                                  <Disc3 className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
-                                      CountTo Geliştiricileri
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-neutral-200 mt-1 leading-relaxed">
-                                    CountTo yazılımcıları olarak kaset modunu getirmeyi düşünüyoruz! İster nostaljik kaset görünümünde, ister klasik çalarla müzik deneyiminize devam edebilirsiniz.
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={handleDismissDevAnnouncement}
-                                className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                                title="Duyuruyu Kapat"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-amber-500/20">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleSelectSkin('cassette');
-                                  handleDismissDevAnnouncement();
-                                }}
-                                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                  playerSkin === 'cassette'
-                                    ? 'bg-amber-400 text-neutral-950 shadow-md'
-                                    : 'bg-white/10 hover:bg-white/15 text-white'
-                                }`}
-                              >
-                                <span>📼</span>
-                                <span>Kaset Görünümü</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleSelectSkin('classic');
-                                  handleDismissDevAnnouncement();
-                                }}
-                                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                  playerSkin === 'classic'
-                                    ? 'bg-white text-neutral-950 shadow-md'
-                                    : 'bg-white/10 hover:bg-white/15 text-white'
-                                }`}
-                              >
-                                <span>✨</span>
-                                <span>Klasik Çalar</span>
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Top Bar: Skin Mode Switch Pill & Track Search Button */}
-                    <div className="flex items-center justify-between gap-2 pb-0.5">
-                      {/* Player Skin Selector Pill */}
-                      <div className="p-0.5 rounded-full bg-black/45 border border-white/10 backdrop-blur-md flex items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectSkin('cassette')}
-                          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                            playerSkin === 'cassette'
-                              ? 'bg-amber-400 text-neutral-950 font-bold shadow-md'
-                              : 'text-neutral-400 hover:text-white'
-                          }`}
-                        >
-                          <span>📼</span>
-                          <span>Kaset</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectSkin('classic')}
-                          className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                            playerSkin === 'classic'
-                              ? 'bg-white text-neutral-950 font-bold shadow-md'
-                              : 'text-neutral-400 hover:text-white'
-                          }`}
-                        >
-                          <span>✨</span>
-                          <span>Klasik</span>
-                        </button>
-                      </div>
-
-                      {/* Right: Switch to Search / Track List */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setViewMode('search');
-                          clearTimer();
-                        }}
-                        title="Şarkı Listesi / Arama"
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
-                      >
-                        <ListMusic className="w-3.5 h-3.5 text-white/90" />
-                        <span className="text-[11px] font-medium hidden sm:inline">Şarkılar</span>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
-                      </button>
-                    </div>
-
-                    {/* Middle: Cassette View or Classic View */}
-                    {playerSkin === 'cassette' ? (
-                      /* ========== CASSETTE SKIN VIEW ========== */
-                      <div className="flex flex-col gap-1 items-center">
-                        <CassetteTape
-                          trackName={activeTrack.name}
-                          artistName={activeTrack.artist}
-                          currentTime={currentTime}
-                          duration={duration}
-                          isPlaying={isPlaying}
-                          onClick={handleTogglePlayPause}
-                          className="my-0.5"
-                        />
-                      </div>
-                    ) : (
-                      /* ========== CLASSIC FROSTED GLASS ALBUM VIEW ========== */
-                      <div className="flex items-center gap-3 min-w-0 py-1">
+                    {/* Top: Album Art + Song Title & Artist + Quick Switch Button */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         {/* Real Official Album Artwork */}
                         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-white/20 shrink-0 bg-neutral-900">
                           <img
@@ -811,7 +645,22 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                           </AnimatePresence>
                         </div>
                       </div>
-                    )}
+
+                      {/* Right: Switch to Search / Track List */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewMode('search');
+                          clearTimer();
+                        }}
+                        title="Şarkı Listesi / Arama"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
+                      >
+                        <ListMusic className="w-3.5 h-3.5 text-white/90" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
+                      </button>
+                    </div>
 
                     {/* Middle: Timeline Slider with Timestamps (image_ee5a9565.png) */}
                     <div className="flex flex-col gap-1.5 pt-1">
@@ -827,21 +676,11 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         title="İlerlet"
                       >
                         <div
-                          className={`h-full rounded-full transition-all duration-100 relative ${
-                            playerSkin === 'cassette'
-                              ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-amber-200'
-                              : 'bg-gradient-to-r from-white/75 via-white/90 to-white'
-                          }`}
+                          className="h-full bg-gradient-to-r from-white/75 via-white/90 to-white rounded-full transition-all duration-100 relative"
                           style={{ width: `${progressPercent}%` }}
                         >
-                          {/* Glowing capsule head at the front */}
-                          <div
-                            className={`absolute right-0 top-1/2 -translate-y-1/2 h-full w-4 rounded-full ${
-                              playerSkin === 'cassette'
-                                ? 'bg-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.95)]'
-                                : 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)]'
-                            }`}
-                          />
+                          {/* Glowing capsule head at the front (exact match to image_ee5a9565.png) */}
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)]" />
                         </div>
                       </div>
                     </div>
@@ -884,11 +723,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         whileTap={{ scale: 0.94 }}
                         transition={{ type: 'spring', stiffness: 450, damping: 25 }}
                         title={isPlaying ? 'Durdur' : 'Oynat'}
-                        className={`w-12 h-12 rounded-2xl border backdrop-blur-xl flex items-center justify-center transition-all cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.5)] group overflow-hidden ${
-                          playerSkin === 'cassette'
-                            ? 'bg-amber-400/25 hover:bg-amber-400/35 border-amber-400/40 text-amber-200'
-                            : 'bg-white/20 hover:bg-white/30 border-white/35 text-white'
-                        }`}
+                        className="w-12 h-12 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/35 backdrop-blur-xl flex items-center justify-center text-white transition-all cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.5)] group overflow-hidden"
                       >
                         <AnimatePresence mode="wait">
                           <motion.div
