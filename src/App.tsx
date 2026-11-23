@@ -230,15 +230,15 @@ export default function App() {
 
   const [incidentPhase, setIncidentPhase] = useState<IncidentPhase>('idle');
 
-  // 25-second timed sequence: dust/ash disintegration -> pitch black -> Defne Beni Bozdu -> sad face -> detailed crying
+  // 35-second timed sequence: dust/ash disintegration -> pitch black -> Defne Beni Bozdu -> sad face -> detailed crying
   useEffect(() => {
     const timers: number[] = [];
-    timers.push(window.setTimeout(() => setIncidentPhase('dissolving'), 25000));
-    timers.push(window.setTimeout(() => setIncidentPhase('blackout'), 29200));
-    timers.push(window.setTimeout(() => setIncidentPhase('message'), 30000));
-    timers.push(window.setTimeout(() => setIncidentPhase('sadface'), 31400));
-    timers.push(window.setTimeout(() => setIncidentPhase('welling'), 35200));
-    timers.push(window.setTimeout(() => setIncidentPhase('crying'), 36000));
+    timers.push(window.setTimeout(() => setIncidentPhase('dissolving'), 35000));
+    timers.push(window.setTimeout(() => setIncidentPhase('blackout'), 39200));
+    timers.push(window.setTimeout(() => setIncidentPhase('message'), 40000));
+    timers.push(window.setTimeout(() => setIncidentPhase('sadface'), 41400));
+    timers.push(window.setTimeout(() => setIncidentPhase('welling'), 45200));
+    timers.push(window.setTimeout(() => setIncidentPhase('crying'), 46000));
 
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
