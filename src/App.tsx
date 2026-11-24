@@ -17,6 +17,7 @@ import {
 } from './utils/audio';
 import { fireCelebrationConfetti } from './utils/confetti';
 import { AmbientBackground } from './components/AmbientBackground';
+import { AudioReactiveBackdrop } from './components/AudioReactiveBackdrop';
 import { TopNav } from './components/TopNav';
 import { CountdownDisplay } from './components/CountdownDisplay';
 import { CountdownList } from './components/CountdownList';
@@ -29,7 +30,6 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { FullscreenWeatherToast } from './components/FullscreenWeatherToast';
 import { StickyNotesLayer } from './components/StickyNotesLayer';
 import { IntroducingCountToView } from './components/IntroducingCountToView';
-import { SystemIncidentStage, IncidentPhase } from './components/SystemIncidentStage';
 import { getRealUserCoordinates, fetchRealWeather, RealWeatherNotification } from './utils/weatherService';
 
 const STORAGE_KEY = 'contto_saved_events_v1';
@@ -228,35 +228,6 @@ export default function App() {
     return localStorage.getItem('contto_ambient_music_enabled') === 'true';
   });
 
-  const [incidentPhase, setIncidentPhase] = useState<IncidentPhase>('idle');
-
-  // 35-second timed sequence: dust/ash disintegration -> pitch black -> Defne Beni Bozdu -> sad face -> detailed crying
-  useEffect(() => {
-    const timers: number[] = [];
-    timers.push(window.setTimeout(() => setIncidentPhase('dissolving'), 35000));
-    timers.push(window.setTimeout(() => setIncidentPhase('blackout'), 39200));
-    timers.push(window.setTimeout(() => setIncidentPhase('message'), 40000));
-    timers.push(window.setTimeout(() => setIncidentPhase('sadface'), 41400));
-    timers.push(window.setTimeout(() => setIncidentPhase('welling'), 45200));
-    timers.push(window.setTimeout(() => setIncidentPhase('crying'), 46000));
-
-    return () => {
-      timers.forEach((id) => window.clearTimeout(id));
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    if (incidentPhase !== 'idle') {
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      if (incidentPhase !== 'idle') {
-        document.body.style.overflow = '';
-      }
-    };
-  }, [incidentPhase]);
-
   useEffect(() => {
     try {
       localStorage.setItem('contto_ambient_music_enabled', String(ambientEnabled));
@@ -267,12 +238,12 @@ export default function App() {
 
   // Infinite ambient sound lifecycle
   useEffect(() => {
-    if (ambientEnabled && incidentPhase === 'idle') {
+    if (ambientEnabled) {
       startAmbientMusic(activeEvent.theme);
     } else {
       stopAmbientMusic();
     }
-  }, [ambientEnabled, activeEvent.theme, incidentPhase]);
+  }, [ambientEnabled, activeEvent.theme]);
 
   // Fullscreen event listener
   useEffect(() => {
@@ -353,7 +324,7 @@ export default function App() {
         const tr = getTurkeyTime();
 
         // 1. Clock tick sound on every second
-        if (soundEnabled && incidentPhase === 'idle' && tr.seconds !== prevSecondsRef.current) {
+        if (soundEnabled && tr.seconds !== prevSecondsRef.current) {
           playTickSound(0.06);
 
           // 2. Majestic hourly chime at top of the hour (00:00)
@@ -370,7 +341,7 @@ export default function App() {
         prevSecondsRef.current = tr.seconds;
       } else {
         // Active countdown is ticking
-        if (soundEnabled && incidentPhase === 'idle' && updated.seconds !== prevSecondsRef.current) {
+        if (soundEnabled && updated.seconds !== prevSecondsRef.current) {
           playTickSound(0.06);
         }
         prevSecondsRef.current = updated.seconds;
@@ -378,14 +349,12 @@ export default function App() {
         // Celebrate arrival
         if (updated.isPast && !hasCelebratedRef.current) {
           hasCelebratedRef.current = true;
-          if (incidentPhase === 'idle') {
-            fireCelebrationConfetti();
-            if (soundEnabled) {
-              if (activeEvent.completionSound) {
-                playCompletionSound(activeEvent.completionSound, 0.25);
-              } else {
-                playCelebrationChime(0.2);
-              }
+          fireCelebrationConfetti();
+          if (soundEnabled) {
+            if (activeEvent.completionSound) {
+              playCompletionSound(activeEvent.completionSound, 0.25);
+            } else {
+              playCelebrationChime(0.2);
             }
           }
         }
@@ -393,7 +362,7 @@ export default function App() {
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [activeEvent, soundEnabled, incidentPhase]);
+  }, [activeEvent, soundEnabled]);
 
   // Handlers
   const handleToggleSound = () => {
@@ -493,9 +462,6 @@ export default function App() {
   // Global Keyboard Shortcuts Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (incidentPhase !== 'idle') {
-        return;
-      }
       // Ignore if typing in text inputs or textareas
       const target = e.target as HTMLElement | null;
       if (
@@ -637,7 +603,6 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    incidentPhase,
     isIntroducingOpen,
     isShortcutsOpen,
     isModalOpen,
@@ -652,33 +617,11 @@ export default function App() {
     setWeatherNotification(null);
   };
 
-  const isDissolvingOrBeyond = incidentPhase !== 'idle';
-
   return (
-    <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen || isDissolvingOrBeyond ? 'h-screen overflow-hidden' : ''}`}>
-      <motion.div
-        animate={
-          isDissolvingOrBeyond
-            ? {
-                opacity: 0,
-                filter: 'blur(18px) grayscale(1) contrast(1.15)',
-                y: -26,
-                x: 18,
-                scale: 0.965,
-              }
-            : {
-                opacity: 1,
-                filter: 'blur(0px) grayscale(0) contrast(1)',
-                y: 0,
-                x: 0,
-                scale: 1,
-              }
-        }
-        transition={{ duration: 4.0, ease: [0.32, 0.0, 0.2, 1] }}
-        className={`flex-1 flex flex-col relative ${isDissolvingOrBeyond ? 'pointer-events-none select-none' : ''}`}
-      >
+    <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}>
       {/* Dynamic Animated Ambient Canvas & Mesh */}
       <AmbientBackground theme={currentTheme} />
+      <AudioReactiveBackdrop />
 
       {/* Top Bar Contract (hidden in fullscreen cinema mode for ultimate immersion) */}
       {!isFullscreen && (
@@ -880,9 +823,7 @@ export default function App() {
           />
         )}
       </AnimatePresence>
-      </motion.div>
 
-      <SystemIncidentStage phase={incidentPhase} />
     </div>
   );
 }

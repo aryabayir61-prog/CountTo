@@ -20,7 +20,8 @@ import {
   ShieldAlert,
   GraduationCap,
   MapPin,
-  RotateCw
+  RotateCw,
+  Orbit
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { extractAlbumColors } from '../utils/colorExtractor';
@@ -32,6 +33,8 @@ import {
   recordImplicitSignal,
   getUserTasteMap 
 } from '../utils/musicRecommendationEngine';
+import { SpatialOrbitControl } from './SpatialOrbitControl';
+import { spatialAudioProcessor, SpatialAudioState } from '../utils/spatialAudioProcessor';
 
 interface FloatingMusicWidgetProps {
   themePrimary: string;
@@ -68,7 +71,10 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     return checkSchoolLocationDetected();
   });
   const [detectedLocationName, setDetectedLocationName] = useState<string>('Okul / Kampüs Alanı');
-  const [viewMode, setViewMode] = useState<'player' | 'search'>('player');
+  const [viewMode, setViewMode] = useState<'player' | 'search' | 'spatial'>('player');
+  const [spatialState, setSpatialState] = useState<SpatialAudioState>(() =>
+    spatialAudioProcessor.getState()
+  );
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SongTrack[]>([]);
   const [isSearchingOnline, setIsSearchingOnline] = useState<boolean>(false);
@@ -80,6 +86,10 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+
+  useEffect(() => {
+    return spatialAudioProcessor.subscribeState(setSpatialState);
+  }, []);
 
   // Global 'G' Key Listener: Instantly pauses audio and shows the black school restriction pop-up inside widget
   useEffect(() => {
@@ -646,20 +656,49 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         </div>
                       </div>
 
-                      {/* Right: Switch to Search / Track List */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setViewMode('search');
-                          clearTimer();
-                        }}
-                        title="Şarkı Listesi / Arama"
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
-                      >
-                        <ListMusic className="w-3.5 h-3.5 text-white/90" />
-                        <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
-                      </button>
+                      {/* Right: 8D Spatial Orbit + Switch to Search / Track List */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewMode('spatial');
+                            clearTimer();
+                          }}
+                          title="8D Uzamsal Ses & Akustik Sahne"
+                          className={`relative flex items-center gap-1 px-2 py-1.5 rounded-full border backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm ${
+                            spatialState.spatialEnabled || spatialState.acousticSpace !== 'pure'
+                              ? 'bg-white/20 border-white/40 text-white'
+                              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/80 hover:text-white'
+                          }`}
+                        >
+                          <Orbit
+                            className={`w-3.5 h-3.5 ${spatialState.spatialEnabled ? 'animate-spin' : ''}`}
+                            style={{
+                              animationDuration: '6s',
+                              color:
+                                spatialState.spatialEnabled || spatialState.acousticSpace !== 'pure'
+                                  ? activeColors[0]
+                                  : undefined,
+                            }}
+                          />
+                          <span className="text-[10px] font-bold tracking-tight">8D</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setViewMode('search');
+                            clearTimer();
+                          }}
+                          title="Şarkı Listesi / Arama"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm"
+                        >
+                          <ListMusic className="w-3.5 h-3.5 text-white/90" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Middle: Timeline Slider with Timestamps (image_ee5a9565.png) */}
@@ -772,6 +811,16 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                       </motion.button>
                     </div>
                   </motion.div>
+                ) : viewMode === 'spatial' ? (
+                  <SpatialOrbitControl
+                    key="spatial-view"
+                    activeColors={activeColors}
+                    onBackToPlayer={() => {
+                      setViewMode('player');
+                      clearTimer();
+                    }}
+                    onInteraction={clearTimer}
+                  />
                 ) : (
                   /* ================= SELECTION & LIVE SEARCH MODE ================= */
                   <motion.div
