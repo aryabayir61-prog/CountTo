@@ -24,7 +24,6 @@ import { MonolithView } from './styles/MonolithView';
 import { CountToRollView } from './styles/CountToRollView';
 import { FloatingMusicWidget } from './FloatingMusicWidget';
 import { formatLocaleDate, getTurkeyTime, TurkeyCurrentTime } from '../utils/time';
-import { spatialAudioProcessor } from '../utils/spatialAudioProcessor';
 
 interface CountdownDisplayProps {
   event: CountdownEvent;
@@ -82,27 +81,6 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
   const [showHint, setShowHint] = useState<boolean>(false);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const digitsStageRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const unsub = spatialAudioProcessor.subscribeTelemetry((tel) => {
-      const el = digitsStageRef.current;
-      if (!el) return;
-      if (tel.energy > 0.01) {
-        const s = 1 + tel.bass * 0.022;
-        const glowBlur = 10 + tel.bass * 26;
-        const glowAlpha = Math.round(Math.min(0.65, 0.14 + tel.bass * 0.42) * 255)
-          .toString(16)
-          .padStart(2, '0');
-        el.style.transform = `scale(${s.toFixed(4)})`;
-        el.style.filter = `drop-shadow(0 0 ${glowBlur.toFixed(1)}px ${theme.primary}${glowAlpha})`;
-      } else {
-        el.style.transform = 'scale(1)';
-        el.style.filter = 'none';
-      }
-    });
-    return () => unsub();
-  }, [theme.primary]);
 
   useEffect(() => {
     onFocusModeChange?.(isFullscreen && !controlsVisible);
@@ -270,8 +248,7 @@ export const CountdownDisplay: React.FC<CountdownDisplayProps> = ({
         {/* Main Interactive Animated Countdown / Turkey Clock Area */}
         {/* Exactly uses the selected countdown style, but hides 'GÜN' when finished! */}
         <div 
-          ref={digitsStageRef}
-          className="w-full flex items-center justify-center my-2 sm:my-6 will-change-transform transition-[transform,filter] duration-150 ease-out"
+          className="w-full flex items-center justify-center my-2 sm:my-6 transition-all duration-500"
         >
           {event.style === 'countTo' && (
             <CountToRollView

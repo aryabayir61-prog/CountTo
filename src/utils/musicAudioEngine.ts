@@ -1,8 +1,6 @@
 import { recordImplicitSignal } from './musicRecommendationEngine';
 import { smartShuffleEngine } from './smartShuffleEngine';
 import { type SongTrack, PRESET_SONGS } from './trackConstants';
-import { resolveAudioStream } from './audioStreamService';
-import { spatialAudioProcessor } from './spatialAudioProcessor';
 
 export type { SongTrack };
 export { PRESET_SONGS };
@@ -103,25 +101,13 @@ class HiddenMusicAudioEngine {
     if (typeof window !== 'undefined') {
       this.initHtml5Audio();
       this.initApi();
-      spatialAudioProcessor.subscribeState((spState) => {
-        if (
-          (spState.spatialEnabled || spState.acousticSpace !== 'pure') &&
-          this.isPlaying &&
-          this.activeEngine === 'youtube' &&
-          this.currentTrack
-        ) {
-          this.upgradeActiveTrackToSpatialStream(this.currentTrack, this.currentTime);
-        }
-      });
     }
   }
 
   private initHtml5Audio() {
     if (typeof Audio === 'undefined') return;
     this.html5Audio = new Audio();
-    this.html5Audio.crossOrigin = 'anonymous';
     this.html5Audio.preload = 'auto';
-    spatialAudioProcessor.attachAudioElement(this.html5Audio);
 
     this.html5Audio.addEventListener('playing', () => {
       this.activeEngine = 'html5';
@@ -129,7 +115,6 @@ class HiddenMusicAudioEngine {
       if (this.html5Audio && this.html5Audio.duration && !isNaN(this.html5Audio.duration)) {
         this.duration = this.html5Audio.duration;
       }
-      spatialAudioProcessor.setPlaybackStatus(true, true);
       this.startProgressTracker();
       this.emit();
     });
@@ -137,7 +122,6 @@ class HiddenMusicAudioEngine {
     this.html5Audio.addEventListener('pause', () => {
       if (this.activeEngine === 'html5') {
         this.isPlaying = false;
-        spatialAudioProcessor.setPlaybackStatus(false, true);
         this.emit();
       }
     });
@@ -247,14 +231,8 @@ class HiddenMusicAudioEngine {
                 try { this.html5Audio.pause(); } catch {}
               }
               this.duration = this.player?.getDuration() || this.currentTrack?.durationSec || 180;
-              spatialAudioProcessor.setPlaybackStatus(true, false);
               this.startProgressTracker();
               this.emit();
-
-              const spState = spatialAudioProcessor.getState();
-              if ((spState.spatialEnabled || spState.acousticSpace !== 'pure') && this.currentTrack) {
-                this.upgradeActiveTrackToSpatialStream(this.currentTrack, this.player?.getCurrentTime?.() || 0);
-              }
             } else if (event.data === 3) {
               // Buffering: Video is loading full track, do not abort
               if (this.safetyTimer) {
@@ -265,7 +243,6 @@ class HiddenMusicAudioEngine {
               // Paused
               if (this.activeEngine === 'youtube') {
                 this.isPlaying = false;
-                spatialAudioProcessor.setPlaybackStatus(false, false);
                 this.stopProgressTracker();
                 this.emit();
               }
@@ -310,67 +287,10 @@ class HiddenMusicAudioEngine {
     }
   }
 
-  private spatialUpgradeLockId: string | null = null;
-
-  private toProxiedAudioUrl(rawUrl: string): string {
-    if (rawUrl.startsWith('/') || rawUrl.startsWith('blob:') || rawUrl.startsWith('data:')) {
-      return rawUrl;
-    }
-    return `/api/audio-proxy?url=${encodeURIComponent(rawUrl)}`;
-  }
-
-  private async upgradeActiveTrackToSpatialStream(track: SongTrack, startAtSec = 0) {
-    if (!this.html5Audio || !track.youtubeId) return;
-    if (this.spatialUpgradeLockId === track.id) return;
-    this.spatialUpgradeLockId = track.id;
-
-    try {
-      const streamUrl = await resolveAudioStream(track.youtubeId);
-      if (!streamUrl || this.currentTrack?.id !== track.id || !this.isPlaying) {
-        return;
-      }
-      const spState = spatialAudioProcessor.getState();
-      if (!spState.spatialEnabled && spState.acousticSpace === 'pure') {
-        return;
-      }
-
-      spatialAudioProcessor.attachAudioElement(this.html5Audio);
-      await spatialAudioProcessor.resumeContext();
-
-      this.html5Audio.crossOrigin = 'anonymous';
-      this.html5Audio.src = this.toProxiedAudioUrl(streamUrl);
-      this.html5Audio.currentTime = Math.max(0, startAtSec);
-      this.html5Audio.volume = 1;
-
-      await this.html5Audio.play();
-      // Pause YouTube once direct spatialized audio starts playing cleanly
-      this.activeEngine = 'html5';
-      if (this.player && this.player.pauseVideo) {
-        try { this.player.pauseVideo(); } catch {}
-      }
-      spatialAudioProcessor.setPlaybackStatus(true, true);
-      this.startProgressTracker();
-      this.emit();
-    } catch {
-      // Keep YouTube playing seamlessly if stream proxy cannot connect
-    } finally {
-      if (this.spatialUpgradeLockId === track.id) {
-        this.spatialUpgradeLockId = null;
-      }
-    }
-  }
-
   private async fallbackToHtml5Audio(track: SongTrack) {
     if (!this.html5Audio) return;
 
     let audioSrc = track.audioUrl;
-
-    if (!audioSrc && track.youtubeId) {
-      try {
-        const direct = await resolveAudioStream(track.youtubeId);
-        if (direct) audioSrc = direct;
-      } catch {}
-    }
 
     // If audioUrl is not available, query iTunes search API directly in browser
     if (!audioSrc) {
@@ -387,17 +307,13 @@ class HiddenMusicAudioEngine {
 
     if (audioSrc) {
       try {
-        spatialAudioProcessor.attachAudioElement(this.html5Audio);
-        await spatialAudioProcessor.resumeContext();
         this.activeEngine = 'html5';
-        this.html5Audio.crossOrigin = 'anonymous';
-        this.html5Audio.src = this.toProxiedAudioUrl(audioSrc);
+        this.html5Audio.src = audioSrc;
         this.html5Audio.currentTime = 0;
         this.html5Audio.volume = 1;
         await this.html5Audio.play();
         this.isPlaying = true;
         this.duration = track.durationSec || 180;
-        spatialAudioProcessor.setPlaybackStatus(true, true);
         this.startProgressTracker();
         this.emit();
       } catch {}
@@ -582,7 +498,6 @@ class HiddenMusicAudioEngine {
   public pause() {
     this.isPlaying = false;
     this.stopProgressTracker();
-    spatialAudioProcessor.setPlaybackStatus(false, this.activeEngine === 'html5');
     if (this.safetyTimer) {
       clearTimeout(this.safetyTimer);
       this.safetyTimer = null;
@@ -606,14 +521,12 @@ class HiddenMusicAudioEngine {
     }
 
     this.isPlaying = true;
-    spatialAudioProcessor.resumeContext();
     if (this.activeEngine === 'youtube' && this.player && this.player.playVideo) {
       try { this.player.playVideo(); } catch {}
     } else if (this.activeEngine === 'html5' && this.html5Audio) {
       try { this.html5Audio.play(); } catch {}
     }
 
-    spatialAudioProcessor.setPlaybackStatus(true, this.activeEngine === 'html5');
     this.startProgressTracker();
     this.emit();
   }

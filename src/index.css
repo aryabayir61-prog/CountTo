@@ -294,4 +294,15 @@
   transform-origin: center;
 }
 
+@keyframes vinyl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
+.animate-vinyl-spin {
+  animation: vinyl-spin 3.4s linear infinite;
+}

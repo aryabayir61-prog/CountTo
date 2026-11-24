@@ -17,7 +17,6 @@ import {
 } from './utils/audio';
 import { fireCelebrationConfetti } from './utils/confetti';
 import { AmbientBackground } from './components/AmbientBackground';
-import { AudioReactiveBackdrop } from './components/AudioReactiveBackdrop';
 import { TopNav } from './components/TopNav';
 import { CountdownDisplay } from './components/CountdownDisplay';
 import { CountdownList } from './components/CountdownList';
@@ -621,7 +620,6 @@ export default function App() {
     <div className={`min-h-screen relative flex flex-col selection:bg-cyan-500/20 selection:text-cyan-300 ${isFullscreen ? 'h-screen overflow-hidden' : ''}`}>
       {/* Dynamic Animated Ambient Canvas & Mesh */}
       <AmbientBackground theme={currentTheme} />
-      <AudioReactiveBackdrop />
 
       {/* Top Bar Contract (hidden in fullscreen cinema mode for ultimate immersion) */}
       {!isFullscreen && (

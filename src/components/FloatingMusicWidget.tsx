@@ -16,12 +16,9 @@ import {
   Users,
   Compass,
   X,
-  VolumeX,
-  ShieldAlert,
   GraduationCap,
   MapPin,
-  RotateCw,
-  Orbit
+  RotateCw
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { extractAlbumColors } from '../utils/colorExtractor';
@@ -33,8 +30,6 @@ import {
   recordImplicitSignal,
   getUserTasteMap 
 } from '../utils/musicRecommendationEngine';
-import { SpatialOrbitControl } from './SpatialOrbitControl';
-import { spatialAudioProcessor, SpatialAudioState } from '../utils/spatialAudioProcessor';
 
 interface FloatingMusicWidgetProps {
   themePrimary: string;
@@ -71,10 +66,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     return checkSchoolLocationDetected();
   });
   const [detectedLocationName, setDetectedLocationName] = useState<string>('Okul / Kampüs Alanı');
-  const [viewMode, setViewMode] = useState<'player' | 'search' | 'spatial'>('player');
-  const [spatialState, setSpatialState] = useState<SpatialAudioState>(() =>
-    spatialAudioProcessor.getState()
-  );
+  const [viewMode, setViewMode] = useState<'player' | 'search'>('player');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SongTrack[]>([]);
   const [isSearchingOnline, setIsSearchingOnline] = useState<boolean>(false);
@@ -86,10 +78,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
-
-  useEffect(() => {
-    return spatialAudioProcessor.subscribeState(setSpatialState);
-  }, []);
 
   // Global 'G' Key Listener: Instantly pauses audio and shows the black school restriction pop-up inside widget
   useEffect(() => {
@@ -383,7 +371,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
 
-  // Reusable track row renderer preserving the exact clean UI design
+  // Reusable track row renderer preserving the exact classic CountTo list design
   const renderSongRow = (song: SongTrack | DailyPickTrack, pool?: SongTrack[]) => {
     const isThisActive = currentTrack?.id === song.id;
 
@@ -456,9 +444,6 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
             setIsSchoolBlocked(false);
           }
           setIsOpen((prev) => !prev);
-          if (!isOpen && !currentTrack) {
-            setViewMode('search');
-          }
         }}
         title={isSchoolBlocked ? 'Konumunuz Okulda Gözüküyor (Kısayol: G)' : isPlaying ? 'Müzik Çalıyor' : 'Müzik (Kısayol: G)'}
         className={`relative p-1.5 px-2.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center justify-center select-none cursor-pointer border ${
@@ -583,7 +568,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                 transition={{
                   layout: { type: 'spring', stiffness: 360, damping: 32 },
                 }}
-                className="relative w-[335px] sm:w-[355px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
+                className="relative w-[345px] sm:w-[372px] rounded-3xl p-4 sm:p-5 backdrop-blur-3xl bg-[#131318]/92 text-white border border-white/15 overflow-hidden transition-all duration-1000 ease-out"
                 style={{
                   boxShadow: `0 24px 60px -10px rgba(0,0,0,0.85), 0 0 40px -6px ${activeColors[0]}55, inset 0 1px 1px rgba(255,255,255,0.2)`
                 }}
@@ -612,97 +597,168 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
 
               <AnimatePresence mode="wait" initial={false}>
                 {viewMode === 'player' ? (
-                  /* ================= PLAYER MODE ================= */
+                  /* ================= MD VINYL TURNTABLE PLAYER MODE ================= */
                   <motion.div
                     key="player-view"
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
                     transition={{ duration: 0.16 }}
-                    className="relative z-10 flex flex-col gap-3.5"
+                    className="relative z-10 flex flex-col gap-3"
                   >
-                    {/* Top: Album Art + Song Title & Artist + Quick Switch Button */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Real Official Album Artwork */}
-                        <div className="relative w-12 h-12 rounded-2xl overflow-hidden shadow-md border border-white/20 shrink-0 bg-neutral-900">
-                          <img
-                            src={activeTrack.albumCover}
-                            alt={activeTrack.name}
-                            className="w-full h-full object-cover"
-                            loading="eager"
-                          />
-                        </div>
-
-                        {/* Title & Artist with smooth transition */}
-                        <div className="flex flex-col min-w-0">
-                          <AnimatePresence mode="wait">
-                            <motion.div
-                              key={activeTrack.id + activeTrack.name}
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }}
-                              transition={{ duration: 0.15 }}
-                              className="flex flex-col min-w-0"
-                            >
-                              <h4 className="text-white text-[15px] font-bold tracking-tight truncate leading-tight drop-shadow-sm">
-                                {activeTrack.name}
-                              </h4>
-                              <p className="text-white/70 text-xs font-medium truncate mt-0.5">
-                                {activeTrack.artist}
-                              </p>
-                            </motion.div>
-                          </AnimatePresence>
-                        </div>
+                    {/* Top-right compact floating controls (8D + 3D Crate) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={activeTrack.id + activeTrack.name}
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex items-baseline gap-1.5 min-w-0"
+                          >
+                            <h4 className="text-white text-[13px] font-bold tracking-tight truncate leading-tight">
+                              {activeTrack.name}
+                            </h4>
+                            <span className="text-white/50 text-[11px] font-medium truncate shrink-0 max-w-[110px]">
+                              · {activeTrack.artist}
+                            </span>
+                          </motion.div>
+                        </AnimatePresence>
                       </div>
 
-                      {/* Right: 8D Spatial Orbit + Switch to Search / Track List */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewMode('spatial');
-                            clearTimer();
-                          }}
-                          title="8D Uzamsal Ses & Akustik Sahne"
-                          className={`relative flex items-center gap-1 px-2 py-1.5 rounded-full border backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm ${
-                            spatialState.spatialEnabled || spatialState.acousticSpace !== 'pure'
-                              ? 'bg-white/20 border-white/40 text-white'
-                              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/80 hover:text-white'
-                          }`}
-                        >
-                          <Orbit
-                            className={`w-3.5 h-3.5 ${spatialState.spatialEnabled ? 'animate-spin' : ''}`}
-                            style={{
-                              animationDuration: '6s',
-                              color:
-                                spatialState.spatialEnabled || spatialState.acousticSpace !== 'pure'
-                                  ? activeColors[0]
-                                  : undefined,
-                            }}
-                          />
-                          <span className="text-[10px] font-bold tracking-tight">8D</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setViewMode('search');
-                            clearTimer();
-                          }}
-                          title="Şarkı Listesi / Arama"
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm"
-                        >
-                          <ListMusic className="w-3.5 h-3.5 text-white/90" />
-                          <CheckCircle2 className="w-3.5 h-3.5 text-lime-400 fill-lime-400/20" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewMode('search');
+                          clearTimer();
+                        }}
+                        title="Şarkı Listesi / Arama"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0 shadow-sm"
+                      >
+                        <ListMusic className="w-3.5 h-3.5 text-white/90" />
+                        <CheckCircle2 className="w-3 h-3 text-lime-400 fill-lime-400/20" />
+                      </button>
                     </div>
 
-                    {/* Middle: Timeline Slider with Timestamps (image_ee5a9565.png) */}
-                    <div className="flex flex-col gap-1.5 pt-1">
+                    {/* MD Vinyl Turntable Stage: Left Cardboard Sleeve + Center-Right Spinning Grooved Vinyl + Metallic Tonearm */}
+                    <div className="relative h-[164px] w-full flex items-center justify-center my-0.5 select-none">
+                      {/* 1. Left: Physical Cardboard Album Sleeve (Tap to open song list) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewMode('search');
+                          clearTimer();
+                        }}
+                        title="Şarkı Listesini Aç"
+                        className="group relative z-20 -mr-14 sm:-mr-16 w-[142px] h-[142px] sm:w-[150px] sm:h-[150px] rounded-md overflow-hidden shadow-[10px_14px_28px_rgba(0,0,0,0.85)] border border-white/20 bg-neutral-900 cursor-pointer transition-transform duration-300 hover:-translate-x-1.5 active:scale-[0.98]"
+                      >
+                        <img
+                          src={activeTrack.albumCover}
+                          alt={activeTrack.name}
+                          className="w-full h-full object-cover"
+                          loading="eager"
+                        />
+                        {/* Cardboard spine crease & studio light sheen */}
+                        <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/50 via-white/15 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/35 pointer-events-none" />
+                        <div className="absolute inset-x-0 bottom-1.5 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <span className="px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[9px] font-semibold text-white border border-white/15">
+                            Şarkı Seç
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* 2. Center-Right: Grooved Spinning Vinyl Disc with Center Paper Label */}
+                      <div
+                        onClick={handleTogglePlayPause}
+                        title={isPlaying ? 'Plağı Durdur' : 'Plağı Çal'}
+                        className="relative z-10 w-[146px] h-[146px] sm:w-[154px] sm:h-[154px] rounded-full cursor-pointer shadow-[0_12px_32px_rgba(0,0,0,0.9)] shrink-0"
+                      >
+                        {/* Rotating Disc Layer (Preserves angle smoothly when paused) */}
+                        <div
+                          className="w-full h-full rounded-full animate-vinyl-spin flex items-center justify-center relative border border-white/10"
+                          style={{
+                            animationPlayState: isPlaying ? 'running' : 'paused',
+                            background:
+                              'repeating-radial-gradient(circle at center, #0c0c0e 0px, #0c0c0e 1.5px, #19191e 2.2px, #0a0a0c 3.2px)',
+                          }}
+                        >
+                          {/* Subtle inner run-out groove ring */}
+                          <div className="w-[74px] h-[74px] rounded-full border border-white/10 flex items-center justify-center bg-[#0a0a0c]">
+                            {/* Center Paper Label (MD Vinyl Typography) */}
+                            <div
+                              className="w-[64px] h-[64px] rounded-full flex flex-col items-center justify-center p-1.5 text-center border border-white/25 shadow-inner relative overflow-hidden"
+                              style={{
+                                background: `radial-gradient(circle at 35% 30%, #27272e 0%, #15151a 70%, ${activeColors[0]}33 100%)`,
+                              }}
+                            >
+                              <span className="text-[7.5px] font-extrabold text-white leading-tight line-clamp-2 px-1 tracking-tight">
+                                {activeTrack.name}
+                              </span>
+                              <span className="text-[6.5px] font-medium text-white/65 truncate max-w-[48px] mt-0.5">
+                                {activeTrack.artist}
+                              </span>
+                              {/* Center Metallic Spindle Hole */}
+                              <div className="mt-1 w-2 h-2 rounded-full bg-neutral-300 border border-neutral-600 shadow-inner" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Fixed Specular Vinyl Light Sheen (Stays stationary while record spins underneath!) */}
+                        <div
+                          className="absolute inset-0 rounded-full pointer-events-none"
+                          style={{
+                            background:
+                              'conic-gradient(from 35deg, transparent 0deg, rgba(255,255,255,0.14) 22deg, transparent 52deg, transparent 180deg, rgba(255,255,255,0.11) 202deg, transparent 235deg, transparent 360deg)',
+                          }}
+                        />
+                      </div>
+
+                      {/* 3. Far Right: Mechanical Brushed Metallic Tonearm (İğne Kolu) */}
+                      <button
+                        type="button"
+                        onClick={handleTogglePlayPause}
+                        title={isPlaying ? 'İğneyi Kaldır' : 'İğneyi İndir'}
+                        className="relative z-30 -ml-5 h-[154px] w-[42px] shrink-0 cursor-pointer focus:outline-none"
+                      >
+                        {/* Pivot Base Housing */}
+                        <div className="absolute top-2 right-1 w-7 h-7 rounded-full bg-gradient-to-b from-zinc-700 to-zinc-900 border border-white/20 shadow-[0_6px_14px_rgba(0,0,0,0.8)] flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-zinc-400 border border-zinc-700" />
+                        </div>
+
+                        {/* Rotating Arm + Cartridge */}
+                        <div
+                          className="absolute top-[22px] right-[17px] origin-top transition-transform duration-700 ease-out"
+                          style={{
+                            transform: isPlaying
+                              ? `rotate(${19 + (progressPercent / 100) * 13}deg)`
+                              : 'rotate(-5deg)',
+                          }}
+                        >
+                          {/* Arm counterweight top */}
+                          <div className="w-2.5 h-3 -ml-[3px] -mt-3 rounded-sm bg-zinc-800 border border-white/15" />
+                          {/* Brushed aluminum arm shaft */}
+                          <div className="w-[3px] h-[94px] mx-auto bg-gradient-to-r from-zinc-400 via-white to-zinc-500 rounded-full shadow-md" />
+                          {/* Angled Headshell Cartridge */}
+                          <div
+                            className="w-3 h-5 -ml-[4px] -mt-0.5 rounded-xs bg-zinc-900 border border-white/25 shadow-lg"
+                            style={{ transform: 'rotate(20deg)' }}
+                          >
+                            <div
+                              className="w-1 h-1 rounded-full mx-auto mt-3.5"
+                              style={{ backgroundColor: isPlaying ? activeColors[0] : '#71717a' }}
+                            />
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Middle: Timeline Slider with Timestamps */}
+                    <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between text-[11px] font-mono text-white/70 select-none">
                         <span>{formatMinutes(currentTime)}</span>
                         <span>-{formatMinutes(remainingSeconds)}</span>
@@ -811,18 +867,8 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                       </motion.button>
                     </div>
                   </motion.div>
-                ) : viewMode === 'spatial' ? (
-                  <SpatialOrbitControl
-                    key="spatial-view"
-                    activeColors={activeColors}
-                    onBackToPlayer={() => {
-                      setViewMode('player');
-                      clearTimer();
-                    }}
-                    onInteraction={clearTimer}
-                  />
                 ) : (
-                  /* ================= SELECTION & LIVE SEARCH MODE ================= */
+                  /* ================= CLASSIC COUNTTO SELECTION & LIVE SEARCH MODE ================= */
                   <motion.div
                     key="search-view"
                     initial={{ opacity: 0, y: 6 }}
@@ -856,6 +902,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setHoveredTrack(null);
                           setViewMode('player');
                           clearTimer();
                         }}
