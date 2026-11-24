@@ -5,10 +5,58 @@ import { type SongTrack, PRESET_SONGS } from './trackConstants';
 export type { SongTrack };
 export { PRESET_SONGS };
 
-// In-browser instant dictionary for popular artists & hits (0ms lookup)
+function foldTurkish(str: string): string {
+  return str
+    .replace(/İ/g, 'i')
+    .toLowerCase()
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[&/\\#,+()$~%.'":*?<>{}\[\]|\-_!]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripTrackNoise(str: string): string {
+  return str
+    .replace(/\((?:feat|ft|with|featuring)[^)]*\)/gi, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s*-\s*(?:single|album|ep|remastered|radio edit|version).*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeSignificant(str: string): string[] {
+  const folded = foldTurkish(stripTrackNoise(str));
+  if (!folded) return [];
+  const raw = folded.split(' ').filter(Boolean);
+  const filtered = raw.filter(
+    (w) => w.length >= 2 && !['feat', 'ft', 'the', 'and', 've', 'ile'].includes(w)
+  );
+  return filtered.length > 0 ? filtered : raw;
+}
+
+// Known broken/404 or mismatched legacy YouTube IDs that may linger in localStorage caches
+const KNOWN_INVALID_YOUTUBE_IDS = new Set([
+  'g2cT_Kz43m4',
+  '9vU6B9qE1fA',
+  'c1oH1tHn8fI',
+  '2bI3C5L8M5k',
+  'xP89mCq741U',
+  'a_4_O-823qE',
+  '1f32qfJgqQY',
+  'yDq1nB5y2G4',
+  'U2hF6y1V0nE',
+]);
+
+// In-browser instant dictionary for popular artists & hits (0ms lookup, Turkish-normalized keys)
 const CLIENT_TRACK_CATALOG: Record<string, string> = {
   // Hileli - Manifest & Ajda Pekkan
-  'hileli': 'kXKhNI4DLHM',
   'hileli manifest': 'kXKhNI4DLHM',
   'manifest hileli': 'kXKhNI4DLHM',
   'hileli ajda pekkan': 'kXKhNI4DLHM',
@@ -17,47 +65,52 @@ const CLIENT_TRACK_CATALOG: Record<string, string> = {
   'manifest ajda pekkan hileli': 'kXKhNI4DLHM',
 
   // Ajda Pekkan
-  'ajda pekkan arada sirada': 'g2cT_Kz43m4',
-  'arada sirada ajda pekkan': 'g2cT_Kz43m4',
-  'arada sirada': 'g2cT_Kz43m4',
-  'ajda pekkan yakar gecerim': '9vU6B9qE1fA',
-  'yakar gecerim ajda pekkan': '9vU6B9qE1fA',
-  'yakar gecerim': '9vU6B9qE1fA',
-  'ajda pekkan o benim dunyam': 'c1oH1tHn8fI',
-  'ajda pekkan resim': '2bI3C5L8M5k',
+  'ajda pekkan arada sirada': '5Vc6tvr9aRg',
+  'arada sirada ajda pekkan': '5Vc6tvr9aRg',
+  'ajda pekkan yakar gecerim': 'Xpp_y2Os5Co',
+  'yakar gecerim ajda pekkan': 'Xpp_y2Os5Co',
+  'ajda pekkan o benim dunyam': 'aAPuhE7G58E',
+  'o benim dunyam ajda pekkan': 'aAPuhE7G58E',
+  'ajda pekkan resim': '6uCsExNeu88',
+  'resim ajda pekkan': '6uCsExNeu88',
+
+  // Manifest
   'manifest tralala': '0rW7Fbm4S7g',
   'tralala manifest': '0rW7Fbm4S7g',
-  'tralala': '0rW7Fbm4S7g',
-  'toz pembe nalan': '0pg0raFMNIU',
-  'toz pembe': '0pg0raFMNIU',
+  'toz pembe manifest': '0pg0raFMNIU',
+  'manifest toz pembe': '0pg0raFMNIU',
+
+  // Popular Turkish & Global hits
   'askin olayim simge': 'VREnTCTeS4k',
   'simge askin olayim': 'VREnTCTeS4k',
-  'askin olayim': 'VREnTCTeS4k',
   'antidepresan mert demir': 'i6CSvLvSNZ4',
   'mert demir antidepresan': 'i6CSvLvSNZ4',
-  'antidepresan': 'i6CSvLvSNZ4',
-  'atese dustum mert demir': 'xP89mCq741U',
-  'sezen aksu vazgectim': 'a_4_O-823qE',
-  'vazgectim sezen aksu': 'a_4_O-823qE',
-  'tarkan kuzu kuzu': '1f32qfJgqQY',
-  'tarkan simarik': 'yDq1nB5y2G4',
-  'ezhel geceler': 'U2hF6y1V0nE',
+  'antidepresan mert demir mabel matiz': 'i6CSvLvSNZ4',
+  'mert demir mabel matiz antidepresan': 'i6CSvLvSNZ4',
+  'atese dustum mert demir': 'RQmXet6kZ-Y',
+  'mert demir atese dustum': 'RQmXet6kZ-Y',
+  'sezen aksu vazgectim': '83PXWOoucDU',
+  'vazgectim sezen aksu': '83PXWOoucDU',
+  'tarkan kuzu kuzu': 'NAHRpEqgcL4',
+  'kuzu kuzu tarkan': 'NAHRpEqgcL4',
+  'tarkan simarik': 'cpp69ghR1IM',
+  'simarik tarkan': 'cpp69ghR1IM',
+  'ezhel geceler': 'XokJGO8ALVs',
+  'geceler ezhel': 'XokJGO8ALVs',
   'birds of a feather billie eilish': 'V9PVRfjEBTI',
   'billie eilish birds of a feather': 'V9PVRfjEBTI',
-  'birds of a feather': 'V9PVRfjEBTI',
   'runaway aurora': 'd_HlPboLRL8',
   'aurora runaway': 'd_HlPboLRL8',
   'as it was harry styles': 'H5v3kku4y6Q',
   'harry styles as it was': 'H5v3kku4y6Q',
-  'as it was': 'H5v3kku4y6Q',
   'taylor swift cruel summer': 'ic8j13piAhQ',
-  'cruel summer': 'ic8j13piAhQ',
+  'cruel summer taylor swift': 'ic8j13piAhQ',
   'the weeknd blinding lights': 'fHI8X4OXluQ',
-  'blinding lights': 'fHI8X4OXluQ',
+  'blinding lights the weeknd': 'fHI8X4OXluQ',
   'starboy the weeknd': '34Na4j8AVgA',
+  'the weeknd starboy': '34Na4j8AVgA',
   'fascist cerpow': 'KR7QDK4saas',
   'cerpow fascist': 'KR7QDK4saas',
-  'fascist': 'KR7QDK4saas',
 };
 
 declare global {
@@ -70,26 +123,34 @@ declare global {
 class HiddenMusicAudioEngine {
   private player: any = null;
   private isApiReady: boolean = false;
-  private pendingTrack: SongTrack | null = null;
+  private pendingTrack: { track: SongTrack; sessionId: number } | null = null;
   private containerId = 'contto-silent-audio-anchor';
   private progressInterval: number | null = null;
   private safetyTimer: number | null = null;
   private prevTrack: SongTrack | null = null;
-  
+
+  // Concurrency & transition guards to eliminate wrong-song playback races
+  private playSessionId: number = 0;
+  private isLoadingTrack: boolean = false;
+  private isPausedByUser: boolean = false;
+  private expectedVideoId: string | null = null;
+  private trackLoadStartedAt: number = 0;
+  private resolvedVideoCache: Map<string, { videoId: string | null; audioUrl?: string | null }> = new Map();
+
   // HTML5 Fallback Audio player
   private html5Audio: HTMLAudioElement | null = null;
   private activeEngine: 'youtube' | 'html5' = 'youtube';
 
-  private listeners: Set<(state: { 
-    isPlaying: boolean; 
-    currentTime: number; 
-    duration: number; 
+  private listeners: Set<(state: {
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
     track: SongTrack | null;
     isShuffle: boolean;
     isRepeat: boolean;
   }) => void> = new Set();
   private onTrackEndedListeners: Set<(track: SongTrack) => void> = new Set();
-  
+
   public currentTrack: SongTrack | null = null;
   public isPlaying: boolean = false;
   public currentTime: number = 0;
@@ -110,7 +171,8 @@ class HiddenMusicAudioEngine {
     this.html5Audio.preload = 'auto';
 
     this.html5Audio.addEventListener('playing', () => {
-      this.activeEngine = 'html5';
+      if (this.activeEngine !== 'html5' || this.isPausedByUser) return;
+      this.isLoadingTrack = false;
       this.isPlaying = true;
       if (this.html5Audio && this.html5Audio.duration && !isNaN(this.html5Audio.duration)) {
         this.duration = this.html5Audio.duration;
@@ -120,14 +182,15 @@ class HiddenMusicAudioEngine {
     });
 
     this.html5Audio.addEventListener('pause', () => {
-      if (this.activeEngine === 'html5') {
+      if (this.activeEngine === 'html5' && !this.isLoadingTrack) {
         this.isPlaying = false;
+        this.stopProgressTracker();
         this.emit();
       }
     });
 
     this.html5Audio.addEventListener('timeupdate', () => {
-      if (this.activeEngine === 'html5' && this.html5Audio) {
+      if (this.activeEngine === 'html5' && this.html5Audio && !this.isLoadingTrack) {
         this.currentTime = this.html5Audio.currentTime;
         if (this.html5Audio.duration && !isNaN(this.html5Audio.duration)) {
           this.duration = this.html5Audio.duration;
@@ -137,7 +200,7 @@ class HiddenMusicAudioEngine {
     });
 
     this.html5Audio.addEventListener('ended', () => {
-      if (this.activeEngine === 'html5') {
+      if (this.activeEngine === 'html5' && !this.isLoadingTrack) {
         this.handleTrackEnded();
       }
     });
@@ -194,7 +257,8 @@ class HiddenMusicAudioEngine {
     }
 
     try {
-      const currentOrigin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://localhost';
+      const currentOrigin =
+        typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://localhost';
 
       this.player = new window.YT.Player(this.containerId, {
         height: '200',
@@ -212,127 +276,258 @@ class HiddenMusicAudioEngine {
         },
         events: {
           onReady: () => {
-            if (this.pendingTrack) {
-              this.play(this.pendingTrack);
+            if (this.pendingTrack && this.pendingTrack.sessionId === this.playSessionId && !this.isPausedByUser) {
+              const queued = this.pendingTrack.track;
+              this.pendingTrack = null;
+              this.loadYouTubeVideo(queued, queued.youtubeId, this.playSessionId);
+            } else {
               this.pendingTrack = null;
             }
           },
           onStateChange: (event: any) => {
+            const loadedVideoId = this.player?.getVideoData?.()?.video_id;
+            if (this.expectedVideoId && loadedVideoId && loadedVideoId !== this.expectedVideoId) {
+              // Ignore stale events belonging to a previously unloaded video
+              return;
+            }
+
             if (event.data === 1) {
               // Playing
-              this.activeEngine = 'youtube';
-              this.isPlaying = true;
               if (this.safetyTimer) {
                 clearTimeout(this.safetyTimer);
                 this.safetyTimer = null;
               }
-              // Pause html5 audio if it was running
-              if (this.html5Audio) {
-                try { this.html5Audio.pause(); } catch {}
+              if (this.isPausedByUser) {
+                try {
+                  this.player.pauseVideo();
+                } catch {}
+                return;
               }
-              this.duration = this.player?.getDuration() || this.currentTrack?.durationSec || 180;
+              if (this.html5Audio) {
+                try {
+                  this.html5Audio.pause();
+                } catch {}
+              }
+              this.activeEngine = 'youtube';
+              this.isLoadingTrack = false;
+              this.isPlaying = true;
+              const ytDuration = this.player?.getDuration?.();
+              if (typeof ytDuration === 'number' && !isNaN(ytDuration) && ytDuration > 0) {
+                this.duration = ytDuration;
+              } else {
+                this.duration = this.currentTrack?.durationSec || 180;
+              }
+              try {
+                this.player.setVolume?.(100);
+              } catch {}
               this.startProgressTracker();
               this.emit();
             } else if (event.data === 3) {
-              // Buffering: Video is loading full track, do not abort
+              // Buffering: Video is loading full track, clear timeout
               if (this.safetyTimer) {
                 clearTimeout(this.safetyTimer);
                 this.safetyTimer = null;
               }
             } else if (event.data === 2) {
-              // Paused
+              // Paused: Ignore transient pause events emitted right during loadVideoById
+              if (this.isLoadingTrack || Date.now() - this.trackLoadStartedAt < 1200) {
+                return;
+              }
               if (this.activeEngine === 'youtube') {
                 this.isPlaying = false;
                 this.stopProgressTracker();
                 this.emit();
               }
             } else if (event.data === 0) {
-              // Ended
-              this.handleTrackEnded();
+              // Ended: Ignore stale ENDED events while switching tracks
+              if (this.isLoadingTrack || Date.now() - this.trackLoadStartedAt < 1500) {
+                return;
+              }
+              if (this.activeEngine === 'youtube') {
+                this.handleTrackEnded();
+              }
             }
           },
           onError: () => {
-            // YouTube embed blocked or error -> Fallback immediately to HTML5 Audio!
-            if (this.currentTrack) {
-              this.fallbackToHtml5Audio(this.currentTrack);
+            if (this.safetyTimer) {
+              clearTimeout(this.safetyTimer);
+              this.safetyTimer = null;
+            }
+            if (this.currentTrack && !this.isPausedByUser && this.activeEngine === 'youtube') {
+              this.fallbackToHtml5Audio(this.currentTrack, this.playSessionId);
             }
           },
         },
       });
     } catch {
-      // Ignore
+      // Ignore YT init errors
     }
   }
 
   private handleTrackEnded() {
+    this.stopProgressTracker();
+
     if (this.currentTrack) {
       recordImplicitSignal(this.currentTrack, 'complete');
       smartShuffleEngine.recordTrackFinished(this.currentTrack, this.prevTrack);
       for (const l of this.onTrackEndedListeners) {
-        try { l(this.currentTrack); } catch {}
+        try {
+          l(this.currentTrack);
+        } catch {}
       }
     }
 
-    if (this.isRepeat) {
+    if (this.isRepeat && this.currentTrack) {
       this.seek(0);
       this.resume();
     } else if (this.isShuffle) {
-      // Karıştırma AÇIKSA: Akıllı karıştırma algoritmasıyla yeni şarkıya geçilir
       const nextTrack = smartShuffleEngine.pickNextTrack(this.currentTrack);
       this.play(nextTrack);
     } else {
-      // KARIŞTIRMA KAPALIYSA: Şarkı durur, otomatik yeni şarkıya geçilmez
-      this.pause();
-      this.seek(0);
+      // Repeat & shuffle off: stop cleanly at 0:00 without calling YT seekTo(0) (which can auto-replay)
+      this.isPlaying = false;
+      this.isPausedByUser = true;
+      this.currentTime = 0;
+      if (this.html5Audio) {
+        try {
+          this.html5Audio.pause();
+          this.html5Audio.currentTime = 0;
+        } catch {}
+      }
+      this.emit();
     }
   }
 
-  private async fallbackToHtml5Audio(track: SongTrack) {
-    if (!this.html5Audio) return;
+  private async resolveItunesPreview(track: SongTrack): Promise<string | null> {
+    const cleanTitle = stripTrackNoise(track.name);
+    const query = `${cleanTitle} ${track.artist}`.trim();
+    const titleTokens = tokenizeSignificant(cleanTitle || track.name);
+    const artistTokens = tokenizeSignificant(track.artist);
 
-    let audioSrc = track.audioUrl;
-
-    // If audioUrl is not available, query iTunes search API directly in browser
-    if (!audioSrc) {
+    const searchCountry = async (country: string): Promise<any[]> => {
       try {
-        const query = `${track.name} ${track.artist}`.trim();
-        const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`);
+        const res = await fetch(
+          `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=6&country=${country}`
+        );
+        if (!res.ok) return [];
         const data = await res.json();
-        if (data && data.results && data.results[0] && data.results[0].previewUrl) {
-          audioSrc = data.results[0].previewUrl;
-          track.audioUrl = audioSrc;
-        }
+        return Array.isArray(data?.results) ? data.results : [];
+      } catch {
+        return [];
+      }
+    };
+
+    let results = await searchCountry('tr');
+    if (results.length === 0) {
+      results = await searchCountry('us');
+    }
+
+    let bestUrl: string | null = null;
+    let bestScore = -Infinity;
+
+    for (const r of results) {
+      if (!r?.previewUrl) continue;
+      const tName = foldTurkish(r.trackName || '');
+      const aName = foldTurkish(r.artistName || '');
+      let score = 0;
+
+      if (titleTokens.length > 0) {
+        const matchedT = titleTokens.filter((t) => tName.includes(t)).length;
+        const tRatio = matchedT / titleTokens.length;
+        if (tRatio < 0.5) continue;
+        score += tRatio * 50;
+      }
+
+      if (artistTokens.length > 0) {
+        const matchedA = artistTokens.filter((a) => aName.includes(a)).length;
+        if (matchedA === 0) continue;
+        score += (matchedA / artistTokens.length) * 40;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestUrl = r.previewUrl;
+      }
+    }
+
+    return bestUrl;
+  }
+
+  private async fallbackToHtml5Audio(track: SongTrack, sessionId: number) {
+    if (sessionId !== this.playSessionId || this.isPausedByUser) return;
+
+    // Pause YouTube player so dual playback can never occur
+    if (this.player && this.player.pauseVideo) {
+      try {
+        this.player.pauseVideo();
       } catch {}
+    }
+
+    if (!this.html5Audio) {
+      this.isPlaying = false;
+      this.isLoadingTrack = false;
+      this.stopProgressTracker();
+      this.emit();
+      return;
+    }
+
+    let audioSrc = track.audioUrl || null;
+
+    if (!audioSrc) {
+      audioSrc = await this.resolveItunesPreview(track);
+      if (sessionId !== this.playSessionId || this.isPausedByUser) return;
     }
 
     if (audioSrc) {
       try {
         this.activeEngine = 'html5';
+        this.expectedVideoId = null;
         this.html5Audio.src = audioSrc;
         this.html5Audio.currentTime = 0;
         this.html5Audio.volume = 1;
         await this.html5Audio.play();
+        if (sessionId !== this.playSessionId || this.isPausedByUser) {
+          this.html5Audio.pause();
+          return;
+        }
+        this.isLoadingTrack = false;
         this.isPlaying = true;
-        this.duration = track.durationSec || 180;
+        this.duration =
+          this.html5Audio.duration && !isNaN(this.html5Audio.duration)
+            ? this.html5Audio.duration
+            : track.durationSec || 180;
         this.startProgressTracker();
         this.emit();
-      } catch {}
+        return;
+      } catch {
+        // Fall through to clean stop state
+      }
+    }
+
+    // No playable stream succeeded: stop vinyl & lift tonearm cleanly instead of faking playback
+    if (sessionId === this.playSessionId) {
+      this.isLoadingTrack = false;
+      this.isPlaying = false;
+      this.stopProgressTracker();
+      this.emit();
     }
   }
 
-  public subscribe(cb: (state: { 
-    isPlaying: boolean; 
-    currentTime: number; 
-    duration: number; 
-    track: SongTrack | null;
-    isShuffle: boolean;
-    isRepeat: boolean;
-  }) => void) {
+  public subscribe(
+    cb: (state: {
+      isPlaying: boolean;
+      currentTime: number;
+      duration: number;
+      track: SongTrack | null;
+      isShuffle: boolean;
+      isRepeat: boolean;
+    }) => void
+  ) {
     this.listeners.add(cb);
-    cb({ 
-      isPlaying: this.isPlaying, 
-      currentTime: this.currentTime, 
-      duration: this.duration, 
+    cb({
+      isPlaying: this.isPlaying,
+      currentTime: this.currentTime,
+      duration: this.duration,
       track: this.currentTrack,
       isShuffle: this.isShuffle,
       isRepeat: this.isRepeat,
@@ -355,136 +550,183 @@ class HiddenMusicAudioEngine {
     }
   }
 
-  private async crossfadeVolume(from: number, to: number, durationMs = 250): Promise<void> {
-    const steps = 6;
-    const stepTime = durationMs / steps;
-    const diff = to - from;
-    for (let i = 1; i <= steps; i++) {
-      const vol = Math.round(from + diff * (i / steps));
-      if (this.player && this.player.setVolume) {
-        try { this.player.setVolume(vol); } catch {}
-      }
-      if (this.html5Audio) {
-        try { this.html5Audio.volume = Math.max(0, Math.min(1, vol / 100)); } catch {}
-      }
-      await new Promise((r) => setTimeout(r, stepTime));
+  private normalizePresetTrack(track: SongTrack): SongTrack {
+    const byId = PRESET_SONGS.find((p) => p.id === track.id);
+    if (byId) {
+      return { ...byId };
     }
+    const trackKey = `${foldTurkish(track.name)}::${foldTurkish(track.artist)}`;
+    const byMeta = PRESET_SONGS.find(
+      (p) => `${foldTurkish(p.name)}::${foldTurkish(p.artist)}` === trackKey
+    );
+    if (byMeta) {
+      return { ...track, youtubeId: byMeta.youtubeId, albumCover: track.albumCover || byMeta.albumCover };
+    }
+    if (track.youtubeId && KNOWN_INVALID_YOUTUBE_IDS.has(track.youtubeId)) {
+      return { ...track, youtubeId: '' };
+    }
+    return { ...track };
   }
 
-  public async play(track: SongTrack) {
-    // Clear safety timer if any
-    if (this.safetyTimer) {
-      clearTimeout(this.safetyTimer);
-      this.safetyTimer = null;
-    }
+  private lookupCatalogVideoId(track: SongTrack): string | null {
+    const cleanTitle = foldTurkish(stripTrackNoise(track.name));
+    const cleanArtist = foldTurkish(track.artist);
+    const fullName = foldTurkish(track.name);
 
-    // Crossfade out previous track
-    if (this.isPlaying) {
-      await this.crossfadeVolume(100, 0, 200);
-    }
+    const candidates = [
+      `${cleanTitle} ${cleanArtist}`.trim(),
+      `${cleanArtist} ${cleanTitle}`.trim(),
+      `${fullName} ${cleanArtist}`.trim(),
+      `${cleanArtist} ${fullName}`.trim(),
+    ];
 
-    this.prevTrack = this.currentTrack;
-    this.currentTrack = track;
-    this.currentTime = 0;
-    this.duration = track.durationSec || 180;
-    this.isPlaying = true;
-    this.emit();
-
-    let vid = track.youtubeId;
-
-    // Check client built-in catalog first for instant 0ms response
-    if (!vid) {
-      const cleanKey = `${track.name} ${track.artist}`.toLowerCase().trim();
-      const songKey = track.name.toLowerCase().trim();
-      const normKey = cleanKey.replace(/[&/\\#,+()$~%.'":*?<>{}]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (CLIENT_TRACK_CATALOG[cleanKey]) {
-        vid = CLIENT_TRACK_CATALOG[cleanKey];
-        track.youtubeId = vid;
-      } else if (CLIENT_TRACK_CATALOG[songKey]) {
-        vid = CLIENT_TRACK_CATALOG[songKey];
-        track.youtubeId = vid;
-      } else if (CLIENT_TRACK_CATALOG[normKey]) {
-        vid = CLIENT_TRACK_CATALOG[normKey];
-        track.youtubeId = vid;
+    for (const key of candidates) {
+      if (key && CLIENT_TRACK_CATALOG[key]) {
+        return CLIENT_TRACK_CATALOG[key];
       }
     }
+    return null;
+  }
 
-    // Resolve via API if still no videoId
-    if (!vid) {
-      try {
-        const query = `${track.name} ${track.artist}`.trim();
-        const res = await fetch(`/api/resolve-track?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.videoId) {
-            vid = data.videoId;
-            track.youtubeId = vid;
-          }
-          if (data && data.audioUrl && !track.audioUrl) {
-            track.audioUrl = data.audioUrl;
-          }
-        }
-      } catch {
-        // Network or 404
-      }
-    }
+  private loadYouTubeVideo(track: SongTrack, vid: string, sessionId: number) {
+    if (sessionId !== this.playSessionId || this.isPausedByUser) return;
 
-    // Secondary resolve attempt with song name only
-    if (!vid) {
-      try {
-        const res = await fetch(`/api/resolve-track?q=${encodeURIComponent(track.name)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.videoId) {
-            vid = data.videoId;
-            track.youtubeId = vid;
-          }
-          if (data && data.audioUrl && !track.audioUrl) {
-            track.audioUrl = data.audioUrl;
-          }
-        }
-      } catch {}
-    }
-
-    // If still no YouTube videoId, fallback to direct HTML5 Audio stream
-    if (!vid) {
-      await this.fallbackToHtml5Audio(track);
-      return;
-    }
-
-    // If YouTube Player is not ready yet, queue track
     if (!this.player || !this.player.loadVideoById) {
-      this.pendingTrack = { ...track, youtubeId: vid };
-      this.startProgressTracker();
+      this.pendingTrack = { track: { ...track, youtubeId: vid }, sessionId };
       this.emit();
       return;
     }
 
     try {
       this.activeEngine = 'youtube';
+      this.expectedVideoId = vid;
+      this.isLoadingTrack = true;
+      this.trackLoadStartedAt = Date.now();
+      if (this.html5Audio) {
+        try {
+          this.html5Audio.pause();
+        } catch {}
+      }
+      try {
+        this.player.setVolume?.(100);
+      } catch {}
       this.player.loadVideoById({
         videoId: vid,
         startSeconds: 0,
       });
       this.player.playVideo();
-      this.crossfadeVolume(0, 100, 250);
     } catch {
-      this.fallbackToHtml5Audio(track);
+      this.fallbackToHtml5Audio(track, sessionId);
+      return;
     }
 
-    // Safety fallback: only if player completely froze after 8 seconds and not buffering
+    // Safety fallback: only if YouTube completely stalled after 8s
     this.safetyTimer = window.setTimeout(() => {
-      if (this.currentTrack?.id === track.id && this.currentTime === 0 && this.activeEngine === 'youtube') {
+      if (
+        sessionId === this.playSessionId &&
+        !this.isPausedByUser &&
+        this.isLoadingTrack &&
+        this.activeEngine === 'youtube'
+      ) {
         const state = this.player?.getPlayerState ? this.player.getPlayerState() : -1;
-        // 1 = playing, 3 = buffering, 5 = cued -> video is loading / playing
         if (state !== 1 && state !== 3 && state !== 5) {
-          this.fallbackToHtml5Audio(track);
+          this.fallbackToHtml5Audio(track, sessionId);
         }
       }
     }, 8000);
+  }
 
-    this.startProgressTracker();
+  public async play(rawTrack: SongTrack) {
+    const sessionId = ++this.playSessionId;
+    const track = this.normalizePresetTrack(rawTrack);
+
+    if (this.safetyTimer) {
+      clearTimeout(this.safetyTimer);
+      this.safetyTimer = null;
+    }
+    this.stopProgressTracker();
+
+    // Stop any previous playback immediately so outgoing audio never bleeds into the new track
+    if (this.player && this.player.pauseVideo) {
+      try {
+        this.player.pauseVideo();
+      } catch {}
+    }
+    if (this.html5Audio) {
+      try {
+        this.html5Audio.pause();
+      } catch {}
+    }
+
+    this.prevTrack = this.currentTrack;
+    this.currentTrack = track;
+    this.currentTime = 0;
+    this.duration = track.durationSec || 180;
+    this.isPausedByUser = false;
+    this.isLoadingTrack = true;
+    this.expectedVideoId = null;
+    this.trackLoadStartedAt = Date.now();
+    this.isPlaying = true;
     this.emit();
+
+    let vid = track.youtubeId || null;
+    const cacheKey = foldTurkish(`${track.name}::${track.artist}`);
+
+    if (!vid) {
+      const cached = this.resolvedVideoCache.get(cacheKey);
+      if (cached) {
+        vid = cached.videoId || null;
+        if (cached.audioUrl && !track.audioUrl) {
+          track.audioUrl = cached.audioUrl;
+        }
+      }
+    }
+
+    if (!vid) {
+      vid = this.lookupCatalogVideoId(track);
+    }
+
+    // Resolve via backend API with both title and artist for strict matching
+    if (!vid) {
+      try {
+        const cleanTitle = stripTrackNoise(track.name);
+        const query = `${cleanTitle || track.name} ${track.artist}`.trim();
+        const params = new URLSearchParams({
+          q: query,
+          title: track.name,
+          artist: track.artist,
+        });
+        const res = await fetch(`/api/resolve-track?${params.toString()}`);
+        if (sessionId !== this.playSessionId || this.isPausedByUser) return;
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.videoId) {
+            vid = data.videoId;
+          }
+          if (data?.audioUrl && !track.audioUrl) {
+            track.audioUrl = data.audioUrl;
+          }
+          if (vid || track.audioUrl) {
+            this.resolvedVideoCache.set(cacheKey, {
+              videoId: vid || null,
+              audioUrl: track.audioUrl || null,
+            });
+          }
+        }
+      } catch {
+        // Network error -> fall through to HTML5 fallback
+      }
+    }
+
+    if (sessionId !== this.playSessionId || this.isPausedByUser) return;
+
+    if (!vid) {
+      await this.fallbackToHtml5Audio(track, sessionId);
+      return;
+    }
+
+    this.loadYouTubeVideo(track, vid, sessionId);
   }
 
   public togglePlayPause() {
@@ -496,6 +738,7 @@ class HiddenMusicAudioEngine {
   }
 
   public pause() {
+    this.isPausedByUser = true;
     this.isPlaying = false;
     this.stopProgressTracker();
     if (this.safetyTimer) {
@@ -504,10 +747,14 @@ class HiddenMusicAudioEngine {
     }
 
     if (this.player && this.player.pauseVideo) {
-      try { this.player.pauseVideo(); } catch {}
+      try {
+        this.player.pauseVideo();
+      } catch {}
     }
     if (this.html5Audio) {
-      try { this.html5Audio.pause(); } catch {}
+      try {
+        this.html5Audio.pause();
+      } catch {}
     }
     this.emit();
   }
@@ -520,28 +767,58 @@ class HiddenMusicAudioEngine {
       return;
     }
 
-    this.isPlaying = true;
-    if (this.activeEngine === 'youtube' && this.player && this.player.playVideo) {
-      try { this.player.playVideo(); } catch {}
-    } else if (this.activeEngine === 'html5' && this.html5Audio) {
-      try { this.html5Audio.play(); } catch {}
+    this.isPausedByUser = false;
+
+    if (this.activeEngine === 'youtube') {
+      if (!this.expectedVideoId && !this.isLoadingTrack) {
+        // Track previously failed or never loaded a YouTube video -> re-run full play
+        this.play(this.currentTrack);
+        return;
+      }
+      if (this.player && this.player.playVideo) {
+        this.isPlaying = true;
+        try {
+          const state = this.player.getPlayerState?.();
+          if (state === 0 && this.currentTime === 0 && this.player.seekTo) {
+            this.player.seekTo(0, true);
+          }
+          this.player.playVideo();
+        } catch {}
+        this.startProgressTracker();
+        this.emit();
+        return;
+      }
+    } else if (this.activeEngine === 'html5' && this.html5Audio && this.html5Audio.src) {
+      this.isPlaying = true;
+      this.html5Audio.play().catch(() => {
+        this.isPlaying = false;
+        this.stopProgressTracker();
+        this.emit();
+      });
+      this.startProgressTracker();
+      this.emit();
+      return;
     }
 
-    this.startProgressTracker();
-    this.emit();
+    this.play(this.currentTrack);
   }
 
   public seek(seconds: number) {
-    if (this.currentTrack && seconds < this.currentTime - 4) {
+    const clamped = Math.max(0, Math.min(this.duration || 180, seconds));
+    if (this.currentTrack && clamped < this.currentTime - 4) {
       recordImplicitSignal(this.currentTrack, 'rewind');
     }
-    this.currentTime = seconds;
+    this.currentTime = clamped;
 
-    if (this.activeEngine === 'youtube' && this.player && this.player.seekTo) {
-      try { this.player.seekTo(seconds, true); } catch {}
+    if (this.activeEngine === 'youtube' && this.player && this.player.seekTo && !this.isLoadingTrack) {
+      try {
+        this.player.seekTo(clamped, true);
+      } catch {}
     }
-    if (this.activeEngine === 'html5' && this.html5Audio) {
-      try { this.html5Audio.currentTime = seconds; } catch {}
+    if (this.activeEngine === 'html5' && this.html5Audio && this.html5Audio.src) {
+      try {
+        this.html5Audio.currentTime = clamped;
+      } catch {}
     }
     this.emit();
   }
@@ -601,25 +878,27 @@ class HiddenMusicAudioEngine {
   private startProgressTracker() {
     this.stopProgressTracker();
     this.progressInterval = window.setInterval(() => {
-      if (!this.isPlaying) return;
+      if (!this.isPlaying || this.isLoadingTrack) return;
 
       if (this.activeEngine === 'youtube') {
-        if (this.player && this.player.getCurrentTime) {
-          try {
-            const t = this.player.getCurrentTime();
-            const d = this.player.getDuration();
-            if (typeof t === 'number' && !isNaN(t)) {
-              this.currentTime = t;
-            }
-            if (typeof d === 'number' && !isNaN(d) && d > 0) {
-              this.duration = d;
-            }
-          } catch {
-            this.currentTime += 0.5;
-          }
-        } else {
-          this.currentTime += 0.5;
+        const state = this.player?.getPlayerState?.();
+        if (state !== 1) return; // Never read stale currentTime while buffering/unstarted/transitioning
+
+        const loadedVideoId = this.player?.getVideoData?.()?.video_id;
+        if (this.expectedVideoId && loadedVideoId && loadedVideoId !== this.expectedVideoId) {
+          return;
         }
+
+        try {
+          const t = this.player.getCurrentTime();
+          const d = this.player.getDuration();
+          if (typeof t === 'number' && !isNaN(t) && t >= 0) {
+            this.currentTime = t;
+          }
+          if (typeof d === 'number' && !isNaN(d) && d > 0) {
+            this.duration = d;
+          }
+        } catch {}
       } else if (this.activeEngine === 'html5' && this.html5Audio) {
         this.currentTime = this.html5Audio.currentTime;
         if (this.html5Audio.duration && !isNaN(this.html5Audio.duration)) {
@@ -627,7 +906,12 @@ class HiddenMusicAudioEngine {
         }
       }
 
-      if (this.currentTime >= this.duration && this.duration > 0) {
+      if (
+        !this.isLoadingTrack &&
+        this.duration > 5 &&
+        this.currentTime >= 2 &&
+        this.currentTime >= this.duration - 0.25
+      ) {
         this.handleTrackEnded();
       } else {
         this.emit();

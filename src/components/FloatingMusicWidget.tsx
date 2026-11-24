@@ -78,6 +78,8 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
   const [hoveredTrack, setHoveredTrack] = useState<SongTrack | null>(null);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [sleeveImgError, setSleeveImgError] = useState<boolean>(false);
+  const isSeekingRef = useRef<boolean>(false);
 
   // Global 'G' Key Listener: Instantly pauses audio and shows the black school restriction pop-up inside widget
   useEffect(() => {
@@ -249,7 +251,8 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
 
   // Live real-time search for official songs & covers from Apple Music CDN
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
       setSearchResults([]);
       setIsSearchingOnline(false);
       return;
@@ -259,13 +262,18 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
       clearTimeout(searchDebounceRef.current);
     }
 
+    const controller = new AbortController();
+
     searchDebounceRef.current = setTimeout(async () => {
       setIsSearchingOnline(true);
       try {
         const res = await fetch(
-          `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery.trim())}&entity=song&limit=6&country=tr`
+          `https://itunes.apple.com/search?term=${encodeURIComponent(trimmed)}&entity=song&limit=6&country=tr`,
+          { signal: controller.signal }
         );
         const data = await res.json();
+        if (controller.signal.aborted) return;
+
         if (data.results && data.results.length > 0) {
           const liveTracks: SongTrack[] = await Promise.all(
             data.results.map(async (r: any) => {
@@ -283,18 +291,25 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
               };
             })
           );
-          setSearchResults(liveTracks);
-        } else {
+          if (!controller.signal.aborted) {
+            setSearchResults(liveTracks);
+          }
+        } else if (!controller.signal.aborted) {
           setSearchResults([]);
         }
-      } catch {
-        setSearchResults([]);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError' && !controller.signal.aborted) {
+          setSearchResults([]);
+        }
       } finally {
-        setIsSearchingOnline(false);
+        if (!controller.signal.aborted) {
+          setIsSearchingOnline(false);
+        }
       }
     }, 320);
 
     return () => {
+      controller.abort();
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
   }, [searchQuery]);
@@ -303,6 +318,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     if (pool && pool.length > 0) {
       musicAudioEngine.setActivePool(pool);
     }
+    setHoveredTrack(null);
     recordImplicitSignal(track, 'play_select');
     musicAudioEngine.play(track);
     setViewMode('player');
@@ -344,19 +360,43 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     musicAudioEngine.toggleRepeat();
   };
 
-  const handleSeekClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const seekFromClientX = (el: HTMLDivElement, clientX: number) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    musicAudioEngine.seek(pct * duration);
+  };
+
+  const handleSeekPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     clearTimer();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const pct = Math.max(0, Math.min(1, clickX / rect.width));
-    musicAudioEngine.seek(pct * duration);
+    isSeekingRef.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    seekFromClientX(e.currentTarget, e.clientX);
+  };
+
+  const handleSeekPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeekingRef.current) return;
+    e.stopPropagation();
+    seekFromClientX(e.currentTarget, e.clientX);
+  };
+
+  const handleSeekPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isSeekingRef.current) return;
+    e.stopPropagation();
+    isSeekingRef.current = false;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
   const activeTrack = currentTrack || PRESET_SONGS[0];
   const [extractedColors, setExtractedColors] = useState<[string, string] | null>(null);
 
   useEffect(() => {
+    setSleeveImgError(false);
     if (activeTrack) {
       extractAlbumColors(activeTrack.albumCover, activeTrack.name).then((colors) => {
         setExtractedColors(colors);
@@ -367,7 +407,17 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     }
   }, [activeTrack?.id, activeTrack?.name, activeTrack?.albumCover]);
 
-  const activeColors = hoveredTrack?.colors || extractedColors || activeTrack.colors || ['#dc2626', '#e11d48'];
+  useEffect(() => {
+    if (!isOpen || viewMode === 'player') {
+      setHoveredTrack(null);
+    }
+  }, [isOpen, viewMode]);
+
+  const activeColors =
+    (viewMode === 'search' ? hoveredTrack?.colors : null) ||
+    extractedColors ||
+    activeTrack.colors ||
+    ['#dc2626', '#e11d48'];
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
 
@@ -606,7 +656,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                     transition={{ duration: 0.16 }}
                     className="relative z-10 flex flex-col gap-3"
                   >
-                    {/* Top-right compact floating controls (8D + 3D Crate) */}
+                    {/* Top header: Active track title + Song List button */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <AnimatePresence mode="wait">
@@ -647,6 +697,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                     <div className="relative h-[164px] w-full flex items-center justify-center my-0.5 select-none">
                       {/* 1. Left: Physical Cardboard Album Sleeve (Tap to open song list) */}
                       <button
+                        key={`sleeve-${activeTrack.id}`}
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -656,12 +707,30 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         title="Şarkı Listesini Aç"
                         className="group relative z-20 -mr-14 sm:-mr-16 w-[142px] h-[142px] sm:w-[150px] sm:h-[150px] rounded-md overflow-hidden shadow-[10px_14px_28px_rgba(0,0,0,0.85)] border border-white/20 bg-neutral-900 cursor-pointer transition-transform duration-300 hover:-translate-x-1.5 active:scale-[0.98]"
                       >
-                        <img
-                          src={activeTrack.albumCover}
-                          alt={activeTrack.name}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                        />
+                        {!sleeveImgError && activeTrack.albumCover ? (
+                          <img
+                            src={activeTrack.albumCover}
+                            alt={activeTrack.name}
+                            onError={() => setSleeveImgError(true)}
+                            className="w-full h-full object-cover"
+                            loading="eager"
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full flex flex-col items-center justify-center p-3 text-center"
+                            style={{
+                              background: `linear-gradient(135deg, ${activeColors[0]}, ${activeColors[1]})`,
+                            }}
+                          >
+                            <Music className="w-7 h-7 text-white/80 mb-1.5" />
+                            <span className="text-[11px] font-bold text-white line-clamp-2 leading-tight">
+                              {activeTrack.name}
+                            </span>
+                            <span className="text-[9px] text-white/75 truncate max-w-full mt-0.5">
+                              {activeTrack.artist}
+                            </span>
+                          </div>
+                        )}
                         {/* Cardboard spine crease & studio light sheen */}
                         <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-r from-black/50 via-white/15 to-transparent pointer-events-none" />
                         <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/35 pointer-events-none" />
@@ -689,21 +758,22 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         >
                           {/* Subtle inner run-out groove ring */}
                           <div className="w-[74px] h-[74px] rounded-full border border-white/10 flex items-center justify-center bg-[#0a0a0c]">
-                            {/* Center Paper Label (MD Vinyl Typography) */}
+                            {/* Center Paper Label (MD Vinyl Typography around center spindle) */}
                             <div
-                              className="w-[64px] h-[64px] rounded-full flex flex-col items-center justify-center p-1.5 text-center border border-white/25 shadow-inner relative overflow-hidden"
+                              key={`label-${activeTrack.id}`}
+                              className="w-[64px] h-[64px] rounded-full flex flex-col items-center justify-between py-2.5 px-1.5 text-center border border-white/25 shadow-inner relative overflow-hidden"
                               style={{
                                 background: `radial-gradient(circle at 35% 30%, #27272e 0%, #15151a 70%, ${activeColors[0]}33 100%)`,
                               }}
                             >
-                              <span className="text-[7.5px] font-extrabold text-white leading-tight line-clamp-2 px-1 tracking-tight">
+                              <span className="text-[7px] font-extrabold text-white leading-tight truncate max-w-[48px] tracking-tight">
                                 {activeTrack.name}
                               </span>
-                              <span className="text-[6.5px] font-medium text-white/65 truncate max-w-[48px] mt-0.5">
+                              <span className="text-[6px] font-medium text-white/65 truncate max-w-[46px]">
                                 {activeTrack.artist}
                               </span>
                               {/* Center Metallic Spindle Hole */}
-                              <div className="mt-1 w-2 h-2 rounded-full bg-neutral-300 border border-neutral-600 shadow-inner" />
+                              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-500 border border-neutral-800 shadow-inner" />
                             </div>
                           </div>
                         </div>
@@ -764,18 +834,22 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                         <span>-{formatMinutes(remainingSeconds)}</span>
                       </div>
 
-                      {/* Frosted Liquid Glass Seekbar Track matching image_ee5a9565.png */}
+                      {/* Frosted Liquid Glass Seekbar Track */}
                       <div
-                        onClick={handleSeekClick}
-                        className="relative h-2.5 w-full bg-white/15 hover:bg-white/20 rounded-full cursor-pointer flex items-center group overflow-hidden border border-white/10 transition-all duration-200 hover:h-3"
+                        onPointerDown={handleSeekPointerDown}
+                        onPointerMove={handleSeekPointerMove}
+                        onPointerUp={handleSeekPointerUp}
+                        onPointerCancel={handleSeekPointerUp}
+                        className="relative h-2.5 w-full bg-white/15 hover:bg-white/20 rounded-full cursor-pointer flex items-center group overflow-hidden border border-white/10 transition-all duration-200 hover:h-3 touch-none"
                         title="İlerlet"
                       >
                         <div
                           className="h-full bg-gradient-to-r from-white/75 via-white/90 to-white rounded-full transition-all duration-100 relative"
                           style={{ width: `${progressPercent}%` }}
                         >
-                          {/* Glowing capsule head at the front (exact match to image_ee5a9565.png) */}
-                          <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-4 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)]" />
+                          {progressPercent > 2 && (
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-3.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.95)]" />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -917,8 +991,30 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
                     <div className="flex flex-col gap-1.5 max-h-[250px] overflow-y-auto pr-0.5 custom-sticky-scrollbar">
                       {searchQuery.trim().length > 0 ? (
                         /* Live Search Mode Results */
-                        (searchResults.length > 0 ? searchResults : PRESET_SONGS).map((song) =>
-                          renderSongRow(song, searchResults.length > 0 ? searchResults : PRESET_SONGS)
+                        searchResults.length > 0 ? (
+                          searchResults.map((song) => renderSongRow(song, searchResults))
+                        ) : isSearchingOnline ? (
+                          <div className="py-6 flex items-center justify-center gap-2 text-xs text-white/60">
+                            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                            <span>Şarkılar aranıyor...</span>
+                          </div>
+                        ) : (
+                          (() => {
+                            const qLower = searchQuery.trim().toLowerCase();
+                            const localMatches = PRESET_SONGS.filter(
+                              (s) =>
+                                s.name.toLowerCase().includes(qLower) ||
+                                s.artist.toLowerCase().includes(qLower)
+                            );
+                            if (localMatches.length > 0) {
+                              return localMatches.map((song) => renderSongRow(song, localMatches));
+                            }
+                            return (
+                              <div className="py-6 text-center text-xs text-white/55">
+                                Eşleşen şarkı bulunamadı.
+                              </div>
+                            );
+                          })()
                         )
                       ) : (
                         /* Algorithmic Mode: Top 5 Personalized + Divider + Co-Listening */

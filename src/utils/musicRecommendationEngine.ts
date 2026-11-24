@@ -55,7 +55,7 @@ export const CO_LISTENING_GRAPH: Record<string, string[]> = {
   'runaway': ['AURORA', 'Florence + The Machine', 'Marina', 'Susanne Sundfør', 'Lorde', 'Björk'],
   'as it was': ['Harry Styles', 'Zayn', 'Niall Horan', 'The 1975', 'Shawn Mendes', 'Bleachers'],
   'askin olayim': ['Simge', 'Derya Uluğ', 'Ece Seçkin', 'İrem Derici', 'Merve Özbey', 'Hande Yener'],
-  'toz pembe': ['Nalan', 'Hande Yener', 'Demet Akalın', 'Gülşen', 'Tarkan', 'Burak Kut', 'Aşkın Nur Yengi'],
+  'toz pembe': ['Manifest', 'Hande Yener', 'Demet Akalın', 'Gülşen', 'Tarkan', 'Burak Kut', 'Aşkın Nur Yengi'],
   'arada sirada': ['Ajda Pekkan', 'Sezen Aksu', 'Nükhet Duru', 'Nilüfer', 'Tarkan', 'Kenan Doğulu'],
   'yakar gecerim': ['Ajda Pekkan', 'Tarkan', 'Sertab Erener', 'Hande Yener', 'Gülşen', 'Demet Akalın'],
   'antidepresan': ['Mert Demir', 'Mabel Matiz', 'Melike Şahin', 'KÖFN', 'Madrigal', 'Dolu Kadehi Ters Tut'],
@@ -90,7 +90,7 @@ export function getTimeOfDayContext(): {
     return {
       period: 'evening',
       contextVibe: 'evening_groove',
-      seedTerms: ['Mert Demir', 'AURORA', 'Nalan Toz Pembe', 'Melike Şahin'],
+      seedTerms: ['Mert Demir', 'AURORA', 'Manifest Toz Pembe', 'Melike Şahin'],
     };
   } else {
     // Gece: Derin lo-fi, sakin ambient ve loş şarkılar
@@ -102,13 +102,30 @@ export function getTimeOfDayContext(): {
   }
 }
 
+function refreshCachedTrack(track: SongTrack | null): SongTrack | null {
+  if (!track) return null;
+  const presetMatch = PRESET_SONGS.find((p) => p.id === track.id);
+  if (presetMatch) {
+    return { ...presetMatch };
+  }
+  return track;
+}
+
 export function getUserTasteMap(): UserTasteMap {
   if (typeof window === 'undefined') return DEFAULT_TASTE_MAP;
   try {
     const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_TASTE_MAP, ...parsed };
+      const merged: UserTasteMap = { ...DEFAULT_TASTE_MAP, ...parsed };
+      merged.lastFinishedTrack = refreshCachedTrack(merged.lastFinishedTrack);
+      merged.coListeningTracks = Array.isArray(merged.coListeningTracks)
+        ? merged.coListeningTracks.map((t) => refreshCachedTrack(t)!).filter(Boolean)
+        : [];
+      merged.cachedRecommendations = Array.isArray(merged.cachedRecommendations)
+        ? merged.cachedRecommendations.map((t) => refreshCachedTrack(t)!).filter(Boolean)
+        : [];
+      return merged;
     }
   } catch {
     // Fallback on error
@@ -223,6 +240,7 @@ export async function generateCoListeningRecommendations(finishedTrack: SongTrac
               albumCover: (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
               colors: finishedTrack.colors || ['#3b0764', '#7e22ce'],
               youtubeId: '',
+              audioUrl: r.previewUrl || '',
               durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
             });
           }
@@ -285,6 +303,7 @@ export async function generatePersonalized5Recommendations(): Promise<SongTrack[
               albumCover: (r.artworkUrl100 || '').replace('100x100bb', '600x600bb'),
               colors: ['#1e1b4b', '#4338ca'],
               youtubeId: '',
+              audioUrl: r.previewUrl || '',
               durationSec: Math.floor((r.trackTimeMillis || 180000) / 1000),
             });
           }
@@ -355,7 +374,7 @@ export interface DailyPickTrack extends SongTrack {
   reasonLabel: string;
 }
 
-const STORAGE_DAILY_KEY = 'contto_daily_picks_cache_v2';
+const STORAGE_DAILY_KEY = 'contto_daily_picks_cache_v3';
 
 /**
  * Günlük Kürasyon: "Bugün Sizin İçin Seçtiklerimiz"
