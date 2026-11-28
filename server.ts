@@ -10,14 +10,14 @@ app.use(express.json());
 const cache = new Map<string, string>();
 
 const seedTracks: Record<string, { videoId: string | null; audioUrl?: string | null }> = {
-  // Hileli - Manifest & Ajda Pekkan
-  'hileli': { videoId: 'kXKhNI4DLHM' },
-  'hileli manifest': { videoId: 'kXKhNI4DLHM' },
-  'manifest hileli': { videoId: 'kXKhNI4DLHM' },
-  'hileli ajda pekkan': { videoId: 'kXKhNI4DLHM' },
-  'ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
-  'hileli manifest ajda pekkan': { videoId: 'kXKhNI4DLHM' },
-  'manifest ajda pekkan hileli': { videoId: 'kXKhNI4DLHM' },
+  // Hileli - Manifest & Ajda Pekkan (Studio Audio matching LRC sync)
+  'hileli': { videoId: 'xl9mZmjLor8' },
+  'hileli manifest': { videoId: 'xl9mZmjLor8' },
+  'manifest hileli': { videoId: 'xl9mZmjLor8' },
+  'hileli ajda pekkan': { videoId: 'xl9mZmjLor8' },
+  'ajda pekkan hileli': { videoId: 'xl9mZmjLor8' },
+  'hileli manifest ajda pekkan': { videoId: 'xl9mZmjLor8' },
+  'manifest ajda pekkan hileli': { videoId: 'xl9mZmjLor8' },
 
   // Ajda Pekkan
   'ajda pekkan arada sirada': { videoId: '5Vc6tvr9aRg' },
@@ -254,17 +254,23 @@ function scoreYouTubeCandidate(
     if (channelArtistMatch) score += 16;
   }
 
-  // Official / audio indicators
+  // Prefer studio audio / Topic / Lyric videos (exact sync without 20s music-video skit intros)
   if (
+    candTitle.includes('official audio') ||
+    candTitle.includes('(audio)') ||
+    candChannel.includes('topic') ||
+    candTitle.includes('lyrics') ||
+    candTitle.includes('sarki sozleri')
+  ) {
+    score += 18;
+  } else if (
     candTitle.includes('official music video') ||
     candTitle.includes('official video') ||
-    candTitle.includes('official audio') ||
-    candChannel.includes('topic') ||
     candChannel.includes('vevo') ||
     candChannel.includes('netd muzik') ||
     candChannel.includes('dmc')
   ) {
-    score += 12;
+    score += 6;
   }
 
   // Penalize covers, karaoke, remixes, slowed/reverb, reactions, live unless user asked for them
@@ -492,6 +498,232 @@ app.get('/api/resolve-track', async (req, res) => {
     return res.json(result);
   } catch {
     return res.json({ videoId: null, audioUrl: null });
+  }
+});
+
+interface LyricLinePayload {
+  timeSec: number | null;
+  text: string;
+  isInstrumental?: boolean;
+}
+
+interface LyricsResponsePayload {
+  found: boolean;
+  synced: boolean;
+  lines: LyricLinePayload[];
+}
+
+const lyricsCache = new Map<string, LyricsResponsePayload>();
+
+function fetchJsonHttps(url: string, timeoutMs = 4500): Promise<any | null> {
+  return new Promise((resolve) => {
+    const req = https.get(
+      url,
+      {
+        headers: {
+          'User-Agent': 'CountToMusic/1.0 (https://countto.app)',
+          'Accept': 'application/json',
+        },
+      },
+      (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          res.resume();
+          resolve(null);
+          return;
+        }
+        let body = '';
+        res.on('data', (c) => (body += c));
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch {
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on('error', () => resolve(null));
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      resolve(null);
+    });
+  });
+}
+
+function parseLrcLyrics(lrc: string): LyricLinePayload[] {
+  const rawEntries: LyricLinePayload[] = [];
+  const lines = lrc.split(/\r?\n/);
+  const tagRegex = /\[(\d{1,3}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+
+  for (const rawLine of lines) {
+    const matches = [...rawLine.matchAll(tagRegex)];
+    if (matches.length === 0) continue;
+    const text = rawLine.replace(tagRegex, '').trim();
+    const isSymbolOnly = !text || /^[♪♫•.\-_\s]+$/.test(text);
+    for (const m of matches) {
+      const mins = parseInt(m[1], 10);
+      const secs = parseInt(m[2], 10);
+      const fracRaw = m[3] || '0';
+      const frac = parseInt(fracRaw.padEnd(3, '0').slice(0, 3), 10) / 1000;
+      const timeSec = mins * 60 + secs + frac;
+      rawEntries.push({
+        timeSec,
+        text: isSymbolOnly ? '' : text,
+        isInstrumental: isSymbolOnly,
+      });
+    }
+  }
+
+  rawEntries.sort((a, b) => (a.timeSec ?? 0) - (b.timeSec ?? 0));
+
+  // Collapse consecutive instrumental breaks and strip trailing breaks
+  const out: LyricLinePayload[] = [];
+  for (const entry of rawEntries) {
+    if (entry.isInstrumental) {
+      if (out.length === 0 || out[out.length - 1].isInstrumental) continue;
+      out.push(entry);
+    } else {
+      out.push(entry);
+    }
+  }
+  while (out.length > 0 && out[out.length - 1].isInstrumental) {
+    out.pop();
+  }
+  return out;
+}
+
+function parsePlainLyrics(plain: string): LyricLinePayload[] {
+  return plain
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('['))
+    .map((text) => ({ timeSec: null, text }));
+}
+
+function scoreLyricsCandidate(
+  item: any,
+  targetTitle: string,
+  targetArtist: string,
+  durationSec: number
+): number {
+  if (!item || item.instrumental) return -100;
+  const hasSynced = typeof item.syncedLyrics === 'string' && item.syncedLyrics.trim().length > 20;
+  const hasPlain = typeof item.plainLyrics === 'string' && item.plainLyrics.trim().length > 20;
+  if (!hasSynced && !hasPlain) return -100;
+
+  const itemTrack = foldTurkish(stripTrackNoise(item.trackName || item.name || ''));
+  const itemArtist = foldTurkish(item.artistName || '');
+  const titleTokens = tokenizeSignificant(targetTitle);
+  const artistTokens = tokenizeSignificant(targetArtist);
+
+  if (titleTokens.length > 0) {
+    const matchedTitle = titleTokens.filter((t) => itemTrack.includes(t)).length;
+    if (matchedTitle / titleTokens.length < 0.6) return -100;
+  }
+  if (artistTokens.length > 0) {
+    const matchedArtist = artistTokens.filter((a) => itemArtist.includes(a)).length;
+    if (matchedArtist === 0) return -100;
+  }
+
+  let score = hasSynced ? 60 : 20;
+  if (durationSec > 0 && typeof item.duration === 'number' && item.duration > 0) {
+    const diff = Math.abs(item.duration - durationSec);
+    if (diff <= 4) score += 25;
+    else if (diff <= 12) score += 10;
+    else if (diff > 35) score -= 25;
+  }
+  return score;
+}
+
+async function resolveTrackLyrics(
+  title: string,
+  artist: string,
+  durationSec: number
+): Promise<LyricsResponsePayload> {
+  const cleanTitle = stripTrackNoise(title);
+  const primaryArtist = artist.split(/[,&]|feat\.?|ft\.?/i)[0]?.trim() || artist.trim();
+  const cacheKey = normalizeQuery(`${cleanTitle}::${artist}`);
+  if (lyricsCache.has(cacheKey)) {
+    return lyricsCache.get(cacheKey)!;
+  }
+
+  const candidates: any[] = [];
+
+  // 1. Exact LRCLIB get endpoint
+  const exactUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(primaryArtist)}${
+    durationSec > 0 ? `&duration=${Math.round(durationSec)}` : ''
+  }`;
+  const exact = await fetchJsonHttps(exactUrl);
+  if (exact && !exact.statusCode) {
+    candidates.push(exact);
+  }
+
+  // 2. Fallback search if no synced hit yet
+  const hasSyncedHit = candidates.some(
+    (c) => typeof c?.syncedLyrics === 'string' && c.syncedLyrics.trim().length > 20
+  );
+  if (!hasSyncedHit) {
+    const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(primaryArtist)}`;
+    const list = await fetchJsonHttps(searchUrl);
+    if (Array.isArray(list)) {
+      candidates.push(...list.slice(0, 8));
+    }
+  }
+
+  if (candidates.length === 0) {
+    const broadUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(`${cleanTitle} ${primaryArtist}`.trim())}`;
+    const broadList = await fetchJsonHttps(broadUrl);
+    if (Array.isArray(broadList)) {
+      candidates.push(...broadList.slice(0, 8));
+    }
+  }
+
+  let bestItem: any = null;
+  let bestScore = -Infinity;
+  for (const item of candidates) {
+    const sc = scoreLyricsCandidate(item, cleanTitle, artist, durationSec);
+    if (sc > bestScore) {
+      bestScore = sc;
+      bestItem = item;
+    }
+  }
+
+  let payload: LyricsResponsePayload = { found: false, synced: false, lines: [] };
+  if (bestItem && bestScore > 0) {
+    if (typeof bestItem.syncedLyrics === 'string' && bestItem.syncedLyrics.trim()) {
+      const parsed = parseLrcLyrics(bestItem.syncedLyrics);
+      if (parsed.length >= 3) {
+        payload = { found: true, synced: true, lines: parsed };
+      }
+    }
+    if (!payload.found && typeof bestItem.plainLyrics === 'string' && bestItem.plainLyrics.trim()) {
+      const parsedPlain = parsePlainLyrics(bestItem.plainLyrics);
+      if (parsedPlain.length >= 3) {
+        payload = { found: true, synced: false, lines: parsedPlain };
+      }
+    }
+  }
+
+  lyricsCache.set(cacheKey, payload);
+  return payload;
+}
+
+// API to automatically fetch synced/plain lyrics for CountTo Music Sing
+app.get('/api/lyrics', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  const title = typeof req.query.title === 'string' ? req.query.title.trim() : '';
+  const artist = typeof req.query.artist === 'string' ? req.query.artist.trim() : '';
+  const durationSec = Number(req.query.duration) || 0;
+
+  if (!title) {
+    return res.json({ found: false, synced: false, lines: [] });
+  }
+
+  try {
+    const result = await resolveTrackLyrics(title, artist, durationSec);
+    return res.json(result);
+  } catch {
+    return res.json({ found: false, synced: false, lines: [] });
   }
 });
 

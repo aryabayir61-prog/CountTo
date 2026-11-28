@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
@@ -20,11 +19,11 @@ import {
   GraduationCap,
   MapPin,
   RotateCw,
-  Maximize2,
-  Minimize2
+  Maximize2
 } from 'lucide-react';
 import { musicAudioEngine, PRESET_SONGS, SongTrack } from '../utils/musicAudioEngine';
 import { extractAlbumColors } from '../utils/colorExtractor';
+import { FullscreenTurntableModal } from './FullscreenTurntableModal';
 import { 
   generatePersonalized5Recommendations, 
   generateCoListeningRecommendations, 
@@ -83,6 +82,7 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [sleeveImgError, setSleeveImgError] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [activeSearchPool, setActiveSearchPool] = useState<SongTrack[] | null>(null);
   const isSeekingRef = useRef<boolean>(false);
 
   // Global 'G' Key Listener & 'Escape' for fullscreen exit
@@ -330,6 +330,11 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     if (pool && pool.length > 0) {
       musicAudioEngine.setActivePool(pool);
     }
+    if (searchQuery.trim().length > 0 || track.id.startsWith('online-')) {
+      setActiveSearchPool(pool && pool.length > 0 ? pool : searchResults.length > 0 ? searchResults : [track]);
+    } else {
+      setActiveSearchPool(null);
+    }
     setHoveredTrack(null);
     recordImplicitSignal(track, 'play_select');
     musicAudioEngine.play(track);
@@ -430,6 +435,41 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
     extractedColors ||
     activeTrack.colors ||
     ['#dc2626', '#e11d48'];
+
+  const fullscreenCrateTracks = useMemo(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length > 0) {
+      if (searchResults.length > 0) {
+        return searchResults.some((s) => s.id === activeTrack.id)
+          ? searchResults
+          : [activeTrack, ...searchResults];
+      }
+      const qLower = trimmed.toLowerCase();
+      const localMatches = PRESET_SONGS.filter(
+        (s) => s.name.toLowerCase().includes(qLower) || s.artist.toLowerCase().includes(qLower)
+      );
+      if (localMatches.length > 0) {
+        return localMatches.some((s) => s.id === activeTrack.id)
+          ? localMatches
+          : [activeTrack, ...localMatches];
+      }
+      return activeSearchPool && activeSearchPool.length > 0
+        ? activeSearchPool
+        : [activeTrack];
+    }
+    if (activeSearchPool && activeSearchPool.length > 0 && activeTrack.id.startsWith('online-')) {
+      return activeSearchPool;
+    }
+    return [...personalized5, ...coListeningTracks, ...dailyPicks, ...PRESET_SONGS];
+  }, [
+    searchQuery,
+    searchResults,
+    activeSearchPool,
+    activeTrack,
+    personalized5,
+    coListeningTracks,
+    dailyPicks,
+  ]);
   const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const remainingSeconds = Math.max(0, duration - currentTime);
 
@@ -1096,392 +1136,61 @@ export const FloatingMusicWidget: React.FC<FloatingMusicWidgetProps> = ({
       )}
     </AnimatePresence>
 
-    {typeof document !== 'undefined' &&
-      createPortal(
-        <AnimatePresence>
-          {isFullscreen && !isSchoolBlocked && (
-            <motion.div
-              key="countto-music-fullscreen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-[120] bg-[#09090d]/95 backdrop-blur-3xl text-white flex flex-col justify-between p-4 sm:p-8 lg:p-10 overflow-y-auto select-none"
-            >
-              {/* Ambient Album Glow Background */}
-              <div
-                className="pointer-events-none fixed -top-32 -left-32 w-[480px] h-[480px] rounded-full blur-[130px] opacity-30 transition-colors duration-1000"
-                style={{ backgroundColor: activeColors[0] }}
-              />
-              <div
-                className="pointer-events-none fixed -bottom-32 -right-32 w-[520px] h-[520px] rounded-full blur-[140px] opacity-35 transition-colors duration-1000"
-                style={{ backgroundColor: activeColors[1] }}
-              />
-
-              {/* Top Bar */}
-              <div className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center">
-                    <Music className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold tracking-tight text-white">CountTo Müzik</span>
-                    <span className="text-[11px] text-white/50">Masaüstü Pikap Modu</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsFullscreen(false);
-                      setHoveredTrack(null);
-                      setIsOpen(true);
-                    }}
-                    title="Küçült"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white transition-all active:scale-95 cursor-pointer"
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Küçült</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsFullscreen(false);
-                      setHoveredTrack(null);
-                    }}
-                    title="Kapat (Esc)"
-                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white transition-all active:scale-95 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Desktop Split Content: Left Large Vinyl Turntable & Controls | Right Track List & Search */}
-              <div className="relative z-10 w-full max-w-6xl mx-auto my-auto py-6 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-8 lg:gap-12 items-center">
-                {/* LEFT: LARGE TURNTABLE + INFO + SEEKBAR + TRANSPORT CONTROLS */}
-                <div className="flex flex-col items-center gap-6">
-                  {/* Large MD Vinyl Turntable Stage */}
-                  <div className="relative h-[230px] sm:h-[275px] w-full flex items-center justify-center">
-                    {/* 1. Large Physical Cardboard Album Sleeve */}
-                    <div
-                      key={`fs-sleeve-${activeTrack.id}`}
-                      className="relative z-20 -mr-20 sm:-mr-24 w-[190px] h-[190px] sm:w-[238px] sm:h-[238px] rounded-lg overflow-hidden shadow-[16px_22px_45px_rgba(0,0,0,0.88)] border border-white/20 bg-neutral-900 shrink-0"
-                    >
-                      {!sleeveImgError && activeTrack.albumCover ? (
-                        <img
-                          src={activeTrack.albumCover}
-                          alt={activeTrack.name}
-                          onError={() => setSleeveImgError(true)}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full flex flex-col items-center justify-center p-5 text-center"
-                          style={{
-                            background: `linear-gradient(135deg, ${activeColors[0]}, ${activeColors[1]})`,
-                          }}
-                        >
-                          <Music className="w-10 h-10 text-white/80 mb-2" />
-                          <span className="text-sm font-bold text-white line-clamp-2 leading-tight">
-                            {activeTrack.name}
-                          </span>
-                          <span className="text-xs text-white/75 truncate max-w-full mt-1">
-                            {activeTrack.artist}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/55 via-white/15 to-transparent pointer-events-none" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/35 pointer-events-none" />
-                    </div>
-
-                    {/* 2. Large Spinning Grooved Vinyl Disc */}
-                    <div
-                      onClick={handleTogglePlayPause}
-                      title={isPlaying ? 'Plağı Durdur' : 'Plağı Çal'}
-                      className="relative z-10 w-[198px] h-[198px] sm:w-[248px] sm:h-[248px] rounded-full cursor-pointer shadow-[0_18px_48px_rgba(0,0,0,0.92)] shrink-0"
-                    >
-                      <div
-                        className="w-full h-full rounded-full animate-vinyl-spin flex items-center justify-center relative border border-white/10"
-                        style={{
-                          animationPlayState: isPlaying ? 'running' : 'paused',
-                          background:
-                            'repeating-radial-gradient(circle at center, #0c0c0e 0px, #0c0c0e 1.8px, #19191e 2.6px, #0a0a0c 3.8px)',
-                        }}
-                      >
-                        <div className="w-[104px] h-[104px] sm:w-[122px] sm:h-[122px] rounded-full border border-white/10 flex items-center justify-center bg-[#0a0a0c]">
-                          <div
-                            key={`fs-label-${activeTrack.id}`}
-                            className="w-[90px] h-[90px] sm:w-[106px] sm:h-[106px] rounded-full flex flex-col items-center justify-between py-4 sm:py-5 px-2.5 text-center border border-white/25 shadow-inner relative overflow-hidden"
-                            style={{
-                              background: `radial-gradient(circle at 35% 30%, #27272e 0%, #15151a 70%, ${activeColors[0]}33 100%)`,
-                            }}
-                          >
-                            <span className="text-[9px] sm:text-[10.5px] font-extrabold text-white leading-tight truncate max-w-[74px] tracking-tight">
-                              {activeTrack.name}
-                            </span>
-                            <span className="text-[8px] sm:text-[9px] font-medium text-white/65 truncate max-w-[70px]">
-                              {activeTrack.artist}
-                            </span>
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-gradient-to-br from-neutral-200 to-neutral-500 border border-neutral-800 shadow-inner" />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className="absolute inset-0 rounded-full pointer-events-none"
-                        style={{
-                          background:
-                            'conic-gradient(from 35deg, transparent 0deg, rgba(255,255,255,0.14) 22deg, transparent 52deg, transparent 180deg, rgba(255,255,255,0.11) 202deg, transparent 235deg, transparent 360deg)',
-                        }}
-                      />
-                    </div>
-
-                    {/* 3. Large Articulated Brushed Metallic Tonearm */}
-                    <button
-                      type="button"
-                      onClick={handleTogglePlayPause}
-                      title={isPlaying ? 'İğneyi Kaldır' : 'İğneyi İndir'}
-                      className="relative z-30 -ml-7 h-[210px] sm:h-[252px] w-[58px] shrink-0 cursor-pointer focus:outline-none"
-                    >
-                      <div className="absolute top-3 right-1.5 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-b from-zinc-700 to-zinc-900 border border-white/20 shadow-[0_8px_18px_rgba(0,0,0,0.85)] flex items-center justify-center">
-                        <div className="w-4 h-4 rounded-full bg-zinc-400 border border-zinc-700" />
-                      </div>
-
-                      <div
-                        className="absolute top-[32px] right-[23px] sm:right-[25px] origin-top transition-transform duration-700 ease-out"
-                        style={{
-                          transform: isPlaying
-                            ? `rotate(${19 + (progressPercent / 100) * 13}deg)`
-                            : 'rotate(-5deg)',
-                        }}
-                      >
-                        <div className="w-3.5 h-4 -ml-[5px] -mt-4 rounded-sm bg-zinc-800 border border-white/15" />
-                        <div className="w-[4px] h-[132px] sm:h-[158px] mx-auto bg-gradient-to-r from-zinc-400 via-white to-zinc-500 rounded-full shadow-md" />
-                        <div
-                          className="w-4 h-7 -ml-[6px] -mt-0.5 rounded-xs bg-zinc-900 border border-white/25 shadow-lg"
-                          style={{ transform: 'rotate(20deg)' }}
-                        >
-                          <div
-                            className="w-1.5 h-1.5 rounded-full mx-auto mt-4.5"
-                            style={{ backgroundColor: isPlaying ? activeColors[0] : '#71717a' }}
-                          />
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Active Track Title & Artist */}
-                  <div className="w-full max-w-md text-center flex flex-col gap-1">
-                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white truncate">
-                      {activeTrack.name}
-                    </h2>
-                    <p className="text-sm text-white/60 font-medium truncate">
-                      {activeTrack.artist}
-                    </p>
-                  </div>
-
-                  {/* Desktop Timeline Seekbar */}
-                  <div className="w-full max-w-md flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-xs font-mono text-white/70">
-                      <span>{formatMinutes(currentTime)}</span>
-                      <span>-{formatMinutes(remainingSeconds)}</span>
-                    </div>
-                    <div
-                      onPointerDown={handleSeekPointerDown}
-                      onPointerMove={handleSeekPointerMove}
-                      onPointerUp={handleSeekPointerUp}
-                      onPointerCancel={handleSeekPointerUp}
-                      className="relative h-3 w-full bg-white/15 hover:bg-white/20 rounded-full cursor-pointer flex items-center overflow-hidden border border-white/10 transition-all touch-none"
-                      title="İlerlet"
-                    >
-                      <div
-                        className="h-full bg-gradient-to-r from-white/75 via-white/90 to-white rounded-full transition-all duration-100 relative"
-                        style={{ width: `${progressPercent}%` }}
-                      >
-                        {progressPercent > 2 && (
-                          <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full w-4 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.95)]" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Desktop Transport Controls Pod */}
-                  <div className="w-full max-w-md rounded-full bg-black/45 backdrop-blur-xl border border-white/12 px-7 py-3 flex items-center justify-between shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
-                    <motion.button
-                      type="button"
-                      onClick={handleToggleShuffle}
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      title={isShuffle ? 'Karışık Çalma Açık' : 'Karışık Çal'}
-                      className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                        isShuffle
-                          ? 'text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.8)]'
-                          : 'text-white/60 hover:text-white'
-                      }`}
-                    >
-                      <Shuffle className="w-5 h-5 stroke-[2.2]" />
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      onClick={handlePrevious}
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      title="Önceki Şarkı"
-                      className="p-2 rounded-xl text-white hover:text-white/80 transition-colors cursor-pointer"
-                    >
-                      <SkipBack className="w-6 h-6 fill-white stroke-white" />
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      onClick={handleTogglePlayPause}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.94 }}
-                      transition={{ type: 'spring', stiffness: 450, damping: 25 }}
-                      title={isPlaying ? 'Durdur' : 'Oynat'}
-                      className="w-14 h-14 rounded-2xl bg-white/20 hover:bg-white/30 border border-white/35 backdrop-blur-xl flex items-center justify-center text-white transition-all cursor-pointer shadow-[0_10px_25px_rgba(0,0,0,0.5)]"
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-7 h-7 fill-white" />
-                      ) : (
-                        <Play className="w-7 h-7 fill-white ml-0.5" />
-                      )}
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      onClick={handleNext}
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      title="Sonraki Şarkı"
-                      className="p-2 rounded-xl text-white hover:text-white/80 transition-colors cursor-pointer"
-                    >
-                      <SkipForward className="w-6 h-6 fill-white stroke-white" />
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      onClick={handleToggleRepeat}
-                      whileHover={{ scale: 1.08 }}
-                      whileTap={{ scale: 0.92 }}
-                      title={isRepeat ? 'Tekrar Modu Açık' : 'Tekrar Çal'}
-                      className={`p-2 rounded-xl transition-colors cursor-pointer ${
-                        isRepeat
-                          ? 'text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.8)]'
-                          : 'text-white/60 hover:text-white'
-                      }`}
-                    >
-                      <Repeat className="w-5 h-5 stroke-[2.2]" />
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* RIGHT: DESKTOP TRACK LIST & LIVE SEARCH PANEL */}
-                <div className="rounded-3xl bg-white/[0.04] backdrop-blur-2xl border border-white/12 p-4 sm:p-5 flex flex-col gap-3.5 h-[400px] lg:h-[490px] shadow-[0_24px_60px_rgba(0,0,0,0.6)]">
-                  <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-black/45 border border-white/15 text-white shadow-inner">
-                    {isSearchingOnline ? (
-                      <Loader2 className="w-4 h-4 text-cyan-400 animate-spin mr-2.5 shrink-0" />
-                    ) : (
-                      <Search className="w-4 h-4 text-white/50 mr-2.5 shrink-0 stroke-[2.2]" />
-                    )}
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Şarkı veya sanatçı arayın..."
-                      className="bg-transparent text-white placeholder-white/45 focus:outline-none w-full text-xs sm:text-sm font-medium"
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        className="text-white/45 hover:text-white p-0.5 cursor-pointer"
-                        title="Temizle"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-1.5 custom-sticky-scrollbar">
-                    {searchQuery.trim().length > 0 ? (
-                      searchResults.length > 0 ? (
-                        searchResults.map((song) => renderSongRow(song, searchResults))
-                      ) : isSearchingOnline ? (
-                        <div className="py-10 flex items-center justify-center gap-2 text-xs text-white/60">
-                          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                          <span>Şarkılar aranıyor...</span>
-                        </div>
-                      ) : (
-                        (() => {
-                          const qLower = searchQuery.trim().toLowerCase();
-                          const localMatches = PRESET_SONGS.filter(
-                            (s) =>
-                              s.name.toLowerCase().includes(qLower) ||
-                              s.artist.toLowerCase().includes(qLower)
-                          );
-                          if (localMatches.length > 0) {
-                            return localMatches.map((song) => renderSongRow(song, localMatches));
-                          }
-                          return (
-                            <div className="py-10 text-center text-xs text-white/55">
-                              Eşleşen şarkı bulunamadı.
-                            </div>
-                          );
-                        })()
-                      )
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between px-1 py-0.5">
-                          <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-cyan-400" />
-                            Zevkine Göre Öneriler
-                          </span>
-                        </div>
-                        {personalized5.map((song) => renderSongRow(song, personalized5))}
-
-                        {coListeningTracks.length > 0 && lastFinishedTrack && (
-                          <>
-                            <div className="my-2 border-t border-white/10 mx-1" />
-                            <div className="flex items-center justify-between px-1 py-0.5">
-                              <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
-                                <Users className="w-3 h-3 text-cyan-400" />
-                                {lastFinishedTrack.name} Dinleyenler Bunları da Dinledi
-                              </span>
-                            </div>
-                            {coListeningTracks.map((song) => renderSongRow(song, coListeningTracks))}
-                          </>
-                        )}
-
-                        {dailyPicks.length > 0 && (
-                          <>
-                            <div className="my-2 border-t border-white/10 mx-1" />
-                            <div className="flex items-center justify-between px-1 py-0.5">
-                              <span className="text-[11px] font-semibold text-white/75 flex items-center gap-1.5">
-                                <Compass className="w-3 h-3 text-cyan-400" />
-                                Bugün Sizin İçin Seçtiklerimiz
-                              </span>
-                            </div>
-                            {dailyPicks.map((song) => renderSongRow(song, dailyPicks))}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative z-10 w-full max-w-6xl mx-auto text-center text-[11px] text-white/35 hidden sm:block">
-                Esc ile küçültebilir, plak üzerine dokunarak çalıp duraklatabilirsiniz
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+    <FullscreenTurntableModal
+      isOpen={isFullscreen && !isSchoolBlocked}
+      onClose={() => {
+        setIsFullscreen(false);
+        setHoveredTrack(null);
+      }}
+      onMinimize={() => {
+        setIsFullscreen(false);
+        setHoveredTrack(null);
+        setIsOpen(true);
+      }}
+      activeTrack={activeTrack}
+      activeColors={activeColors}
+      isPlaying={isPlaying}
+      currentTime={currentTime}
+      duration={duration}
+      isShuffle={isShuffle}
+      isRepeat={isRepeat}
+      onTogglePlayPause={() => {
+        clearTimer();
+        musicAudioEngine.togglePlayPause();
+      }}
+      onNext={() => {
+        clearTimer();
+        musicAudioEngine.next();
+      }}
+      onPrevious={() => {
+        clearTimer();
+        musicAudioEngine.previous();
+      }}
+      onToggleShuffle={() => {
+        clearTimer();
+        musicAudioEngine.toggleShuffle();
+      }}
+      onToggleRepeat={() => {
+        clearTimer();
+        musicAudioEngine.toggleRepeat();
+      }}
+      onSeek={(seconds) => {
+        clearTimer();
+        musicAudioEngine.seek(seconds);
+      }}
+      onSelectTrack={handleSelectTrack}
+      crateTracks={fullscreenCrateTracks}
+      searchQuery={searchQuery}
+      onSearchQueryChange={(q) => {
+        setSearchQuery(q);
+        if (!q.trim()) {
+          setActiveSearchPool(null);
+        }
+      }}
+      searchResults={searchResults}
+      isSearchingOnline={isSearchingOnline}
+      onHoverTrack={setHoveredTrack}
+    />
     </div>
   );
 };

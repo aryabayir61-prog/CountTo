@@ -52,17 +52,18 @@ const KNOWN_INVALID_YOUTUBE_IDS = new Set([
   '1f32qfJgqQY',
   'yDq1nB5y2G4',
   'U2hF6y1V0nE',
+  'kXKhNI4DLHM',
 ]);
 
 // In-browser instant dictionary for popular artists & hits (0ms lookup, Turkish-normalized keys)
 const CLIENT_TRACK_CATALOG: Record<string, string> = {
-  // Hileli - Manifest & Ajda Pekkan
-  'hileli manifest': 'kXKhNI4DLHM',
-  'manifest hileli': 'kXKhNI4DLHM',
-  'hileli ajda pekkan': 'kXKhNI4DLHM',
-  'ajda pekkan hileli': 'kXKhNI4DLHM',
-  'hileli manifest ajda pekkan': 'kXKhNI4DLHM',
-  'manifest ajda pekkan hileli': 'kXKhNI4DLHM',
+  // Hileli - Manifest & Ajda Pekkan (Studio Audio matching LRC sync)
+  'hileli manifest': 'xl9mZmjLor8',
+  'manifest hileli': 'xl9mZmjLor8',
+  'hileli ajda pekkan': 'xl9mZmjLor8',
+  'ajda pekkan hileli': 'xl9mZmjLor8',
+  'hileli manifest ajda pekkan': 'xl9mZmjLor8',
+  'manifest ajda pekkan hileli': 'xl9mZmjLor8',
 
   // Ajda Pekkan
   'ajda pekkan arada sirada': '5Vc6tvr9aRg',
